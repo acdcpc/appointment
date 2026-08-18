@@ -1,48 +1,76 @@
-import { ScrollView, Text, View, TouchableOpacity } from "react-native";
-
+import { useMemo, useState } from "react";
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
+import { useColors } from "@/hooks/use-colors";
 
-/**
- * Home Screen - NativeWind Example
- *
- * This template uses NativeWind (Tailwind CSS for React Native).
- * You can use familiar Tailwind classes directly in className props.
- *
- * Key patterns:
- * - Use `className` instead of `style` for most styling
- * - Theme colors: use tokens directly (bg-background, text-foreground, bg-primary, etc.); no dark: prefix needed
- * - Responsive: standard Tailwind breakpoints work on web
- * - Custom colors defined in tailwind.config.js
- */
+type ViewKey = "home" | "find" | "appointments" | "profile" | "doctor" | "slots" | "detail" | "doctorSchedule" | "admin";
+type Appointment = { id: string; doctor: string; specialty: string; date: string; time: string; status: string; color: string };
+
+const doctors = [
+  { id: "1", name: "Dr. Maya Patel", specialty: "Family Medicine", rating: "4.9", next: "Today, 3:30 PM", initials: "MP", bio: "Warm, preventive care for adults and families, with a focus on long-term wellness." },
+  { id: "2", name: "Dr. Adrian Cole", specialty: "Dermatology", rating: "4.8", next: "Tomorrow, 10:00 AM", initials: "AC", bio: "Evidence-led skin care with time for questions and practical treatment plans." },
+  { id: "3", name: "Dr. Leena Shah", specialty: "Pediatrics", rating: "4.9", next: "Wed, 9:15 AM", initials: "LS", bio: "Thoughtful pediatric care for every stage, from checkups to same-day concerns." },
+];
+
+const appointments: Appointment[] = [
+  { id: "a1", doctor: "Dr. Maya Patel", specialty: "Annual wellness visit", date: "Tue, Aug 20", time: "3:30 PM", status: "Confirmed", color: "#0E7490" },
+  { id: "a2", doctor: "Dr. Adrian Cole", specialty: "Skin consultation", date: "Fri, Aug 30", time: "10:00 AM", status: "Needs intake", color: "#F97360" },
+];
+
+const slots = ["9:00 AM", "9:30 AM", "10:00 AM", "11:30 AM", "2:00 PM", "3:30 PM"];
+
 export default function HomeScreen() {
-  return (
-    <ScreenContainer className="p-6">
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-        <View className="flex-1 gap-8">
-          {/* Hero Section */}
-          <View className="items-center gap-2">
-            <Text className="text-4xl font-bold text-foreground">Welcome</Text>
-            <Text className="text-base text-muted text-center">
-              Edit app/(tabs)/index.tsx to get started
-            </Text>
-          </View>
+  const colors = useColors();
+  const [view, setView] = useState<ViewKey>("home");
+  const [selectedDoctor, setSelectedDoctor] = useState(doctors[0]);
+  const [selectedSlot, setSelectedSlot] = useState("3:30 PM");
+  const [query, setQuery] = useState("");
+  const [booked, setBooked] = useState(false);
 
-          {/* Example Card */}
-          <View className="w-full max-w-sm self-center bg-surface rounded-2xl p-6 shadow-sm border border-border">
-            <Text className="text-lg font-semibold text-foreground mb-2">NativeWind Ready</Text>
-            <Text className="text-sm text-muted leading-relaxed">
-              Use Tailwind CSS classes directly in your React Native components.
-            </Text>
-          </View>
+  const filteredDoctors = useMemo(() => doctors.filter((doctor) => `${doctor.name} ${doctor.specialty}`.toLowerCase().includes(query.toLowerCase())), [query]);
+  const go = (next: ViewKey) => setView(next);
 
-          {/* Example Button */}
-          <View className="items-center">
-            <TouchableOpacity className="bg-primary px-6 py-3 rounded-full active:opacity-80">
-              <Text className="text-background font-semibold">Get Started</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </ScrollView>
-    </ScreenContainer>
+  const header = (title: string, subtitle?: string) => (
+    <View style={styles.headerRow}>
+      <View style={{ flex: 1 }}><Text style={[styles.eyebrow, { color: colors.primary }]}>HARBOR CLINIC</Text><Text style={[styles.title, { color: colors.foreground }]}>{title}</Text>{subtitle ? <Text style={[styles.subtitle, { color: colors.muted }]}>{subtitle}</Text> : null}</View>
+      <View style={[styles.avatar, { backgroundColor: colors.primary }]}><Text style={styles.avatarText}>JS</Text></View>
+    </View>
   );
+
+  const doctorCard = (doctor: typeof doctors[number]) => (
+    <Pressable key={doctor.id} onPress={() => { setSelectedDoctor(doctor); go("doctor"); }} style={({ pressed }) => [styles.doctorCard, { backgroundColor: colors.surface, borderColor: colors.border }, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={`View ${doctor.name}`}>
+      <View style={[styles.doctorAvatar, { backgroundColor: doctor.id === "2" ? "#FDE7E2" : "#D8F0F1" }]}><Text style={[styles.doctorInitials, { color: doctor.id === "2" ? "#C55748" : colors.primary }]}>{doctor.initials}</Text></View>
+      <View style={{ flex: 1, gap: 4 }}><Text style={[styles.cardTitle, { color: colors.foreground }]}>{doctor.name}</Text><Text style={[styles.cardMeta, { color: colors.muted }]}>{doctor.specialty}</Text><Text style={[styles.cardMeta, { color: colors.foreground }]}>★ {doctor.rating}  ·  Next: {doctor.next}</Text></View><Text style={{ color: colors.primary, fontSize: 22 }}>›</Text>
+    </Pressable>
+  );
+
+  if (view === "find") return <ScreenContainer className="p-5"><ScrollView showsVerticalScrollIndicator={false}>{header("Find care", "Choose the right clinician for your next visit") }<View style={[styles.search, { backgroundColor: colors.surface, borderColor: colors.border }]}><Text style={{ color: colors.muted, fontSize: 18 }}>⌕</Text><TextInput value={query} onChangeText={setQuery} placeholder="Search doctors or specialties" placeholderTextColor={colors.muted} style={[styles.searchInput, { color: colors.foreground }]} /></View><Text style={[styles.sectionTitle, { color: colors.foreground }]}>Browse specialties</Text><View style={styles.chips}>{["Primary care", "Dermatology", "Pediatrics"].map((item) => <Pressable key={item} onPress={() => setQuery(item)} style={[styles.chip, { borderColor: colors.border }]}><Text style={[styles.chipText, { color: colors.primary }]}>{item}</Text></Pressable>)}</View><Text style={[styles.sectionTitle, { color: colors.foreground }]}>Available this week</Text>{filteredDoctors.map(doctorCard)}</ScrollView></ScreenContainer>;
+
+  if (view === "doctor") return <ScreenContainer className="p-5"><ScrollView showsVerticalScrollIndicator={false}><Pressable onPress={() => go("find")}><Text style={[styles.back, { color: colors.primary }]}>‹  Find care</Text></Pressable><View style={styles.profileHero}><View style={[styles.largeAvatar, { backgroundColor: "#D8F0F1" }]}><Text style={[styles.largeInitials, { color: colors.primary }]}>{selectedDoctor.initials}</Text></View><Text style={[styles.title, { color: colors.foreground }]}>{selectedDoctor.name}</Text><Text style={[styles.subtitle, { color: colors.muted }]}>{selectedDoctor.specialty}  ·  ★ {selectedDoctor.rating}</Text></View><View style={[styles.infoCard, { backgroundColor: colors.surface, borderColor: colors.border }]}><Text style={[styles.cardTitle, { color: colors.foreground }]}>About your clinician</Text><Text style={[styles.body, { color: colors.muted }]}>{selectedDoctor.bio}</Text><Text style={[styles.body, { color: colors.foreground }]}>Languages: English, Hindi</Text><Text style={[styles.body, { color: colors.foreground }]}>Consultation: $80 · 30 minutes</Text></View><Text style={[styles.sectionTitle, { color: colors.foreground }]}>Select a visit</Text><Pressable onPress={() => go("slots")} style={[styles.serviceRow, { backgroundColor: colors.surface, borderColor: colors.primary }]}><View><Text style={[styles.cardTitle, { color: colors.foreground }]}>General consultation</Text><Text style={[styles.cardMeta, { color: colors.muted }]}>In clinic · 30 minutes</Text></View><Text style={[styles.cardTitle, { color: colors.primary }]}>$80  ›</Text></Pressable><Pressable onPress={() => go("slots")} style={[styles.primaryButton, { backgroundColor: colors.primary }]}><Text style={styles.primaryButtonText}>Choose a time</Text></Pressable></ScrollView></ScreenContainer>;
+
+  if (view === "slots") return <ScreenContainer className="p-5"><ScrollView showsVerticalScrollIndicator={false}><Pressable onPress={() => go("doctor")}><Text style={[styles.back, { color: colors.primary }]}>‹  {selectedDoctor.name}</Text></Pressable><Text style={[styles.title, { color: colors.foreground }]}>Choose a time</Text><Text style={[styles.subtitle, { color: colors.muted }]}>August 20 · Harbor Clinic local time</Text><View style={styles.dateRow}>{["Tue 20", "Wed 21", "Thu 22", "Fri 23"].map((day, index) => <Pressable key={day} onPress={() => {}} style={[styles.dateCell, { borderColor: index === 0 ? colors.primary : colors.border, backgroundColor: index === 0 ? "#E0F2F3" : colors.surface }]}><Text style={[styles.dateDay, { color: colors.muted }]}>{day.split(" ")[0]}</Text><Text style={[styles.dateNumber, { color: colors.foreground }]}>{day.split(" ")[1]}</Text></Pressable>)}</View><Text style={[styles.sectionTitle, { color: colors.foreground }]}>Available times</Text><View style={styles.slotGrid}>{slots.map((slot) => <Pressable key={slot} onPress={() => setSelectedSlot(slot)} style={[styles.slot, { borderColor: selectedSlot === slot ? colors.primary : colors.border, backgroundColor: selectedSlot === slot ? colors.primary : colors.surface }]}><Text style={{ color: selectedSlot === slot ? "#fff" : colors.foreground, fontWeight: "700" }}>{slot}</Text></Pressable>)}</View><Text style={[styles.sectionTitle, { color: colors.foreground }]}>Visit type</Text><View style={[styles.serviceRow, { backgroundColor: colors.surface, borderColor: colors.border }]}><View><Text style={[styles.cardTitle, { color: colors.foreground }]}>In-clinic visit</Text><Text style={[styles.cardMeta, { color: colors.muted }]}>Harbor Clinic · 12 Bay Street</Text></View><Text style={{ color: colors.primary }}>✓</Text></View><Pressable onPress={() => { setBooked(true); go("detail"); }} style={[styles.primaryButton, { backgroundColor: colors.primary }]}><Text style={styles.primaryButtonText}>Confirm {selectedSlot}</Text></Pressable></ScrollView></ScreenContainer>;
+
+  if (view === "detail") return <ScreenContainer className="p-5"><ScrollView showsVerticalScrollIndicator={false}>{header(booked ? "You’re all set" : "Appointment details", booked ? "Your visit has been reserved" : "Your upcoming visit") }<View style={[styles.confirmCard, { backgroundColor: colors.primary }]}><Text style={styles.confirmLabel}>UPCOMING VISIT</Text><Text style={styles.confirmDate}>Tue, Aug 20 at {selectedSlot}</Text><Text style={styles.confirmDoctor}>{selectedDoctor.name} · General consultation</Text><Text style={styles.confirmLocation}>Harbor Clinic · 12 Bay Street</Text></View><Text style={[styles.sectionTitle, { color: colors.foreground }]}>Before you arrive</Text><Pressable onPress={() => {}} style={[styles.serviceRow, { backgroundColor: colors.surface, borderColor: colors.border }]}><View><Text style={[styles.cardTitle, { color: colors.foreground }]}>Complete intake form</Text><Text style={[styles.cardMeta, { color: colors.muted }]}>About 3 minutes · symptoms, medications, allergies</Text></View><Text style={{ color: colors.primary }}>›</Text></Pressable><Pressable onPress={() => go("appointments")} style={[styles.secondaryButton, { borderColor: colors.primary }]}><Text style={[styles.secondaryButtonText, { color: colors.primary }]}>View all appointments</Text></Pressable></ScrollView></ScreenContainer>;
+
+  if (view === "doctorSchedule") return <ScreenContainer className="p-5"><ScrollView>{header("Today’s schedule", "Tuesday, August 20") }<View style={[styles.metricCard, { backgroundColor: "#E0F2F3" }]}><Text style={[styles.eyebrow, { color: colors.primary }]}>YOUR DAY</Text><Text style={[styles.metric, { color: colors.foreground }]}>6 visits</Text><Text style={[styles.cardMeta, { color: colors.muted }]}>2 completed · 4 remaining</Text></View>{appointments.concat([{ id: "a3", doctor: "Noah Williams", specialty: "Follow-up visit", date: "Tue, Aug 20", time: "4:00 PM", status: "Booked", color: "#805AD5" }]).map((item) => <View key={item.id} style={[styles.scheduleRow, { borderColor: colors.border }]}><Text style={[styles.scheduleTime, { color: colors.primary }]}>{item.time}</Text><View style={{ flex: 1 }}><Text style={[styles.cardTitle, { color: colors.foreground }]}>{item.doctor}</Text><Text style={[styles.cardMeta, { color: colors.muted }]}>{item.specialty}</Text></View><Text style={[styles.status, { color: item.status === "Confirmed" ? colors.success : colors.muted }]}>{item.status}</Text></View>)}</ScrollView></ScreenContainer>;
+
+  if (view === "admin") return <ScreenContainer className="p-5"><ScrollView>{header("Clinic overview", "Front desk · Harbor Clinic") }<View style={styles.metrics}>{[["18", "Today’s visits"], ["92%", "Utilization"], ["2", "Waitlist"]].map(([value, label]) => <View key={label} style={[styles.metricSmall, { backgroundColor: colors.surface, borderColor: colors.border }]}><Text style={[styles.metricSmallValue, { color: colors.foreground }]}>{value}</Text><Text style={[styles.cardMeta, { color: colors.muted }]}>{label}</Text></View>)}</View><Text style={[styles.sectionTitle, { color: colors.foreground }]}>Operational shortcuts</Text>{["Master schedule", "Doctor & service management", "Patient records lookup", "Reports & utilization"].map((item) => <Pressable key={item} style={[styles.serviceRow, { backgroundColor: colors.surface, borderColor: colors.border }]}><Text style={[styles.cardTitle, { color: colors.foreground }]}>{item}</Text><Text style={{ color: colors.primary }}>›</Text></Pressable>)}</ScrollView></ScreenContainer>;
+
+  if (view === "appointments") return <ScreenContainer className="p-5"><ScrollView>{header("Appointments", "Keep every visit in one place") }<View style={styles.segment}><Text style={[styles.segmentActive, { color: colors.primary }]}>Upcoming</Text><Text style={{ color: colors.muted }}>Past</Text></View>{appointments.map((item) => <Pressable key={item.id} onPress={() => { setSelectedDoctor(doctors.find((d) => d.name === item.doctor) ?? doctors[0]); go("detail"); }} style={[styles.appointmentCard, { backgroundColor: colors.surface, borderColor: colors.border }]}><View style={[styles.statusDot, { backgroundColor: item.color }]} /><View style={{ flex: 1, gap: 4 }}><Text style={[styles.cardTitle, { color: colors.foreground }]}>{item.doctor}</Text><Text style={[styles.cardMeta, { color: colors.muted }]}>{item.specialty}</Text><Text style={[styles.cardMeta, { color: colors.foreground }]}>{item.date} · {item.time}</Text></View><Text style={[styles.status, { color: item.status === "Confirmed" ? colors.success : colors.warning }]}>{item.status}</Text></Pressable>)}</ScrollView></ScreenContainer>;
+
+  if (view === "profile") return <ScreenContainer className="p-5"><ScrollView>{header("Profile", "Your care preferences") }<View style={[styles.profileRow, { backgroundColor: colors.surface, borderColor: colors.border }]}><View style={[styles.avatar, { backgroundColor: colors.primary }]}><Text style={styles.avatarText}>JS</Text></View><View><Text style={[styles.cardTitle, { color: colors.foreground }]}>Jordan Smith</Text><Text style={[styles.cardMeta, { color: colors.muted }]}>jordan@example.com</Text></View></View>{["Personal information", "Family & dependents", "Notifications", "Privacy & support"].map((item) => <Pressable key={item} style={[styles.serviceRow, { backgroundColor: colors.surface, borderColor: colors.border }]}><Text style={[styles.cardTitle, { color: colors.foreground }]}>{item}</Text><Text style={{ color: colors.primary }}>›</Text></Pressable>)}</ScrollView></ScreenContainer>;
+
+  return <ScreenContainer className="p-5"><ScrollView showsVerticalScrollIndicator={false}>{header("Good morning, Jordan", "Your health, on your schedule") }<View style={[styles.heroCard, { backgroundColor: colors.primary }]}><View style={{ flex: 1, gap: 8 }}><Text style={styles.heroLabel}>NEXT APPOINTMENT</Text><Text style={styles.heroTitle}>Tue, Aug 20 · 3:30 PM</Text><Text style={styles.heroMeta}>Dr. Maya Patel · Annual wellness visit</Text><Pressable onPress={() => go("detail")} style={styles.heroButton}><Text style={{ color: colors.primary, fontWeight: "800" }}>View details</Text></Pressable></View><Text style={styles.heroMark}>✚</Text></View><Text style={[styles.sectionTitle, { color: colors.foreground }]}>What do you need today?</Text><View style={styles.quickActions}><Pressable onPress={() => go("find")} style={[styles.quickAction, { backgroundColor: "#E0F2F3" }]}><Text style={[styles.quickIcon, { color: colors.primary }]}>⌕</Text><Text style={[styles.quickText, { color: colors.foreground }]}>Find a doctor</Text></Pressable><Pressable onPress={() => go("appointments")} style={[styles.quickAction, { backgroundColor: "#FDE7E2" }]}><Text style={[styles.quickIcon, { color: "#C55748" }]}>▣</Text><Text style={[styles.quickText, { color: colors.foreground }]}>My visits</Text></Pressable></View><View style={styles.sectionHeader}><Text style={[styles.sectionTitle, { color: colors.foreground }]}>Available this week</Text><Pressable onPress={() => go("find")}><Text style={{ color: colors.primary, fontWeight: "700" }}>See all</Text></Pressable></View>{doctors.slice(0, 2).map(doctorCard)}<View style={[styles.reassurance, { borderColor: colors.border }]}><Text style={[styles.cardTitle, { color: colors.foreground }]}>Care that fits your day</Text><Text style={[styles.cardMeta, { color: colors.muted }]}>Book in a few taps, get reminders, and keep your visit details together.</Text></View></ScrollView></ScreenContainer>;
 }
+
+const styles = StyleSheet.create({
+  headerRow: { flexDirection: "row", alignItems: "flex-start", marginBottom: 24, gap: 14 },
+  eyebrow: { fontSize: 11, letterSpacing: 1.4, fontWeight: "800" }, title: { fontSize: 30, lineHeight: 36, fontWeight: "800", marginTop: 5 }, subtitle: { fontSize: 15, lineHeight: 22, marginTop: 4 }, avatar: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" }, avatarText: { color: "#fff", fontWeight: "800" }, sectionTitle: { fontSize: 18, fontWeight: "800", marginTop: 24, marginBottom: 12 }, sectionHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" }, heroCard: { borderRadius: 24, padding: 20, flexDirection: "row", minHeight: 178 }, heroLabel: { color: "#BCE7EA", fontSize: 11, letterSpacing: 1.2, fontWeight: "800" }, heroTitle: { color: "#fff", fontSize: 21, lineHeight: 27, fontWeight: "800" }, heroMeta: { color: "#D7F2F3", fontSize: 14, lineHeight: 20 }, heroButton: { backgroundColor: "#fff", alignSelf: "flex-start", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, marginTop: 4 }, heroMark: { color: "#BCE7EA", fontSize: 50, fontWeight: "200" }, quickActions: { flexDirection: "row", gap: 12 }, quickAction: { flex: 1, padding: 16, borderRadius: 18, gap: 10 }, quickIcon: { fontSize: 27 }, quickText: { fontSize: 15, fontWeight: "800" }, doctorCard: { borderWidth: 1, borderRadius: 18, padding: 14, flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 10 }, doctorAvatar: { width: 48, height: 48, borderRadius: 16, alignItems: "center", justifyContent: "center" }, doctorInitials: { fontWeight: "800", fontSize: 16 }, cardTitle: { fontSize: 15, fontWeight: "800" }, cardMeta: { fontSize: 13, lineHeight: 19 }, reassurance: { marginTop: 18, borderWidth: 1, borderRadius: 18, padding: 16, gap: 6 }, pressed: { opacity: 0.72 }, search: { borderWidth: 1, borderRadius: 16, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 8 }, searchInput: { flex: 1, height: 48, fontSize: 15 }, chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 }, chip: { paddingHorizontal: 12, paddingVertical: 9, borderWidth: 1, borderRadius: 20 }, chipText: { fontWeight: "700", fontSize: 13 }, back: { fontSize: 15, fontWeight: "700", marginBottom: 22 }, profileHero: { alignItems: "center", gap: 5, marginBottom: 22 }, largeAvatar: { width: 92, height: 92, borderRadius: 30, alignItems: "center", justifyContent: "center", marginBottom: 10 }, largeInitials: { fontSize: 28, fontWeight: "800" }, infoCard: { borderWidth: 1, borderRadius: 18, padding: 16, gap: 10 }, body: { fontSize: 14, lineHeight: 21 }, serviceRow: { borderWidth: 1, borderRadius: 16, padding: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }, primaryButton: { marginTop: 24, borderRadius: 15, padding: 16, alignItems: "center" }, primaryButtonText: { color: "#fff", fontSize: 16, fontWeight: "800" }, secondaryButton: { marginTop: 18, borderWidth: 1, borderRadius: 15, padding: 16, alignItems: "center" }, secondaryButtonText: { fontSize: 16, fontWeight: "800" }, dateRow: { flexDirection: "row", gap: 8, marginTop: 24 }, dateCell: { flex: 1, borderWidth: 1, borderRadius: 14, paddingVertical: 12, alignItems: "center", gap: 4 }, dateDay: { fontSize: 11, fontWeight: "700" }, dateNumber: { fontSize: 18, fontWeight: "800" }, slotGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 }, slot: { width: "31%", borderWidth: 1, borderRadius: 12, paddingVertical: 13, alignItems: "center" }, confirmCard: { padding: 20, borderRadius: 22, gap: 8 }, confirmLabel: { color: "#BCE7EA", fontSize: 11, letterSpacing: 1.2, fontWeight: "800" }, confirmDate: { color: "#fff", fontSize: 22, fontWeight: "800" }, confirmDoctor: { color: "#D7F2F3", fontSize: 14 }, confirmLocation: { color: "#D7F2F3", fontSize: 13 }, segment: { flexDirection: "row", gap: 22, borderBottomWidth: 1, borderBottomColor: "#E5E7EB", paddingBottom: 10 }, segmentActive: { fontWeight: "800" }, appointmentCard: { borderWidth: 1, borderRadius: 18, padding: 16, flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 10 }, statusDot: { width: 10, height: 10, borderRadius: 5 }, status: { fontSize: 11, fontWeight: "800" }, profileRow: { borderWidth: 1, borderRadius: 18, padding: 16, flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 18 }, metricCard: { borderRadius: 20, padding: 20, gap: 6 }, metric: { fontSize: 30, fontWeight: "800" }, scheduleRow: { borderBottomWidth: 1, paddingVertical: 17, flexDirection: "row", alignItems: "center", gap: 14 }, scheduleTime: { width: 68, fontSize: 13, fontWeight: "800" }, metrics: { flexDirection: "row", gap: 8 }, metricSmall: { flex: 1, borderWidth: 1, borderRadius: 16, padding: 13, gap: 4 }, metricSmallValue: { fontSize: 24, fontWeight: "800" },
+});

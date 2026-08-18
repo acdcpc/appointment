@@ -1,0 +1,21 @@
+# Project TODO
+
+- [x] Review attached clinic appointment product brief
+- [x] Create mobile interface design plan
+- [x] Initialize Expo mobile app project
+- [x] Create branded clinic app icon and update app configuration
+- [x] Replace starter Home screen with patient appointment dashboard
+- [x] Add Find Care doctor and service discovery flow
+- [x] Add doctor profile and available appointment slot selection
+- [x] Add booking confirmation and appointment detail states
+- [x] Add upcoming and past appointments views
+- [x] Add intake form entry point and validation-ready structure
+- [x] Add doctor schedule view
+- [x] Add clinic admin overview view
+- [x] Add profile and settings view
+- [x] Add shared appointment domain types and sample clinic data
+- [x] Add accessibility labels and mobile interaction feedback
+- [x] Run type checking, linting, and tests
+- [x] Copy finished project into Downloads/appointment
+- [x] Initialize private GitHub repository named appointment
+- [x] Commit and push project changes
