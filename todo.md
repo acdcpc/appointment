@@ -76,4 +76,4 @@
 - [x] Apply referral settings to preview and exported letters
 - [x] Add referral-service address-book search and filters
 - [x] Validate clinician administration controls and commit project changes
-- [ ] Push the committed project update to GitHub
+- [x] Push the committed project update to GitHub
