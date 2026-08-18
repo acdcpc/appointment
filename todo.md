@@ -16,6 +16,6 @@
 - [x] Add shared appointment domain types and sample clinic data
 - [x] Add accessibility labels and mobile interaction feedback
 - [x] Run type checking, linting, and tests
-- [ ] Copy finished project into Downloads/appointment
-- [ ] Initialize private GitHub repository named appointment
-- [ ] Commit and push project changes
+- [x] Copy finished project into Downloads/appointment
+- [x] Initialize private GitHub repository named appointment
+- [x] Commit and push project changes
