@@ -54,3 +54,8 @@
 - [x] Add child health-history timeline with visits and prescription changes
 - [x] Add child growth metrics timeline entries and trend display
 - [x] Validate calendar conflict and child timeline features
+- [x] Update reusable clinic workflow skill for conflict actions growth charts and timeline export
+- [x] Add reschedule and cancellation actions to calendar conflict cards
+- [x] Add visual child height and weight trend charts to the history timeline
+- [x] Add clean referral and parent timeline print/export action
+- [x] Validate conflict actions growth charts and timeline export

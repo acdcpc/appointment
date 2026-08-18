@@ -23,4 +23,10 @@ describe("findAppointmentConflicts", () => {
     const conflicts = findAppointmentConflicts([appointment("a", "10:00 AM", 30), appointment("b", "10:30 AM", 30)]);
     expect(conflicts.size).toBe(0);
   });
+
+  it("ignores cancelled appointments when checking conflicts", () => {
+    const cancelled = { ...appointment("a", "10:00 AM", 30), status: "cancelled" as const };
+    const conflicts = findAppointmentConflicts([cancelled, appointment("b", "10:15 AM", 30)]);
+    expect(conflicts.size).toBe(0);
+  });
 });

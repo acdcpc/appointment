@@ -118,3 +118,11 @@ The AI documentation assistant is intentionally review-first. Dr. Ojha pastes co
 The clinician calendar evaluates each active appointment against other appointments on the same date. A card becomes visually distinct when its start and end interval intersects another visit. A summary banner lists the number of overlaps and instructs Dr. Ojha to review the affected bookings before making a change. Existing confirmed appointments are never auto-moved by the warning.
 
 The selected child’s clinical history appears as a chronological timeline below search results. Each entry is clearly labeled as one of four types: **Visit**, **Prescription**, **Medical history**, or **Growth**. Growth cards show parent- or clinician-recorded height and weight snapshots only; they do not infer diagnosis, percentile, treatment, or clinical interpretation. Prescription entries retain their recorded status and directions, while visit and history cards retain their original notes.
+
+## Conflict Actions, Growth Trends, and Timeline Export
+
+Every red overlap card in the clinician calendar now offers **Reschedule** and **Cancel** actions. Rescheduling opens the established booking path with the selected visit context, and the availability engine remains the source of truth for replacement slots. Cancellation requires an explicit confirmation step and keeps an audit-ready status rather than silently deleting the booking.
+
+The active child timeline includes two concise, independently scaled line charts: one for **Height (cm)** and one for **Weight (kg)**. Every point remains traceable to its recorded date and value. The chart is a visual record of measurements only and does not calculate percentiles, diagnose a growth pattern, or provide care guidance.
+
+The timeline export action produces a child-scoped, clean referral or parent summary. It contains visible timeline events, prescription records, and factual growth measurements. Internal notes, clinician-only workflow data, and other children’s data are excluded.
