@@ -59,3 +59,9 @@
 - [x] Add visual child height and weight trend charts to the history timeline
 - [x] Add clean referral and parent timeline print/export action
 - [x] Validate conflict actions growth charts and timeline export
+- [x] Update reusable clinic workflow skill for custom confirmations WHO references and referral templates
+- [x] Add clinician custom-message confirmation for rescheduling and cancellation
+- [x] Add safely sourced WHO growth-reference curves with non-diagnostic labels
+- [x] Add referral template builder in clinician settings
+- [x] Add referral letter preview and export action
+- [x] Validate confirmations growth references and referral builder

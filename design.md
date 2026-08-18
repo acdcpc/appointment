@@ -126,3 +126,11 @@ Every red overlap card in the clinician calendar now offers **Reschedule** and *
 The active child timeline includes two concise, independently scaled line charts: one for **Height (cm)** and one for **Weight (kg)**. Every point remains traceable to its recorded date and value. The chart is a visual record of measurements only and does not calculate percentiles, diagnose a growth pattern, or provide care guidance.
 
 The timeline export action produces a child-scoped, clean referral or parent summary. It contains visible timeline events, prescription records, and factual growth measurements. Internal notes, clinician-only workflow data, and other children’s data are excluded.
+
+## Confirmation Messages, WHO Context, and Referral Builder
+
+When Dr. Ojha selects **Reschedule** or **Cancel** on a conflicted calendar card, the dashboard shows a deliberate confirmation sheet. The sheet includes an optional parent-facing message, a clear statement of the proposed change, and only applies the change after the clinician confirms a new validated slot or cancellation. The prototype stores the message with the appointment change.
+
+The clinician dashboard separates factual growth trends from **WHO reference context**. The reference panel selects the source curve by the recorded child sex and age in months, overlays observed points in teal, and labels P3, P50, and P97 as reference curves only. The UI does not calculate a patient percentile, diagnosis, or recommendation.
+
+The dashboard settings area includes a referral template builder. Dr. Ojha can edit recipient, purpose, and letter body; preview a personalized child-scoped letter; then print or export it only after review. The template excludes clinician-only notes and unrelated patient data.

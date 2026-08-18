@@ -1,11 +1,11 @@
 import { createContext, type ReactNode, useContext, useMemo, useState } from "react";
 
-export type ChildProfile = { id: string; name: string; dateOfBirth: string; allergies: string; parentName: string };
+export type ChildProfile = { id: string; name: string; dateOfBirth: string; sex: "male" | "female"; allergies: string; parentName: string };
 export type AppointmentStatus = "confirmed" | "needs-intake" | "completed" | "cancelled";
-export type PediatricAppointment = { id: string; childId: string; service: string; date: string; time: string; durationMinutes: number; reason: string; status: AppointmentStatus };
+export type PediatricAppointment = { id: string; childId: string; service: string; date: string; time: string; durationMinutes: number; reason: string; status: AppointmentStatus; changeMessage?: string };
 export type PrescriptionRecord = { id: string; childId: string; appointmentId: string; issuedOn: string; medication: string; instructions: string; status: "active" | "completed" };
 export type MedicalHistoryEntry = { id: string; childId: string; category: "Allergy" | "Development" | "Visit" | "Immunization"; title: string; occurredOn: string; note: string };
-export type GrowthMetric = { id: string; childId: string; occurredOn: string; weightKg: number; heightCm: number; note: string };
+export type GrowthMetric = { id: string; childId: string; occurredOn: string; ageMonths: number; weightKg: number; heightCm: number; note: string };
 export type ClinicOperatingHour = { weekday: "Mon" | "Tue" | "Wed" | "Thu" | "Fri"; label: string; start: string; end: string; isOpen: boolean };
 export type ClinicBreak = { id: string; weekday: ClinicOperatingHour["weekday"]; start: string; end: string };
 export type ClinicHoliday = { id: string; date: string; label: string };
@@ -16,13 +16,13 @@ type PrescriptionInput = Pick<PrescriptionRecord, "childId" | "appointmentId" | 
 type Result = { ok: true } | { ok: false; message: string };
 type PediatricCareContextValue = {
   children: ChildProfile[]; activeChild: ChildProfile; setActiveChild: (childId: string) => void; appointments: PediatricAppointment[]; prescriptions: PrescriptionRecord[]; history: MedicalHistoryEntry[]; growthMetrics: GrowthMetric[]; clinicHours: ClinicOperatingHour[]; clinicBreaks: ClinicBreak[]; clinicHolidays: ClinicHoliday[]; services: ServiceConfig[];
-  getAvailableSlots: (date: string, service: string, omitAppointmentId?: string) => string[]; bookAppointment: (input: BookingInput) => Result; rescheduleAppointment: (appointmentId: string, date: string, time: string) => Result; cancelAppointment: (appointmentId: string) => Result; updateClinicHour: (weekday: ClinicOperatingHour["weekday"], changes: Partial<ClinicOperatingHour>) => void; updateServiceDuration: (service: string, durationMinutes: number) => void; addClinicBreak: (weekday: ClinicBreak["weekday"], start: string, end: string) => Result; removeClinicBreak: (id: string) => void; addClinicHoliday: (date: string, label: string) => Result; removeClinicHoliday: (id: string) => void; writePrescription: (input: PrescriptionInput) => Result;
+  getAvailableSlots: (date: string, service: string, omitAppointmentId?: string) => string[]; bookAppointment: (input: BookingInput) => Result; rescheduleAppointment: (appointmentId: string, date: string, time: string, message?: string) => Result; cancelAppointment: (appointmentId: string, message?: string) => Result; updateClinicHour: (weekday: ClinicOperatingHour["weekday"], changes: Partial<ClinicOperatingHour>) => void; updateServiceDuration: (service: string, durationMinutes: number) => void; addClinicBreak: (weekday: ClinicBreak["weekday"], start: string, end: string) => Result; removeClinicBreak: (id: string) => void; addClinicHoliday: (date: string, label: string) => Result; removeClinicHoliday: (id: string) => void; writePrescription: (input: PrescriptionInput) => Result;
 };
 
 const children: ChildProfile[] = [
-  { id: "child-1", name: "Aarav Smith", dateOfBirth: "14 May 2021", allergies: "No known drug allergies reported", parentName: "Jordan Smith" },
-  { id: "child-2", name: "Maya Gurung", dateOfBirth: "03 September 2020", allergies: "Parent reports no known allergies", parentName: "Nisha Gurung" },
-  { id: "child-3", name: "Rohan Thapa", dateOfBirth: "21 January 2019", allergies: "See parent-provided allergy history", parentName: "Suman Thapa" },
+  { id: "child-1", name: "Aarav Smith", dateOfBirth: "14 May 2022", sex: "male", allergies: "No known drug allergies reported", parentName: "Jordan Smith" },
+  { id: "child-2", name: "Maya Gurung", dateOfBirth: "03 September 2020", sex: "female", allergies: "Parent reports no known allergies", parentName: "Nisha Gurung" },
+  { id: "child-3", name: "Rohan Thapa", dateOfBirth: "21 January 2019", sex: "male", allergies: "See parent-provided allergy history", parentName: "Suman Thapa" },
 ];
 const initialHours: ClinicOperatingHour[] = [
   { weekday: "Mon", label: "Monday", start: "09:00", end: "17:00", isOpen: true }, { weekday: "Tue", label: "Tuesday", start: "09:00", end: "17:00", isOpen: true }, { weekday: "Wed", label: "Wednesday", start: "09:00", end: "17:00", isOpen: true }, { weekday: "Thu", label: "Thursday", start: "09:00", end: "17:00", isOpen: true }, { weekday: "Fri", label: "Friday", start: "09:00", end: "17:00", isOpen: true },
@@ -43,10 +43,10 @@ const history: MedicalHistoryEntry[] = [
   { id: "history-4", childId: "child-2", category: "Visit", title: "Respiratory review requested", occurredOn: "14 Aug 2026", note: "Parent requested a clinician review after a recent cough." }, { id: "history-5", childId: "child-3", category: "Development", title: "Growth and wellbeing review", occurredOn: "10 Aug 2026", note: "Parent requested nutrition and growth discussion." },
 ];
 const growthMetrics: GrowthMetric[] = [
-  { id: "growth-1", childId: "child-1", occurredOn: "12 Aug 2026", weightKg: 15.2, heightCm: 99.4, note: "Measurement recorded at pediatric follow-up." },
-  { id: "growth-2", childId: "child-1", occurredOn: "20 Jul 2026", weightKg: 14.9, heightCm: 98.7, note: "Measurement recorded during a prior visit." },
-  { id: "growth-3", childId: "child-2", occurredOn: "14 Aug 2026", weightKg: 17.4, heightCm: 106.1, note: "Parent-visible clinic measurement record." },
-  { id: "growth-4", childId: "child-3", occurredOn: "10 Aug 2026", weightKg: 20.6, heightCm: 116.8, note: "Growth and wellbeing visit measurement." },
+  { id: "growth-1", childId: "child-1", occurredOn: "12 Aug 2026", ageMonths: 51, weightKg: 15.2, heightCm: 99.4, note: "Measurement recorded at pediatric follow-up." },
+  { id: "growth-2", childId: "child-1", occurredOn: "20 Jul 2026", ageMonths: 50, weightKg: 14.9, heightCm: 98.7, note: "Measurement recorded during a prior visit." },
+  { id: "growth-3", childId: "child-2", occurredOn: "14 Aug 2026", ageMonths: 71, weightKg: 17.4, heightCm: 106.1, note: "Parent-visible clinic measurement record." },
+  { id: "growth-4", childId: "child-3", occurredOn: "10 Aug 2026", ageMonths: 91, weightKg: 20.6, heightCm: 116.8, note: "Growth and wellbeing visit measurement." },
 ];
 
 const timeToMinutes = (time: string) => { const [clock, suffix = ""] = time.trim().split(" "); const [hourString, minuteString] = clock.split(":"); let hours = Number(hourString); const minutes = Number(minuteString); if (!Number.isFinite(hours) || !Number.isFinite(minutes) || minutes < 0 || minutes > 59) return Number.NaN; if (/(AM|PM)/i.test(suffix)) { if (suffix.toUpperCase() === "PM" && hours !== 12) hours += 12; if (suffix.toUpperCase() === "AM" && hours === 12) hours = 0; } return hours * 60 + minutes; };
@@ -80,8 +80,8 @@ export function PediatricCareProvider({ children: content }: { children: ReactNo
     return {
       children, activeChild: children.find((child) => child.id === selectedChildId) ?? children[0], setActiveChild: setSelectedChildId, appointments, prescriptions, history, growthMetrics, clinicHours, clinicBreaks, clinicHolidays, services, getAvailableSlots,
       bookAppointment: (input) => { const valid = validateSlot(input.date, input.time, input.service); if (!valid.ok) return valid; const appointment: PediatricAppointment = { id: `apt-${Date.now()}`, ...input, durationMinutes: durationFor(input.service), status: "needs-intake" }; setAppointments((current) => [appointment, ...current]); return { ok: true }; },
-      rescheduleAppointment: (appointmentId, date, time) => { const current = appointments.find((appointment) => appointment.id === appointmentId); if (!current) return { ok: false, message: "The appointment could not be found." }; const valid = validateSlot(date, time, current.service, appointmentId); if (!valid.ok) return valid; setAppointments((items) => items.map((appointment) => appointment.id === appointmentId ? { ...appointment, date, time, status: "confirmed" } : appointment)); return { ok: true }; },
-      cancelAppointment: (appointmentId) => { if (!appointments.some((appointment) => appointment.id === appointmentId)) return { ok: false, message: "The appointment could not be found." }; setAppointments((items) => items.map((appointment) => appointment.id === appointmentId ? { ...appointment, status: "cancelled" } : appointment)); return { ok: true }; },
+      rescheduleAppointment: (appointmentId, date, time, message = "") => { const current = appointments.find((appointment) => appointment.id === appointmentId); if (!current) return { ok: false, message: "The appointment could not be found." }; const valid = validateSlot(date, time, current.service, appointmentId); if (!valid.ok) return valid; setAppointments((items) => items.map((appointment) => appointment.id === appointmentId ? { ...appointment, date, time, status: "confirmed", changeMessage: message.trim() || undefined } : appointment)); return { ok: true }; },
+      cancelAppointment: (appointmentId, message = "") => { if (!appointments.some((appointment) => appointment.id === appointmentId)) return { ok: false, message: "The appointment could not be found." }; setAppointments((items) => items.map((appointment) => appointment.id === appointmentId ? { ...appointment, status: "cancelled", changeMessage: message.trim() || undefined } : appointment)); return { ok: true }; },
       updateClinicHour: (weekday, changes) => setClinicHours((current) => current.map((item) => item.weekday === weekday ? { ...item, ...changes } : item)), updateServiceDuration: (service, durationMinutes) => setServices((current) => current.map((item) => item.name === service ? { ...item, durationMinutes } : item)),
       addClinicBreak: (weekday, start, end) => { if (!validRange(start, end)) return { ok: false, message: "Enter a valid break range in 24-hour time, for example 12:30–13:00." }; setClinicBreaks((current) => [...current, { id: `break-${Date.now()}`, weekday, start, end }]); return { ok: true }; }, removeClinicBreak: (id) => setClinicBreaks((current) => current.filter((item) => item.id !== id)),
       addClinicHoliday: (date, label) => { if (!date.trim() || !label.trim()) return { ok: false, message: "Enter both the holiday date and a short label." }; if (clinicHolidays.some((item) => item.date === date.trim())) return { ok: false, message: "A clinic holiday already exists for that date." }; setClinicHolidays((current) => [...current, { id: `holiday-${Date.now()}`, date: date.trim(), label: label.trim() }]); return { ok: true }; }, removeClinicHoliday: (id) => setClinicHolidays((current) => current.filter((item) => item.id !== id)),
