@@ -12,7 +12,7 @@ export default function TabLayout() {
   return (
     <Tabs screenOptions={{ headerShown: false, tabBarActiveTintColor: colors.primary, tabBarInactiveTintColor: colors.muted, tabBarButton: HapticTab, tabBarStyle: { paddingTop: 8, paddingBottom: bottomPadding, height: 56 + bottomPadding, backgroundColor: colors.background, borderTopColor: colors.border, borderTopWidth: 0.5 } }}>
       <Tabs.Screen name="index" options={{ title: "Home", tabBarIcon: ({ color }) => <IconSymbol size={24} name="house.fill" color={color} /> }} />
-      <Tabs.Screen name="find" options={{ title: "Find care", tabBarIcon: ({ color }) => <IconSymbol size={24} name="magnifyingglass" color={color} /> }} />
+      <Tabs.Screen name="find" options={{ title: "Book visit", tabBarIcon: ({ color }) => <IconSymbol size={24} name="magnifyingglass" color={color} /> }} />
       <Tabs.Screen name="appointments" options={{ title: "Visits", tabBarIcon: ({ color }) => <IconSymbol size={24} name="calendar" color={color} /> }} />
       <Tabs.Screen name="profile" options={{ title: "Profile", tabBarIcon: ({ color }) => <IconSymbol size={24} name="person.fill" color={color} /> }} />
     </Tabs>

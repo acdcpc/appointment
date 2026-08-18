@@ -19,3 +19,8 @@
 - [x] Copy finished project into Downloads/appointment
 - [x] Initialize private GitHub repository named appointment
 - [x] Commit and push project changes
+- [x] Refocus mobile and web copy on Associate Professor Dr. Anil Ojha
+- [x] Replace multi-doctor discovery with a single pediatrician profile and service flow
+- [x] Add child development specialty and pediatric appointment categories
+- [x] Update clinic/admin language for a solo practitioner schedule
+- [x] Validate and checkpoint the Dr. Ojha single-doctor update
