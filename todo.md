@@ -70,3 +70,10 @@
 - [x] Add verified WHO reference curves for children aged 5 to 19 years
 - [x] Add patient audit log for appointment change messages and generated referral letters
 - [x] Validate address book older-child references and audit log
+- [x] Update reusable clinic workflow skill for audit permissions referral settings and address-book search
+- [x] Add role-restricted audit-log filtering and export controls
+- [x] Add configurable referral-letter signature and clinic contact settings
+- [x] Apply referral settings to preview and exported letters
+- [x] Add referral-service address-book search and filters
+- [x] Validate clinician administration controls and commit project changes
+- [x] Push the committed project update to GitHub

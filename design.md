@@ -142,3 +142,11 @@ The referral template builder contains a clinician-managed address book. A saved
 For children aged 5–19, the height chart uses the verified WHO 2007 height-for-age reference. Weight-for-age is displayed only through 10 years; it is intentionally withheld after that limit rather than extrapolated. Observed measurements remain distinct from reference curves, and the interface offers no diagnosis, percentile claim, or treatment recommendation.
 
 The Child Records screen includes a child-scoped **Patient audit log**. It lists factual clinician appointment-change events, optional parent-facing messages, and generated referral letters. The log excludes unrelated child data and clinician-only notes.
+
+## Clinician Audit Controls and Referral Administration
+
+Detailed audit events are visible only in Dr. Ojha’s protected clinician dashboard. The clinician can filter the active child’s events by appointment change or referral letter, then print or export the filtered subset. Parent-facing Child Records shows only a privacy notice, not event details.
+
+The referral builder provides clinic identity, contact, signature name, and signature-title settings. These settings are rendered in the preview and exported referral letter, so the clinician can review them alongside recipient and letter body before export.
+
+The referral-service address book has a service, recipient, and organisation search field. Results are filtered locally and selecting a result pre-fills the template; removal remains an explicit clinician action.
