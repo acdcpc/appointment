@@ -66,3 +66,16 @@ Dr. Anil Ojha Child Care is a calm, trustworthy scheduling experience for the si
 ## Interaction Principles
 
 The app uses a bottom tab bar for Home, Find Care, Appointments, and Profile. Secondary workflows open with stack navigation or a sheet-like detail screen. Primary actions remain reachable near the lower half of the viewport. Every action provides a visible state change, disabled/loading treatment, or confirmation. Accessibility labels and sufficient contrast are required for controls, status badges, and icon-only actions.
+
+## Pediatric Booking and Record Extensions
+
+The revised home screen acts as a parent-friendly care hub for Dr. Ojha’s practice. It places the next appointment, direct booking, a child wellbeing summary, and clinician records in the first viewport. The booking flow gathers only scheduling-ready details: the child, requested pediatric service, preferred date and time, and a short parent concern. It creates a scheduled appointment in shared app state and returns a confirmation with a route to appointment management.
+
+| Domain model | Core fields | Intended use |
+|---|---|---|
+| Child profile | `id`, `name`, `dateOfBirth`, `allergies`, `parentName` | Select the child for booking and associate each health record with the correct patient. |
+| Appointment | `id`, `childId`, `service`, `date`, `time`, `reason`, `status` | Create, review, and reschedule pediatric visits without double-booking the same local time slot. |
+| Prescription | `id`, `childId`, `appointmentId`, `issuedOn`, `medication`, `instructions`, `status` | Present a clinician-issued medication record with the appointment context. The prototype does not calculate a dose or offer treatment advice. |
+| Medical history entry | `id`, `childId`, `category`, `title`, `occurredOn`, `note` | Show allergies, prior visits, development observations, and parent-provided history in chronological order. |
+
+The prototype retains the sensitive pediatric data only in in-memory app state with fictional example records. A production release must move the data to an authenticated backend with patient-scoped access controls, audit trails, and an explicit clinician-authoring workflow.

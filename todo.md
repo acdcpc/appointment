@@ -24,3 +24,10 @@
 - [x] Add child development specialty and pediatric appointment categories
 - [x] Update clinic/admin language for a solo practitioner schedule
 - [x] Validate and checkpoint the Dr. Ojha single-doctor update
+- [x] Design Dr. Ojha pediatric clinic home screen for parent and child needs
+- [x] Add patient booking form with child details and visit reason
+- [x] Add appointment scheduling and rescheduling state management
+- [x] Add prescription records module for pediatric visits
+- [x] Add child medical history records module for clinician review
+- [x] Add shared pediatric care domain models and sample data
+- [x] Validate and checkpoint booking and pediatric records features
