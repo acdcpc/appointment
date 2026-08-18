@@ -134,3 +134,11 @@ When Dr. Ojha selects **Reschedule** or **Cancel** on a conflicted calendar card
 The clinician dashboard separates factual growth trends from **WHO reference context**. The reference panel selects the source curve by the recorded child sex and age in months, overlays observed points in teal, and labels P3, P50, and P97 as reference curves only. The UI does not calculate a patient percentile, diagnosis, or recommendation.
 
 The dashboard settings area includes a referral template builder. Dr. Ojha can edit recipient, purpose, and letter body; preview a personalized child-scoped letter; then print or export it only after review. The template excludes clinician-only notes and unrelated patient data.
+
+## Referral Address Book, Older WHO References, and Audit Log
+
+The referral template builder contains a clinician-managed address book. A saved entry holds a service name, recipient, organisation, and default purpose. Selecting an entry pre-fills the referral letter; removing an entry requires an explicit action. Address-book entries remain clinic configuration, not patient data.
+
+For children aged 5–19, the height chart uses the verified WHO 2007 height-for-age reference. Weight-for-age is displayed only through 10 years; it is intentionally withheld after that limit rather than extrapolated. Observed measurements remain distinct from reference curves, and the interface offers no diagnosis, percentile claim, or treatment recommendation.
+
+The Child Records screen includes a child-scoped **Patient audit log**. It lists factual clinician appointment-change events, optional parent-facing messages, and generated referral letters. The log excludes unrelated child data and clinician-only notes.

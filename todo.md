@@ -65,3 +65,8 @@
 - [x] Add referral template builder in clinician settings
 - [x] Add referral letter preview and export action
 - [x] Validate confirmations growth references and referral builder
+- [x] Update reusable clinic workflow skill for referral address books older WHO references and audit logs
+- [x] Add referral-service address book creation selection and removal
+- [x] Add verified WHO reference curves for children aged 5 to 19 years
+- [x] Add patient audit log for appointment change messages and generated referral letters
+- [x] Validate address book older-child references and audit log
