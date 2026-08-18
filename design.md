@@ -104,3 +104,11 @@ The clinician workspace now begins with a dedicated sign-in boundary. It uses th
 | PDF export feedback | Button-specific loading indicator followed by a success notice | Parents receive a clear message when the printable/exportable document is ready. |
 
 The dashboard labels breaks, hours, and holidays as clinician-managed configuration. Existing appointments are not silently moved when a new exception is entered; the dashboard should surface them for manual follow-up.
+
+## Calendar, Patient Search, and AI Review Design
+
+The clinician dashboard includes a compact calendar switcher. **Day** view displays a time-grid list with appointment cards at their scheduled hour, while **Week** view uses five weekday columns for a scanning-friendly overview. Appointment cards keep the child name, service, time, and duration visible without exposing unnecessary details.
+
+Patient search is placed above clinician records. It filters the fictional prototype data by child name, parent/guardian name, visit reason, visible history title, and prescription name. Selecting a result changes the active child context and shows that child’s appointments, record history, and past parent-visible prescriptions.
+
+The AI documentation assistant is intentionally review-first. Dr. Ojha pastes consultation notes, receives a concise note summary and an extraction-only prescription draft, then reviews and edits all fields before tapping the existing save action. The assistant never auto-saves, offers dose calculation, diagnoses, or creates treatment decisions. Its output is labeled as AI-assisted and untrusted until the clinician approves it.

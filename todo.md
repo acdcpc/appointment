@@ -43,3 +43,9 @@
 - [x] Apply breaks and holidays to available-slot generation
 - [x] Improve PDF export loading animation and completion feedback
 - [x] Validate secure dashboard and scheduling-exception features
+- [x] Update reusable clinic workflow skill for calendar search and review-first AI support
+- [x] Add daily and weekly visual appointment calendar to clinician dashboard
+- [x] Add clinician patient search and record/prescription filtering
+- [x] Add review-first AI consultation summary and draft-prescription assistant
+- [x] Add clinician approval step before saving any AI-assisted prescription draft
+- [x] Validate calendar search AI assistance and reusable skill changes
