@@ -31,3 +31,9 @@
 - [x] Add child medical history records module for clinician review
 - [x] Add shared pediatric care domain models and sample data
 - [x] Validate and checkpoint booking and pediatric records features
+- [x] Package the Dr. Ojha clinic-app workflow as a reusable skill
+- [x] Add clinician dashboard for Dr. Ojha appointment and prescription review
+- [x] Add clinic operating hours and service-specific appointment durations
+- [x] Apply operating hours and duration rules to booking and rescheduling choices
+- [x] Add parent PDF export for child medical history and prescription records
+- [x] Validate clinician dashboard scheduling and PDF export features

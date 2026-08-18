@@ -79,3 +79,16 @@ The revised home screen acts as a parent-friendly care hub for Dr. Ojha’s prac
 | Medical history entry | `id`, `childId`, `category`, `title`, `occurredOn`, `note` | Show allergies, prior visits, development observations, and parent-provided history in chronological order. |
 
 The prototype retains the sensitive pediatric data only in in-memory app state with fictional example records. A production release must move the data to an authenticated backend with patient-scoped access controls, audit trails, and an explicit clinician-authoring workflow.
+
+## Clinician Operations and Export Design
+
+The clinician workspace is a dedicated, role-oriented screen for Dr. Ojha. It prioritizes today’s queue, appointments needing intake review, configurable clinic hours, and service durations. The initial hours are an editable draft rather than a public claim about the practice; Dr. Ojha must set the final daily opening and closing times before production release. Parent booking uses only slots generated inside the active daily window and reserves the full service duration before confirmation.
+
+| Screen or action | Layout and behavior |
+|---|---|
+| Clinician dashboard | A compact day summary followed by appointment cards, the child’s reason for visit, and a clear route into child records. |
+| Clinic hours | One row per weekday, with active/closed control and editable start/end fields in 24-hour format. |
+| Service duration | Pediatric consultation, child development review, and growth/wellbeing each expose a selectable 20, 30, 45, or 60 minute duration. |
+| Parent PDF export | The Records screen displays an **Export PDF** action. On iOS/Android it creates a record-summary PDF and offers the native share/download sheet. On web it opens a printable document so the parent can save it as a PDF. |
+
+The export includes only the active child’s parent-visible medical history and prescriptions. It uses plain, printable clinic styling and excludes internal notes, credentials, and other child records.
