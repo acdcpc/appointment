@@ -77,3 +77,8 @@
 - [x] Add referral-service address-book search and filters
 - [x] Validate clinician administration controls and commit project changes
 - [x] Push the committed project update to GitHub
+- [x] Update reusable clinic workflow skill for staff roles and secure referral sharing
+- [x] Add clinician role management for receptionists nurses and clinicians
+- [x] Apply role-based audit-log access levels to staff records
+- [x] Add reviewable referral email draft with selected specialist recipient
+- [x] Validate role management and referral email sharing

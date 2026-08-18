@@ -150,3 +150,9 @@ Detailed audit events are visible only in Dr. Ojha’s protected clinician dashb
 The referral builder provides clinic identity, contact, signature name, and signature-title settings. These settings are rendered in the preview and exported referral letter, so the clinician can review them alongside recipient and letter body before export.
 
 The referral-service address book has a service, recipient, and organisation search field. Results are filtered locally and selecting a result pre-fills the template; removal remains an explicit clinician action.
+
+## Staff Roles and Referral Email Drafts
+
+The clinician settings workflow includes a staff-role matrix for receptionists, nurses, and clinicians. Reception is limited to appointment-change audit events, nurses can view appointment-change events and referral metadata, and clinicians retain full child-scoped audit filtering and export. The UI makes each level visible and does not place role-management controls in parent-facing screens.
+
+The referral builder may prefill a selected specialist’s email address from the address book. **Quick share** creates a clinician-reviewed email draft with a child-scoped referral attachment; it does not send an email automatically. The specialist recipient, subject, body, and letter attachment remain reviewable in the device mail client before sending.

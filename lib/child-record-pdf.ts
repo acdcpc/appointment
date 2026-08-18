@@ -1,6 +1,7 @@
 import { Platform } from "react-native";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
+import * as MailComposer from "expo-mail-composer";
 import type { ChildProfile, GrowthMetric, MedicalHistoryEntry, PatientAuditEvent, PediatricAppointment, PrescriptionRecord, ReferralLetterSettings } from "@/lib/pediatric-care";
 
 const escapeHtml = (value: string) => value.replace(/[&<>'"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[character] ?? character);
@@ -42,5 +43,22 @@ export async function exportChildRecordPdf(html: string) {
     return { ok: false, message: "PDF created, but sharing is not available on this device." };
   } catch {
     return { ok: false, message: "We could not create the PDF. Please try again." };
+  }
+}
+
+export async function composeReferralEmail(html: string, recipientEmail: string, subject: string, body: string) {
+  if (!recipientEmail.trim()) return { ok: false, message: "Add the selected specialist’s email address before opening an email draft." };
+  if (Platform.OS === "web") {
+    if (typeof window === "undefined") return { ok: false, message: "Email sharing is not available in this browser session." };
+    window.location.href = `mailto:${encodeURIComponent(recipientEmail.trim())}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(`${body}\n\nPlease attach the referral letter generated in this app before sending.`)}`;
+    return { ok: true, message: "Your email client was opened with a draft. Attach the exported referral letter, review it, and send it yourself." };
+  }
+  try {
+    if (!(await MailComposer.isAvailableAsync())) return { ok: false, message: "No configured email client is available on this device." };
+    const { uri } = await Print.printToFileAsync({ html, margins: { top: 34, right: 34, bottom: 34, left: 34 } });
+    const result = await MailComposer.composeAsync({ recipients: [recipientEmail.trim()], subject, body, attachments: [uri] });
+    return { ok: true, message: result.status === "sent" ? "The system email flow reported the referral as sent." : "A referral email draft opened. Review the recipient, content, and attachment before sending." };
+  } catch {
+    return { ok: false, message: "We could not open the referral email draft. Please export the letter and use your secure email client." };
   }
 }
