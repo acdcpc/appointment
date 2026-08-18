@@ -92,3 +92,15 @@ The clinician workspace is a dedicated, role-oriented screen for Dr. Ojha. It pr
 | Parent PDF export | The Records screen displays an **Export PDF** action. On iOS/Android it creates a record-summary PDF and offers the native share/download sheet. On web it opens a printable document so the parent can save it as a PDF. |
 
 The export includes only the active child’s parent-visible medical history and prescriptions. It uses plain, printable clinic styling and excludes internal notes, credentials, and other child records.
+
+## Clinician Protection and Availability Exceptions
+
+The clinician workspace now begins with a dedicated sign-in boundary. It uses the project’s existing secure OAuth session and a server-side administrator check before rendering Dr. Ojha’s dashboard or authoring controls. Parent views remain separate and never expose clinician authoring actions. In production, the account used by Dr. Ojha must be assigned the clinician administrator role before access is granted.
+
+| Setting | Dashboard control | Scheduling effect |
+|---|---|---|
+| Daily break | A weekday-bound start and end time; optional per day | Slots that overlap the interval are not shown for booking or rescheduling. |
+| Clinic holiday | A date with a short label; removable in draft mode | Parent booking and rescheduling return no slots for that date. |
+| PDF export feedback | Button-specific loading indicator followed by a success notice | Parents receive a clear message when the printable/exportable document is ready. |
+
+The dashboard labels breaks, hours, and holidays as clinician-managed configuration. Existing appointments are not silently moved when a new exception is entered; the dashboard should surface them for manual follow-up.

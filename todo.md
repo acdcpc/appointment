@@ -37,3 +37,9 @@
 - [x] Apply operating hours and duration rules to booking and rescheduling choices
 - [x] Add parent PDF export for child medical history and prescription records
 - [x] Validate clinician dashboard scheduling and PDF export features
+- [x] Add protected Dr. Ojha clinician login and dashboard access control
+- [x] Add daily break-time configuration to clinician schedule settings
+- [x] Add upcoming clinic holiday configuration and booking exclusions
+- [x] Apply breaks and holidays to available-slot generation
+- [x] Improve PDF export loading animation and completion feedback
+- [x] Validate secure dashboard and scheduling-exception features
