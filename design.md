@@ -112,3 +112,9 @@ The clinician dashboard includes a compact calendar switcher. **Day** view displ
 Patient search is placed above clinician records. It filters the fictional prototype data by child name, parent/guardian name, visit reason, visible history title, and prescription name. Selecting a result changes the active child context and shows that child’s appointments, record history, and past parent-visible prescriptions.
 
 The AI documentation assistant is intentionally review-first. Dr. Ojha pastes consultation notes, receives a concise note summary and an extraction-only prescription draft, then reviews and edits all fields before tapping the existing save action. The assistant never auto-saves, offers dose calculation, diagnoses, or creates treatment decisions. Its output is labeled as AI-assisted and untrusted until the clinician approves it.
+
+## Conflict-Safe Calendar and Child Timeline
+
+The clinician calendar evaluates each active appointment against other appointments on the same date. A card becomes visually distinct when its start and end interval intersects another visit. A summary banner lists the number of overlaps and instructs Dr. Ojha to review the affected bookings before making a change. Existing confirmed appointments are never auto-moved by the warning.
+
+The selected child’s clinical history appears as a chronological timeline below search results. Each entry is clearly labeled as one of four types: **Visit**, **Prescription**, **Medical history**, or **Growth**. Growth cards show parent- or clinician-recorded height and weight snapshots only; they do not infer diagnosis, percentile, treatment, or clinical interpretation. Prescription entries retain their recorded status and directions, while visit and history cards retain their original notes.

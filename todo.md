@@ -49,3 +49,8 @@
 - [x] Add review-first AI consultation summary and draft-prescription assistant
 - [x] Add clinician approval step before saving any AI-assisted prescription draft
 - [x] Validate calendar search AI assistance and reusable skill changes
+- [x] Add visual overlapping-appointment warnings in the clinician calendar
+- [x] Add conflict details and resolution guidance for Dr. Ojha’s schedule
+- [x] Add child health-history timeline with visits and prescription changes
+- [x] Add child growth metrics timeline entries and trend display
+- [x] Validate calendar conflict and child timeline features

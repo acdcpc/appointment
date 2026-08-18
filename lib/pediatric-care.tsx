@@ -5,6 +5,7 @@ export type AppointmentStatus = "confirmed" | "needs-intake" | "completed";
 export type PediatricAppointment = { id: string; childId: string; service: string; date: string; time: string; durationMinutes: number; reason: string; status: AppointmentStatus };
 export type PrescriptionRecord = { id: string; childId: string; appointmentId: string; issuedOn: string; medication: string; instructions: string; status: "active" | "completed" };
 export type MedicalHistoryEntry = { id: string; childId: string; category: "Allergy" | "Development" | "Visit" | "Immunization"; title: string; occurredOn: string; note: string };
+export type GrowthMetric = { id: string; childId: string; occurredOn: string; weightKg: number; heightCm: number; note: string };
 export type ClinicOperatingHour = { weekday: "Mon" | "Tue" | "Wed" | "Thu" | "Fri"; label: string; start: string; end: string; isOpen: boolean };
 export type ClinicBreak = { id: string; weekday: ClinicOperatingHour["weekday"]; start: string; end: string };
 export type ClinicHoliday = { id: string; date: string; label: string };
@@ -14,7 +15,7 @@ type BookingInput = Pick<PediatricAppointment, "childId" | "service" | "date" | 
 type PrescriptionInput = Pick<PrescriptionRecord, "childId" | "appointmentId" | "medication" | "instructions">;
 type Result = { ok: true } | { ok: false; message: string };
 type PediatricCareContextValue = {
-  children: ChildProfile[]; activeChild: ChildProfile; setActiveChild: (childId: string) => void; appointments: PediatricAppointment[]; prescriptions: PrescriptionRecord[]; history: MedicalHistoryEntry[]; clinicHours: ClinicOperatingHour[]; clinicBreaks: ClinicBreak[]; clinicHolidays: ClinicHoliday[]; services: ServiceConfig[];
+  children: ChildProfile[]; activeChild: ChildProfile; setActiveChild: (childId: string) => void; appointments: PediatricAppointment[]; prescriptions: PrescriptionRecord[]; history: MedicalHistoryEntry[]; growthMetrics: GrowthMetric[]; clinicHours: ClinicOperatingHour[]; clinicBreaks: ClinicBreak[]; clinicHolidays: ClinicHoliday[]; services: ServiceConfig[];
   getAvailableSlots: (date: string, service: string, omitAppointmentId?: string) => string[]; bookAppointment: (input: BookingInput) => Result; rescheduleAppointment: (appointmentId: string, date: string, time: string) => Result; updateClinicHour: (weekday: ClinicOperatingHour["weekday"], changes: Partial<ClinicOperatingHour>) => void; updateServiceDuration: (service: string, durationMinutes: number) => void; addClinicBreak: (weekday: ClinicBreak["weekday"], start: string, end: string) => Result; removeClinicBreak: (id: string) => void; addClinicHoliday: (date: string, label: string) => Result; removeClinicHoliday: (id: string) => void; writePrescription: (input: PrescriptionInput) => Result;
 };
 
@@ -41,11 +42,26 @@ const history: MedicalHistoryEntry[] = [
   { id: "history-1", childId: "child-1", category: "Allergy", title: "Allergy record", occurredOn: "12 Aug 2026", note: "No known drug allergies reported by parent." }, { id: "history-2", childId: "child-1", category: "Development", title: "Development review requested", occurredOn: "05 Aug 2026", note: "Parent requested a review of developmental milestones at the next visit." }, { id: "history-3", childId: "child-1", category: "Visit", title: "Pediatric follow-up", occurredOn: "20 Jul 2026", note: "Visit summary available in the clinical record." },
   { id: "history-4", childId: "child-2", category: "Visit", title: "Respiratory review requested", occurredOn: "14 Aug 2026", note: "Parent requested a clinician review after a recent cough." }, { id: "history-5", childId: "child-3", category: "Development", title: "Growth and wellbeing review", occurredOn: "10 Aug 2026", note: "Parent requested nutrition and growth discussion." },
 ];
+const growthMetrics: GrowthMetric[] = [
+  { id: "growth-1", childId: "child-1", occurredOn: "12 Aug 2026", weightKg: 15.2, heightCm: 99.4, note: "Measurement recorded at pediatric follow-up." },
+  { id: "growth-2", childId: "child-1", occurredOn: "20 Jul 2026", weightKg: 14.9, heightCm: 98.7, note: "Measurement recorded during a prior visit." },
+  { id: "growth-3", childId: "child-2", occurredOn: "14 Aug 2026", weightKg: 17.4, heightCm: 106.1, note: "Parent-visible clinic measurement record." },
+  { id: "growth-4", childId: "child-3", occurredOn: "10 Aug 2026", weightKg: 20.6, heightCm: 116.8, note: "Growth and wellbeing visit measurement." },
+];
 
 const timeToMinutes = (time: string) => { const [clock, suffix = ""] = time.trim().split(" "); const [hourString, minuteString] = clock.split(":"); let hours = Number(hourString); const minutes = Number(minuteString); if (!Number.isFinite(hours) || !Number.isFinite(minutes) || minutes < 0 || minutes > 59) return Number.NaN; if (/(AM|PM)/i.test(suffix)) { if (suffix.toUpperCase() === "PM" && hours !== 12) hours += 12; if (suffix.toUpperCase() === "AM" && hours === 12) hours = 0; } return hours * 60 + minutes; };
 const minutesToDisplay = (minutes: number) => { const hour = Math.floor(minutes / 60); const minute = minutes % 60; const suffix = hour >= 12 ? "PM" : "AM"; const displayHour = hour % 12 || 12; return `${displayHour}:${minute.toString().padStart(2, "0")} ${suffix}`; };
 const weekdayFromDate = (date: string) => date.slice(0, 3) as ClinicOperatingHour["weekday"];
 const overlap = (startA: number, endA: number, startB: number, endB: number) => startA < endB && endA > startB;
+export function findAppointmentConflicts(appointments: PediatricAppointment[]) {
+  const conflicts = new Map<string, PediatricAppointment[]>();
+  appointments.filter((item) => item.status !== "completed").forEach((appointment) => {
+    const start = timeToMinutes(appointment.time); const end = start + appointment.durationMinutes;
+    const matches = appointments.filter((other) => other.id !== appointment.id && other.status !== "completed" && other.date === appointment.date && overlap(start, end, timeToMinutes(other.time), timeToMinutes(other.time) + other.durationMinutes));
+    if (matches.length) conflicts.set(appointment.id, matches);
+  });
+  return conflicts;
+}
 const validRange = (start: string, end: string) => { const from = timeToMinutes(start); const to = timeToMinutes(end); return Number.isFinite(from) && Number.isFinite(to) && from < to; };
 const PediatricCareContext = createContext<PediatricCareContextValue | null>(null);
 
@@ -62,7 +78,7 @@ export function PediatricCareProvider({ children: content }: { children: ReactNo
     };
     const validateSlot = (date: string, time: string, service: string, omitAppointmentId?: string): Result => getAvailableSlots(date, service, omitAppointmentId).includes(time) ? { ok: true } : { ok: false, message: "That time is outside active clinic hours, overlaps a break or holiday, or no longer has enough time for this visit." };
     return {
-      children, activeChild: children.find((child) => child.id === selectedChildId) ?? children[0], setActiveChild: setSelectedChildId, appointments, prescriptions, history, clinicHours, clinicBreaks, clinicHolidays, services, getAvailableSlots,
+      children, activeChild: children.find((child) => child.id === selectedChildId) ?? children[0], setActiveChild: setSelectedChildId, appointments, prescriptions, history, growthMetrics, clinicHours, clinicBreaks, clinicHolidays, services, getAvailableSlots,
       bookAppointment: (input) => { const valid = validateSlot(input.date, input.time, input.service); if (!valid.ok) return valid; const appointment: PediatricAppointment = { id: `apt-${Date.now()}`, ...input, durationMinutes: durationFor(input.service), status: "needs-intake" }; setAppointments((current) => [appointment, ...current]); return { ok: true }; },
       rescheduleAppointment: (appointmentId, date, time) => { const current = appointments.find((appointment) => appointment.id === appointmentId); if (!current) return { ok: false, message: "The appointment could not be found." }; const valid = validateSlot(date, time, current.service, appointmentId); if (!valid.ok) return valid; setAppointments((items) => items.map((appointment) => appointment.id === appointmentId ? { ...appointment, date, time, status: "confirmed" } : appointment)); return { ok: true }; },
       updateClinicHour: (weekday, changes) => setClinicHours((current) => current.map((item) => item.weekday === weekday ? { ...item, ...changes } : item)), updateServiceDuration: (service, durationMinutes) => setServices((current) => current.map((item) => item.name === service ? { ...item, durationMinutes } : item)),
