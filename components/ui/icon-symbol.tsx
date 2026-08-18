@@ -17,6 +17,7 @@ const MAPPING = {
   "house.fill": "home",
   "magnifyingglass": "search",
   "calendar": "calendar-today",
+  "doc.text": "description",
   "person.fill": "person",
   "paperplane.fill": "send",
   "chevron.left.forwardslash.chevron.right": "code",

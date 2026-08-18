@@ -2,15 +2,15 @@
 
 ## Product Direction
 
-Appointment is a calm, trustworthy single-clinic scheduling experience for patients. The interface follows mainstream iOS patterns: a soft neutral canvas, large readable type, grouped cards, clear primary actions, and one-handed portrait interactions. The first slice prioritizes the patient booking loop while exposing the doctor schedule and clinic operations as role-oriented views in the same product language.
+Dr. Anil Ojha Child Care is a calm, trustworthy scheduling experience for the single-doctor pediatric and child-development practice of **Associate Professor Dr. Anil Ojha**. The interface follows mainstream iOS patterns: a soft neutral canvas, large readable type, grouped cards, clear primary actions, and one-handed portrait interactions. The mobile app and Expo web experience share the same patient booking language, centered on one clinician rather than provider discovery.
 
 ## Screen List
 
 | Screen | Primary content and functionality |
 |---|---|
 | Home | Greeting, clinic status, next appointment card, quick actions for finding a doctor and viewing appointments, plus service shortcuts. |
-| Find Care | Search field, specialty/service chips, doctor cards, rating, consultation fee, and next available time. |
-| Doctor Profile | Doctor photo/avatar, specialty, bio, languages, rating, service picker, and availability CTA. |
+| Book a Visit | Pediatric service choices, child-development care choices, and a clear route to Dr. Ojha’s profile and available times. |
+| Doctor Profile | Dr. Ojha’s photo/avatar, pediatric and child-development specialty, bio, service picker, and availability CTA. |
 | Choose Time | Date strip, time-slot grid, visit-type selector, and confirmation CTA. |
 | Booking Confirmation | Success state with appointment details, add-to-calendar/share actions, and route to appointments. |
 | Appointments | Segmented upcoming/past list, appointment cards, cancel/reschedule actions, and empty state. |
@@ -24,9 +24,9 @@ Appointment is a calm, trustworthy single-clinic scheduling experience for patie
 
 ### Patient booking flow
 
-1. The patient opens Home and taps **Find a doctor**.
-2. The patient filters by specialty or service and selects a doctor card.
-3. The patient reviews the doctor profile and taps **Choose a time**.
+1. The parent or guardian opens Home and taps **Book a visit**.
+2. The parent or guardian selects a pediatric or child-development service.
+3. The parent or guardian reviews Dr. Ojha’s profile and taps **Choose a time**.
 4. The patient selects a date, an available slot, and either in-clinic or video consultation when enabled.
 5. The patient confirms the booking and sees the success screen.
 6. The patient opens the appointment detail and optionally completes the pre-visit intake form.
@@ -40,15 +40,15 @@ Appointment is a calm, trustworthy single-clinic scheduling experience for patie
 
 ### Doctor flow
 
-1. The doctor opens Doctor Schedule and sees today’s timeline.
+1. Dr. Ojha opens Doctor Schedule and sees today’s timeline.
 2. The doctor taps an appointment to view patient intake information.
 3. The doctor marks the visit completed or no-show and can attach a note/document in the production backend-enabled version.
 
 ### Admin flow
 
 1. Front-desk staff opens Clinic Admin and reviews today’s bookings, utilization, and waitlist.
-2. Staff opens the master schedule to inspect appointments across doctors.
-3. Staff can move to doctor/service management and manual booking in the backend-enabled version.
+2. Staff opens Dr. Ojha’s master schedule and manages appointments for one clinician.
+3. Staff can move to pediatric service management and manual booking in the backend-enabled version.
 
 ## Visual System
 
@@ -66,3 +66,87 @@ Appointment is a calm, trustworthy single-clinic scheduling experience for patie
 ## Interaction Principles
 
 The app uses a bottom tab bar for Home, Find Care, Appointments, and Profile. Secondary workflows open with stack navigation or a sheet-like detail screen. Primary actions remain reachable near the lower half of the viewport. Every action provides a visible state change, disabled/loading treatment, or confirmation. Accessibility labels and sufficient contrast are required for controls, status badges, and icon-only actions.
+
+## Pediatric Booking and Record Extensions
+
+The revised home screen acts as a parent-friendly care hub for Dr. Ojha’s practice. It places the next appointment, direct booking, a child wellbeing summary, and clinician records in the first viewport. The booking flow gathers only scheduling-ready details: the child, requested pediatric service, preferred date and time, and a short parent concern. It creates a scheduled appointment in shared app state and returns a confirmation with a route to appointment management.
+
+| Domain model | Core fields | Intended use |
+|---|---|---|
+| Child profile | `id`, `name`, `dateOfBirth`, `allergies`, `parentName` | Select the child for booking and associate each health record with the correct patient. |
+| Appointment | `id`, `childId`, `service`, `date`, `time`, `reason`, `status` | Create, review, and reschedule pediatric visits without double-booking the same local time slot. |
+| Prescription | `id`, `childId`, `appointmentId`, `issuedOn`, `medication`, `instructions`, `status` | Present a clinician-issued medication record with the appointment context. The prototype does not calculate a dose or offer treatment advice. |
+| Medical history entry | `id`, `childId`, `category`, `title`, `occurredOn`, `note` | Show allergies, prior visits, development observations, and parent-provided history in chronological order. |
+
+The prototype retains the sensitive pediatric data only in in-memory app state with fictional example records. A production release must move the data to an authenticated backend with patient-scoped access controls, audit trails, and an explicit clinician-authoring workflow.
+
+## Clinician Operations and Export Design
+
+The clinician workspace is a dedicated, role-oriented screen for Dr. Ojha. It prioritizes today’s queue, appointments needing intake review, configurable clinic hours, and service durations. The initial hours are an editable draft rather than a public claim about the practice; Dr. Ojha must set the final daily opening and closing times before production release. Parent booking uses only slots generated inside the active daily window and reserves the full service duration before confirmation.
+
+| Screen or action | Layout and behavior |
+|---|---|
+| Clinician dashboard | A compact day summary followed by appointment cards, the child’s reason for visit, and a clear route into child records. |
+| Clinic hours | One row per weekday, with active/closed control and editable start/end fields in 24-hour format. |
+| Service duration | Pediatric consultation, child development review, and growth/wellbeing each expose a selectable 20, 30, 45, or 60 minute duration. |
+| Parent PDF export | The Records screen displays an **Export PDF** action. On iOS/Android it creates a record-summary PDF and offers the native share/download sheet. On web it opens a printable document so the parent can save it as a PDF. |
+
+The export includes only the active child’s parent-visible medical history and prescriptions. It uses plain, printable clinic styling and excludes internal notes, credentials, and other child records.
+
+## Clinician Protection and Availability Exceptions
+
+The clinician workspace now begins with a dedicated sign-in boundary. It uses the project’s existing secure OAuth session and a server-side administrator check before rendering Dr. Ojha’s dashboard or authoring controls. Parent views remain separate and never expose clinician authoring actions. In production, the account used by Dr. Ojha must be assigned the clinician administrator role before access is granted.
+
+| Setting | Dashboard control | Scheduling effect |
+|---|---|---|
+| Daily break | A weekday-bound start and end time; optional per day | Slots that overlap the interval are not shown for booking or rescheduling. |
+| Clinic holiday | A date with a short label; removable in draft mode | Parent booking and rescheduling return no slots for that date. |
+| PDF export feedback | Button-specific loading indicator followed by a success notice | Parents receive a clear message when the printable/exportable document is ready. |
+
+The dashboard labels breaks, hours, and holidays as clinician-managed configuration. Existing appointments are not silently moved when a new exception is entered; the dashboard should surface them for manual follow-up.
+
+## Calendar, Patient Search, and AI Review Design
+
+The clinician dashboard includes a compact calendar switcher. **Day** view displays a time-grid list with appointment cards at their scheduled hour, while **Week** view uses five weekday columns for a scanning-friendly overview. Appointment cards keep the child name, service, time, and duration visible without exposing unnecessary details.
+
+Patient search is placed above clinician records. It filters the fictional prototype data by child name, parent/guardian name, visit reason, visible history title, and prescription name. Selecting a result changes the active child context and shows that child’s appointments, record history, and past parent-visible prescriptions.
+
+The AI documentation assistant is intentionally review-first. Dr. Ojha pastes consultation notes, receives a concise note summary and an extraction-only prescription draft, then reviews and edits all fields before tapping the existing save action. The assistant never auto-saves, offers dose calculation, diagnoses, or creates treatment decisions. Its output is labeled as AI-assisted and untrusted until the clinician approves it.
+
+## Conflict-Safe Calendar and Child Timeline
+
+The clinician calendar evaluates each active appointment against other appointments on the same date. A card becomes visually distinct when its start and end interval intersects another visit. A summary banner lists the number of overlaps and instructs Dr. Ojha to review the affected bookings before making a change. Existing confirmed appointments are never auto-moved by the warning.
+
+The selected child’s clinical history appears as a chronological timeline below search results. Each entry is clearly labeled as one of four types: **Visit**, **Prescription**, **Medical history**, or **Growth**. Growth cards show parent- or clinician-recorded height and weight snapshots only; they do not infer diagnosis, percentile, treatment, or clinical interpretation. Prescription entries retain their recorded status and directions, while visit and history cards retain their original notes.
+
+## Conflict Actions, Growth Trends, and Timeline Export
+
+Every red overlap card in the clinician calendar now offers **Reschedule** and **Cancel** actions. Rescheduling opens the established booking path with the selected visit context, and the availability engine remains the source of truth for replacement slots. Cancellation requires an explicit confirmation step and keeps an audit-ready status rather than silently deleting the booking.
+
+The active child timeline includes two concise, independently scaled line charts: one for **Height (cm)** and one for **Weight (kg)**. Every point remains traceable to its recorded date and value. The chart is a visual record of measurements only and does not calculate percentiles, diagnose a growth pattern, or provide care guidance.
+
+The timeline export action produces a child-scoped, clean referral or parent summary. It contains visible timeline events, prescription records, and factual growth measurements. Internal notes, clinician-only workflow data, and other children’s data are excluded.
+
+## Confirmation Messages, WHO Context, and Referral Builder
+
+When Dr. Ojha selects **Reschedule** or **Cancel** on a conflicted calendar card, the dashboard shows a deliberate confirmation sheet. The sheet includes an optional parent-facing message, a clear statement of the proposed change, and only applies the change after the clinician confirms a new validated slot or cancellation. The prototype stores the message with the appointment change.
+
+The clinician dashboard separates factual growth trends from **WHO reference context**. The reference panel selects the source curve by the recorded child sex and age in months, overlays observed points in teal, and labels P3, P50, and P97 as reference curves only. The UI does not calculate a patient percentile, diagnosis, or recommendation.
+
+The dashboard settings area includes a referral template builder. Dr. Ojha can edit recipient, purpose, and letter body; preview a personalized child-scoped letter; then print or export it only after review. The template excludes clinician-only notes and unrelated patient data.
+
+## Referral Address Book, Older WHO References, and Audit Log
+
+The referral template builder contains a clinician-managed address book. A saved entry holds a service name, recipient, organisation, and default purpose. Selecting an entry pre-fills the referral letter; removing an entry requires an explicit action. Address-book entries remain clinic configuration, not patient data.
+
+For children aged 5–19, the height chart uses the verified WHO 2007 height-for-age reference. Weight-for-age is displayed only through 10 years; it is intentionally withheld after that limit rather than extrapolated. Observed measurements remain distinct from reference curves, and the interface offers no diagnosis, percentile claim, or treatment recommendation.
+
+The Child Records screen includes a child-scoped **Patient audit log**. It lists factual clinician appointment-change events, optional parent-facing messages, and generated referral letters. The log excludes unrelated child data and clinician-only notes.
+
+## Clinician Audit Controls and Referral Administration
+
+Detailed audit events are visible only in Dr. Ojha’s protected clinician dashboard. The clinician can filter the active child’s events by appointment change or referral letter, then print or export the filtered subset. Parent-facing Child Records shows only a privacy notice, not event details.
+
+The referral builder provides clinic identity, contact, signature name, and signature-title settings. These settings are rendered in the preview and exported referral letter, so the clinician can review them alongside recipient and letter body before export.
+
+The referral-service address book has a service, recipient, and organisation search field. Results are filtered locally and selecting a result pre-fills the template; removal remains an explicit clinician action.

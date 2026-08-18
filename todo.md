@@ -19,3 +19,61 @@
 - [x] Copy finished project into Downloads/appointment
 - [x] Initialize private GitHub repository named appointment
 - [x] Commit and push project changes
+- [x] Refocus mobile and web copy on Associate Professor Dr. Anil Ojha
+- [x] Replace multi-doctor discovery with a single pediatrician profile and service flow
+- [x] Add child development specialty and pediatric appointment categories
+- [x] Update clinic/admin language for a solo practitioner schedule
+- [x] Validate and checkpoint the Dr. Ojha single-doctor update
+- [x] Design Dr. Ojha pediatric clinic home screen for parent and child needs
+- [x] Add patient booking form with child details and visit reason
+- [x] Add appointment scheduling and rescheduling state management
+- [x] Add prescription records module for pediatric visits
+- [x] Add child medical history records module for clinician review
+- [x] Add shared pediatric care domain models and sample data
+- [x] Validate and checkpoint booking and pediatric records features
+- [x] Package the Dr. Ojha clinic-app workflow as a reusable skill
+- [x] Add clinician dashboard for Dr. Ojha appointment and prescription review
+- [x] Add clinic operating hours and service-specific appointment durations
+- [x] Apply operating hours and duration rules to booking and rescheduling choices
+- [x] Add parent PDF export for child medical history and prescription records
+- [x] Validate clinician dashboard scheduling and PDF export features
+- [x] Add protected Dr. Ojha clinician login and dashboard access control
+- [x] Add daily break-time configuration to clinician schedule settings
+- [x] Add upcoming clinic holiday configuration and booking exclusions
+- [x] Apply breaks and holidays to available-slot generation
+- [x] Improve PDF export loading animation and completion feedback
+- [x] Validate secure dashboard and scheduling-exception features
+- [x] Update reusable clinic workflow skill for calendar search and review-first AI support
+- [x] Add daily and weekly visual appointment calendar to clinician dashboard
+- [x] Add clinician patient search and record/prescription filtering
+- [x] Add review-first AI consultation summary and draft-prescription assistant
+- [x] Add clinician approval step before saving any AI-assisted prescription draft
+- [x] Validate calendar search AI assistance and reusable skill changes
+- [x] Add visual overlapping-appointment warnings in the clinician calendar
+- [x] Add conflict details and resolution guidance for Dr. Ojha’s schedule
+- [x] Add child health-history timeline with visits and prescription changes
+- [x] Add child growth metrics timeline entries and trend display
+- [x] Validate calendar conflict and child timeline features
+- [x] Update reusable clinic workflow skill for conflict actions growth charts and timeline export
+- [x] Add reschedule and cancellation actions to calendar conflict cards
+- [x] Add visual child height and weight trend charts to the history timeline
+- [x] Add clean referral and parent timeline print/export action
+- [x] Validate conflict actions growth charts and timeline export
+- [x] Update reusable clinic workflow skill for custom confirmations WHO references and referral templates
+- [x] Add clinician custom-message confirmation for rescheduling and cancellation
+- [x] Add safely sourced WHO growth-reference curves with non-diagnostic labels
+- [x] Add referral template builder in clinician settings
+- [x] Add referral letter preview and export action
+- [x] Validate confirmations growth references and referral builder
+- [x] Update reusable clinic workflow skill for referral address books older WHO references and audit logs
+- [x] Add referral-service address book creation selection and removal
+- [x] Add verified WHO reference curves for children aged 5 to 19 years
+- [x] Add patient audit log for appointment change messages and generated referral letters
+- [x] Validate address book older-child references and audit log
+- [x] Update reusable clinic workflow skill for audit permissions referral settings and address-book search
+- [x] Add role-restricted audit-log filtering and export controls
+- [x] Add configurable referral-letter signature and clinic contact settings
+- [x] Apply referral settings to preview and exported letters
+- [x] Add referral-service address-book search and filters
+- [x] Validate clinician administration controls and commit project changes
+- [ ] Push the committed project update to GitHub

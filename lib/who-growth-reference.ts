@@ -1,0 +1,21 @@
+export type WhoCurvePoint = { month: number; p3: number; p50: number; p97: number };
+export type WhoMetric = "heightCm" | "weightKg";
+
+const heightBoys: WhoCurvePoint[] = [{ month: 24, p3: 81.4, p50: 87.1, p97: 92.9 }, { month: 30, p3: 85.5, p50: 91.9, p97: 98.3 }, { month: 36, p3: 89.1, p50: 96.1, p97: 103.1 }, { month: 42, p3: 92.4, p50: 99.9, p97: 107.3 }, { month: 48, p3: 95.4, p50: 103.3, p97: 111.2 }, { month: 54, p3: 98.4, p50: 106.7, p97: 115 }, { month: 60, p3: 101.2, p50: 110, p97: 118.7 }];
+const heightGirls: WhoCurvePoint[] = [{ month: 24, p3: 79.6, p50: 85.7, p97: 91.8 }, { month: 30, p3: 84, p50: 90.7, p97: 97.3 }, { month: 36, p3: 87.9, p50: 95.1, p97: 102.2 }, { month: 42, p3: 91.4, p50: 99, p97: 106.7 }, { month: 48, p3: 94.6, p50: 102.7, p97: 110.8 }, { month: 54, p3: 97.6, p50: 106.2, p97: 114.7 }, { month: 60, p3: 100.5, p50: 109.4, p97: 118.4 }];
+const weightBoys: WhoCurvePoint[] = [{ month: 24, p3: 9.8, p50: 12.2, p97: 15.1 }, { month: 30, p3: 10.7, p50: 13.3, p97: 16.6 }, { month: 36, p3: 11.4, p50: 14.3, p97: 18 }, { month: 42, p3: 12.2, p50: 15.3, p97: 19.4 }, { month: 48, p3: 12.9, p50: 16.3, p97: 20.9 }, { month: 54, p3: 13.6, p50: 17.3, p97: 22.3 }, { month: 60, p3: 14.3, p50: 18.3, p97: 23.8 }];
+const weightGirls: WhoCurvePoint[] = [{ month: 24, p3: 9.2, p50: 11.5, p97: 14.6 }, { month: 30, p3: 10.1, p50: 12.7, p97: 16.2 }, { month: 36, p3: 11, p50: 13.9, p97: 17.8 }, { month: 42, p3: 11.8, p50: 15, p97: 19.5 }, { month: 48, p3: 12.5, p50: 16.1, p97: 21.1 }, { month: 54, p3: 13.2, p50: 17.2, p97: 22.8 }, { month: 60, p3: 14, p50: 18.2, p97: 24.4 }];
+
+const olderHeightBoys: WhoCurvePoint[] = [{ month: 61, p3: 101.629, p50: 110.265, p97: 118.9 }, { month: 72, p3: 106.685, p50: 115.951, p97: 125.217 }, { month: 84, p3: 111.793, p50: 121.734, p97: 131.675 }, { month: 96, p3: 116.642, p50: 127.265, p97: 137.888 }, { month: 108, p3: 121.258, p50: 132.565, p97: 143.872 }, { month: 120, p3: 125.792, p50: 137.78, p97: 149.767 }, { month: 144, p3: 135.754, p50: 149.081, p97: 162.408 }, { month: 168, p3: 148.714, p50: 163.182, p97: 177.649 }, { month: 192, p3: 158.28, p50: 172.897, p97: 187.514 }, { month: 216, p3: 162.095, p50: 176.145, p97: 190.195 }, { month: 228, p3: 162.817, p50: 176.543, p97: 190.27 }];
+const olderHeightGirls: WhoCurvePoint[] = [{ month: 61, p3: 100.624, p50: 109.602, p97: 118.579 }, { month: 72, p3: 105.496, p50: 115.124, p97: 124.753 }, { month: 84, p3: 110.529, p50: 120.81, p97: 131.092 }, { month: 96, p3: 115.652, p50: 126.556, p97: 137.46 }, { month: 108, p3: 121.002, p50: 132.494, p97: 143.987 }, { month: 120, p3: 126.605, p50: 138.636, p97: 150.667 }, { month: 144, p3: 138.368, p50: 151.233, p97: 164.098 }, { month: 168, p3: 146.731, p50: 159.789, p97: 172.847 }, { month: 192, p3: 149.751, p50: 162.516, p97: 175.28 }, { month: 216, p3: 150.63, p50: 163.06, p97: 175.489 }, { month: 228, p3: 150.853, p50: 163.155, p97: 175.457 }];
+const olderWeightBoys: WhoCurvePoint[] = [{ month: 61, p3: 14.58, p50: 18.506, p97: 23.774 }, { month: 72, p3: 16.105, p50: 20.514, p97: 26.661 }, { month: 84, p3: 17.916, p50: 22.892, p97: 30.13 }, { month: 96, p3: 19.763, p50: 25.416, p97: 34.033 }, { month: 108, p3: 21.603, p50: 28.109, p97: 38.562 }, { month: 120, p3: 23.581, p50: 31.159, p97: 43.938 }];
+const olderWeightGirls: WhoCurvePoint[] = [{ month: 61, p3: 14.173, p50: 18.258, p97: 24.336 }, { month: 72, p3: 15.513, p50: 20.164, p97: 27.273 }, { month: 84, p3: 17.049, p50: 22.374, p97: 30.755 }, { month: 96, p3: 18.896, p50: 25.026, p97: 34.947 }, { month: 108, p3: 21.116, p50: 28.204, p97: 39.96 }, { month: 120, p3: 23.676, p50: 31.858, p97: 45.7 }];
+
+export function getWhoReferenceCurves(sex: "male" | "female", metric: WhoMetric, ageMonths = 60) {
+  if (ageMonths <= 60) return metric === "heightCm" ? (sex === "male" ? heightBoys : heightGirls) : (sex === "male" ? weightBoys : weightGirls);
+  if (metric === "heightCm") return sex === "male" ? olderHeightBoys : olderHeightGirls;
+  if (ageMonths <= 120) return sex === "male" ? olderWeightBoys : olderWeightGirls;
+  return [];
+}
+
+export const whoReferenceSource = "WHO Child Growth Standards (2–5 years) and WHO Growth Reference 2007 (height 5–19 years; weight 5–10 years); sex-specific compact percentile samples shown at selected intervals.";
