@@ -186,3 +186,11 @@ An unresolved referral-delivery badge is positioned immediately below the clinic
 The clinician workspace includes a compact **Approval activity** feed. Each chronological item names the staff member who approved or rejected a specialist contact, the action, contact identity, and an exact recorded time. It remains clinician-only and is deliberately separate from parent-visible child records.
 
 Email-share audit cards show the exact local attempt time in addition to the platform-reported outcome. A clearly labeled **Server policy: maximum three clinician-reviewed resend attempts** line explains the retry ceiling; the UI can only open a reviewable email draft when the authenticated server policy has accepted the retry request.
+
+## Durable Referral Oversight and Filtered Audit Exports
+
+Referral audit events and resend usage are durable clinician-owned records rather than screen-local state. The clinician dashboard continues to show only child-scoped, actionable failure counts while the server retains attempts, decision metadata, and alert state across restarts.
+
+An automatic background check evaluates unresolved cancelled or unavailable referral attempts after **24 hours**. It sends one clinician notification for each qualifying unresolved event and records the notification timestamp to prevent duplicate alerts. A new failed attempt is treated as a separate, reviewable audit event.
+
+The clinician audit log places inclusive date-range inputs and a staff-action filter directly above the export action. Exports state the applied time range and staff-action scope in their header, so printed or saved documents retain the context in which the clinician filtered them.

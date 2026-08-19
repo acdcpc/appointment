@@ -105,3 +105,10 @@
 - [x] Record exact referral email attempt timestamps and server-enforced limit state
 - [x] Display email attempt timestamp and server retry limit in clinician audit log
 - [x] Validate failure alerts activity feed and email-attempt audit features
+- [x] Update reusable clinic workflow skill for persistent referral audit records alerts and filtered exports
+- [x] Persist referral audit events and retry counters in the database
+- [x] Replace in-memory server retry guard with database-backed enforcement
+- [x] Add clinician alert for referral deliveries unresolved beyond the configured period
+- [x] Run the unresolved-delivery notification check automatically after 24 hours without duplicate alerts
+- [x] Add audit-log date range and staff-action filters to export controls
+- [x] Validate persistent audit records overdue alerts and filtered exports

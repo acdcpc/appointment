@@ -1,5 +1,7 @@
 import { int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
 
+import { boolean, index, uniqueIndex } from "drizzle-orm/mysql-core";
+
 /**
  * Core user table backing auth flow.
  * Extend this file with additional tables as your product grows.
@@ -25,4 +27,48 @@ export const users = mysqlTable("users", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
-// TODO: Add your tables here
+export const referralAuditEvents = mysqlTable("referral_audit_events", {
+  id: int("id").autoincrement().primaryKey(),
+  clinicianUserId: int("clinicianUserId").notNull(),
+  clientEventId: varchar("clientEventId", { length: 80 }).notNull(),
+  childId: varchar("childId", { length: 120 }).notNull(),
+  type: mysqlEnum("type", ["appointment-change", "referral-letter", "email-share"]).notNull(),
+  occurredAt: timestamp("occurredAt").notNull(),
+  actorRole: mysqlEnum("actorRole", ["clinician"]).notNull(),
+  actorName: varchar("actorName", { length: 255 }).notNull(),
+  summary: text("summary").notNull(),
+  message: text("message"),
+  deliveryStatus: mysqlEnum("deliveryStatus", ["draft-opened", "sent", "saved", "cancelled", "unavailable"]),
+  isResend: boolean("isResend").default(false).notNull(),
+  retryLimit: int("retryLimit").default(3).notNull(),
+  retryAttempts: int("retryAttempts").default(0).notNull(),
+  alertSentAt: timestamp("alertSentAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex("referral_audit_events_client_event_unique").on(table.clinicianUserId, table.clientEventId),
+  index("referral_audit_events_child_occurred_idx").on(table.clinicianUserId, table.childId, table.occurredAt),
+  index("referral_audit_events_delivery_alert_idx").on(table.deliveryStatus, table.alertSentAt, table.occurredAt),
+]);
+
+export const referralRetryCounters = mysqlTable("referral_retry_counters", {
+  id: int("id").autoincrement().primaryKey(),
+  clinicianUserId: int("clinicianUserId").notNull(),
+  childId: varchar("childId", { length: 120 }).notNull(),
+  recipientEmail: varchar("recipientEmail", { length: 320 }).notNull(),
+  attemptsUsed: int("attemptsUsed").default(0).notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => [
+  uniqueIndex("referral_retry_counters_scope_unique").on(table.clinicianUserId, table.childId, table.recipientEmail),
+]);
+
+export const referralDeliveryMonitor = mysqlTable("referral_delivery_monitor", {
+  id: int("id").autoincrement().primaryKey(),
+  thresholdHours: int("thresholdHours").default(24).notNull(),
+  lastRunAt: timestamp("lastRunAt"),
+  scheduleCronTaskUid: varchar("scheduleCronTaskUid", { length: 65 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ReferralAuditEventRow = typeof referralAuditEvents.$inferSelect;
+export type InsertReferralAuditEvent = typeof referralAuditEvents.$inferInsert;

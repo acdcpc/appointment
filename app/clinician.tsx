@@ -14,6 +14,7 @@ import { ClinicianAuditLog } from "@/components/clinician-audit-log";
 import { StaffRoleManagement } from "@/components/staff-role-management";
 import { DashboardNotifications } from "@/components/dashboard-notifications";
 import { ApprovalActivityFeed } from "@/components/approval-activity-feed";
+import { ReferralDeliveryMonitor } from "@/components/referral-delivery-monitor";
 
 const durations = [20, 30, 45, 60];
 const weekdays: ClinicOperatingHour["weekday"][] = ["Mon", "Tue", "Wed", "Thu", "Fri"];
@@ -48,6 +49,7 @@ function Dashboard({ focus }: { focus?: "contacts" | "staff" | "email-shares" })
     <View style={styles.metrics}>{[[String(today.length), "Today’s visits"], [String(appointments.filter((item) => item.status === "needs-intake").length), "Needs intake"], ["1", "Active child"]].map(([value, label]) => <View key={label} style={[styles.metric, { backgroundColor: colors.surface, borderColor: colors.border }]}><Text style={[styles.metricValue, { color: colors.foreground }]}>{value}</Text><Text style={[styles.cardMeta, { color: colors.muted }]}>{label}</Text></View>)}</View>
     <DashboardNotifications onOpenContacts={() => router.push({ pathname: "/clinician", params: { focus: "contacts" } })} onOpenStaff={() => router.push({ pathname: "/clinician", params: { focus: "staff" } })} onOpenEmailShares={() => router.push({ pathname: "/clinician", params: { focus: "email-shares" } })} />
     <ApprovalActivityFeed />
+    <ReferralDeliveryMonitor />
     {focus === "contacts" ? <ReferralTemplateBuilder /> : null}
     {focus === "staff" ? <StaffRoleManagement /> : null}
     <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Today’s queue</Text>{today.map((appointment) => <View key={appointment.id} style={[styles.queueCard, { backgroundColor: colors.surface, borderColor: colors.border }]}><Text style={[styles.queueTime, { color: colors.primary }]}>{appointment.time}</Text><View style={{ flex: 1, gap: 3 }}><Text style={[styles.cardTitle, { color: colors.foreground }]}>{activeChild.name} · {appointment.service}</Text><Text style={[styles.cardMeta, { color: colors.muted }]}>{appointment.reason} · {appointment.durationMinutes} minutes</Text></View><Text style={[styles.status, { color: appointment.status === "needs-intake" ? colors.warning : colors.success }]}>{appointment.status === "needs-intake" ? "Intake" : "Confirmed"}</Text></View>)}

@@ -4,9 +4,10 @@ import { systemRouter } from "./_core/systemRouter";
 import { adminProcedure, publicProcedure, router } from "./_core/trpc";
 import { invokeLLM } from "./_core/llm";
 import { z } from "zod";
-
-const MAX_REFERRAL_EMAIL_RESENDS = 3;
-const referralRetryAttempts = new Map<string, number>();
+import { TRPCError } from "@trpc/server";
+import { parse as parseCookie } from "cookie";
+import { createHeartbeatJob } from "./_core/heartbeat";
+import * as referralDb from "./db";
 
 export const appRouter = router({
   // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -26,16 +27,28 @@ export const appRouter = router({
       allowed: true,
       clinicianName: ctx.user.name ?? "Associate Professor Dr. Anil Ojha",
     })),
+    listReferralAuditEvents: adminProcedure.query(async ({ ctx }) => {
+      const events = await referralDb.listReferralAuditEvents(ctx.user.id);
+      return events.map((event) => ({ ...event, occurredAt: event.occurredAt.toISOString(), alertSentAt: event.alertSentAt?.toISOString() ?? null }));
+    }),
+    persistReferralAuditEvent: adminProcedure
+      .input(z.object({ clientEventId: z.string().min(1).max(80), childId: z.string().min(1).max(120), type: z.enum(["appointment-change", "referral-letter", "email-share"]), occurredAt: z.string().datetime(), summary: z.string().min(1).max(4000), message: z.string().max(4000).optional(), deliveryStatus: z.enum(["draft-opened", "sent", "saved", "cancelled", "unavailable"]).optional(), isResend: z.boolean().optional(), retryLimit: z.number().int().min(1).max(10).optional(), retryAttempts: z.number().int().min(0).max(10).optional() }))
+      .mutation(async ({ ctx, input }) => {
+        await referralDb.persistReferralAuditEvent(ctx.user.id, { ...input, occurredAt: new Date(input.occurredAt), actorName: ctx.user.name ?? "Associate Professor Dr. Anil Ojha" });
+        return { saved: true };
+      }),
     requestReferralEmailRetry: adminProcedure
       .input(z.object({ childId: z.string().min(1).max(120), email: z.string().email().max(320) }))
-      .mutation(({ ctx, input }) => {
-        const key = `${ctx.user.id}:${input.childId}:${input.email.trim().toLowerCase()}`;
-        const attemptsUsed = referralRetryAttempts.get(key) ?? 0;
-        if (attemptsUsed >= MAX_REFERRAL_EMAIL_RESENDS) return { allowed: false, attemptsUsed, limit: MAX_REFERRAL_EMAIL_RESENDS, attemptedAt: new Date().toISOString() };
-        const nextAttemptsUsed = attemptsUsed + 1;
-        referralRetryAttempts.set(key, nextAttemptsUsed);
-        return { allowed: true, attemptsUsed: nextAttemptsUsed, limit: MAX_REFERRAL_EMAIL_RESENDS, attemptedAt: new Date().toISOString() };
-      }),
+      .mutation(({ ctx, input }) => referralDb.reserveReferralEmailRetry(ctx.user.id, input.childId, input.email)),
+    configureReferralDeliveryMonitor: adminProcedure.mutation(async ({ ctx }) => {
+      if (process.env.NODE_ENV !== "production") throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Publish the clinic app before enabling automatic referral delivery monitoring." });
+      const monitor = await referralDb.getReferralDeliveryMonitorConfig();
+      if (monitor.scheduleCronTaskUid) return { configured: true, thresholdHours: monitor.thresholdHours };
+      const session = parseCookie(ctx.req.headers.cookie ?? "")[COOKIE_NAME] ?? "";
+      const job = await createHeartbeatJob({ name: "referral-delivery-monitor", cron: "0 0 * * * *", path: "/api/scheduled/referral-delivery-monitor", description: "Hourly check for referral deliveries unresolved for at least 24 hours." }, session);
+      await referralDb.saveReferralDeliveryMonitorSchedule(job.taskUid);
+      return { configured: true, thresholdHours: monitor.thresholdHours, nextExecutionAt: job.nextExecutionAt ?? null };
+    }),
     draftFromConsultation: adminProcedure
       .input(z.object({ consultationNote: z.string().trim().min(20).max(6000) }))
       .mutation(async ({ input }) => {
