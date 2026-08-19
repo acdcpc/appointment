@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { type ClinicOperatingHour, usePediatricCare } from "@/lib/pediatric-care";
@@ -26,14 +26,14 @@ function ClinicianLogin({ onBack }: { onBack: () => void }) {
 }
 
 export default function ClinicianDashboard() {
-  const colors = useColors(); const router = useRouter(); const { isAuthenticated, loading: authLoading, logout } = useAuth(); const access = trpc.clinician.access.useQuery(undefined, { enabled: isAuthenticated, retry: false });
+  const colors = useColors(); const router = useRouter(); const { focus } = useLocalSearchParams<{ focus?: "contacts" | "staff" }>(); const { isAuthenticated, loading: authLoading, logout } = useAuth(); const access = trpc.clinician.access.useQuery(undefined, { enabled: isAuthenticated, retry: false });
   if (authLoading || (isAuthenticated && access.isLoading)) return <ScreenContainer className="items-center justify-center"><ActivityIndicator color={colors.primary} size="large" /><Text style={[styles.loadingText, { color: colors.muted }]}>Verifying clinician access…</Text></ScreenContainer>;
   if (!isAuthenticated) return <ClinicianLogin onBack={() => router.back()} />;
   if (access.error || !access.data?.allowed) return <ScreenContainer className="p-5"><View style={styles.loginWrap}><Pressable onPress={() => router.back()}><Text style={[styles.back, { color: colors.primary }]}>‹  Back</Text></Pressable><View style={[styles.loginCard, { backgroundColor: colors.surface, borderColor: colors.border }]}><Text style={[styles.loginTitle, { color: colors.foreground }]}>Clinician access required</Text><Text style={[styles.loginText, { color: colors.muted }]}>This signed-in account is not assigned to Dr. Ojha’s clinician administrator role. Ask the practice owner to grant access before viewing patient records.</Text><Pressable onPress={logout} style={[styles.secondaryButton, { borderColor: colors.primary }]}><Text style={{ color: colors.primary, fontWeight: "800" }}>Sign out</Text></Pressable></View></View></ScreenContainer>;
-  return <Dashboard />;
+  return <Dashboard focus={focus} />;
 }
 
-function Dashboard() {
+function Dashboard({ focus }: { focus?: "contacts" | "staff" }) {
   const colors = useColors(); const router = useRouter(); const { appointments, activeChild, clinicHours, clinicBreaks, clinicHolidays, services, updateClinicHour, updateServiceDuration, addClinicBreak, removeClinicBreak, addClinicHoliday, removeClinicHoliday, writePrescription } = usePediatricCare();
   const [selectedAppointment, setSelectedAppointment] = useState(appointments[0]?.id ?? ""); const [medication, setMedication] = useState(""); const [instructions, setInstructions] = useState(""); const [breakDay, setBreakDay] = useState<ClinicOperatingHour["weekday"]>("Tue"); const [breakStart, setBreakStart] = useState("12:30"); const [breakEnd, setBreakEnd] = useState("13:00"); const [holidayDate, setHolidayDate] = useState(""); const [holidayLabel, setHolidayLabel] = useState(""); const [message, setMessage] = useState("");
   const today = useMemo(() => appointments.filter((appointment) => appointment.date === "Tue, Aug 20"), [appointments]);
@@ -45,13 +45,15 @@ function Dashboard() {
   return <ScreenContainer className="p-5"><ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
     <Pressable onPress={() => router.back()}><Text style={[styles.back, { color: colors.primary }]}>‹  Back</Text></Pressable><Text style={[styles.eyebrow, { color: colors.primary }]}>CLINICIAN WORKSPACE</Text><Text style={[styles.title, { color: colors.foreground }]}>Dr. Anil Ojha</Text><Text style={[styles.subtitle, { color: colors.muted }]}>Manage today’s pediatric appointments, availability, and prescription records.</Text>
     <View style={styles.metrics}>{[[String(today.length), "Today’s visits"], [String(appointments.filter((item) => item.status === "needs-intake").length), "Needs intake"], ["1", "Active child"]].map(([value, label]) => <View key={label} style={[styles.metric, { backgroundColor: colors.surface, borderColor: colors.border }]}><Text style={[styles.metricValue, { color: colors.foreground }]}>{value}</Text><Text style={[styles.cardMeta, { color: colors.muted }]}>{label}</Text></View>)}</View>
-    <DashboardNotifications />
+    <DashboardNotifications onOpenContacts={() => router.push({ pathname: "/clinician", params: { focus: "contacts" } })} onOpenStaff={() => router.push({ pathname: "/clinician", params: { focus: "staff" } })} />
+    {focus === "contacts" ? <ReferralTemplateBuilder /> : null}
+    {focus === "staff" ? <StaffRoleManagement /> : null}
     <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Today’s queue</Text>{today.map((appointment) => <View key={appointment.id} style={[styles.queueCard, { backgroundColor: colors.surface, borderColor: colors.border }]}><Text style={[styles.queueTime, { color: colors.primary }]}>{appointment.time}</Text><View style={{ flex: 1, gap: 3 }}><Text style={[styles.cardTitle, { color: colors.foreground }]}>{activeChild.name} · {appointment.service}</Text><Text style={[styles.cardMeta, { color: colors.muted }]}>{appointment.reason} · {appointment.durationMinutes} minutes</Text></View><Text style={[styles.status, { color: appointment.status === "needs-intake" ? colors.warning : colors.success }]}>{appointment.status === "needs-intake" ? "Intake" : "Confirmed"}</Text></View>)}
     <ClinicianIntelligence onApplyDraft={applyAiDraft} />
     <ActiveGrowthReference />
-    <ReferralTemplateBuilder />
+    {!focus ? <ReferralTemplateBuilder /> : null}
     <ClinicianAuditLog />
-    <StaffRoleManagement />
+    {!focus ? <StaffRoleManagement /> : null}
     <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Schedule settings</Text><Text style={[styles.cardMeta, { color: colors.muted }]}>Changes block new bookings only. Review existing appointments separately if you change clinic availability.</Text>
     <Text style={[styles.subsection, { color: colors.foreground }]}>Clinic operating hours</Text>{clinicHours.map((hour) => <View key={hour.weekday} style={[styles.hourRow, { backgroundColor: colors.surface, borderColor: colors.border }]}><View style={{ width: 72 }}><Text style={[styles.cardTitle, { color: colors.foreground }]}>{hour.label}</Text><Pressable onPress={() => updateClinicHour(hour.weekday, { isOpen: !hour.isOpen })}><Text style={{ color: hour.isOpen ? colors.success : colors.muted, fontSize: 12, fontWeight: "800" }}>{hour.isOpen ? "Open" : "Closed"}</Text></Pressable></View>{hour.isOpen ? <View style={styles.timeFields}><TextInput value={hour.start} onChangeText={(value) => updateTime(hour.weekday, "start", value)} style={[styles.timeInput, { color: colors.foreground, borderColor: colors.border }]} placeholder="09:00" /><Text style={{ color: colors.muted }}>–</Text><TextInput value={hour.end} onChangeText={(value) => updateTime(hour.weekday, "end", value)} style={[styles.timeInput, { color: colors.foreground, borderColor: colors.border }]} placeholder="17:00" /></View> : <Text style={{ color: colors.muted }}>No parent bookings</Text>}</View>)}
     <Text style={[styles.subsection, { color: colors.foreground }]}>Daily breaks</Text><View style={[styles.settingsCard, { backgroundColor: colors.surface, borderColor: colors.border }]}><View style={styles.breakDayRow}>{weekdays.map((day) => <Pressable key={day} onPress={() => setBreakDay(day)} style={[styles.dayChip, { borderColor: breakDay === day ? colors.primary : colors.border, backgroundColor: breakDay === day ? "#E0F2F3" : colors.surface }]}><Text style={{ color: breakDay === day ? colors.primary : colors.muted, fontWeight: "800", fontSize: 12 }}>{day}</Text></Pressable>)}</View><View style={styles.breakFields}><TextInput value={breakStart} onChangeText={setBreakStart} style={[styles.timeInput, { color: colors.foreground, borderColor: colors.border }]} placeholder="12:30" /><Text style={{ color: colors.muted }}>–</Text><TextInput value={breakEnd} onChangeText={setBreakEnd} style={[styles.timeInput, { color: colors.foreground, borderColor: colors.border }]} placeholder="13:00" /><Pressable onPress={saveBreak} style={[styles.smallButton, { backgroundColor: colors.primary }]}><Text style={styles.smallButtonText}>Add</Text></Pressable></View>{clinicBreaks.map((item) => <View key={item.id} style={styles.settingItem}><Text style={[styles.cardMeta, { color: colors.foreground }]}>{item.weekday} · {item.start}–{item.end}</Text><Pressable onPress={() => removeClinicBreak(item.id)}><Text style={{ color: colors.error, fontWeight: "800" }}>Remove</Text></Pressable></View>)}</View>

@@ -94,3 +94,8 @@
 - [x] Add approved and rejected specialist-contact history in the address book
 - [x] Add clinician-reviewed resend action for failed or cancelled referral email-share events
 - [x] Validate dashboard notifications contact history and resend behavior
+- [x] Update reusable clinic workflow skill for pending-action deep links decision history and resend limits
+- [x] Add deep links from dashboard notification counts to pending contact and staff actions
+- [x] Record clinician name and timestamp for specialist contact approval decisions
+- [x] Add visible referral email resend retry limit and disable behavior
+- [x] Validate deep links decision history and resend safeguards

@@ -172,3 +172,9 @@ The clinician dashboard includes a compact notifications widget for **pending sp
 The referral address book includes a **History** tab for previously approved and rejected contacts. The history preserves explicit decision status and keeps rejected contacts out of selection flows.
 
 For a cancelled or unavailable referral email-share event, the clinician audit log provides **Resend draft**. It verifies that the recorded specialist is still an approved contact, then opens another reviewable mail draft for the active child rather than sending automatically.
+
+## Deep-linked Action Alerts and Resend Limits
+
+The pending-actions widget now uses protected in-app links. **Contact approvals** opens the referral address-book queue, while **Staff invitations** opens pending team invitations. The selected management surface appears near the top of the clinician workspace for one-handed use.
+
+Approved and rejected contact history entries show the decision maker and recorded decision time. A failed referral email share shows its number of clinician-reviewed retry attempts out of three; the resend draft control visibly disables once the limit is reached.
