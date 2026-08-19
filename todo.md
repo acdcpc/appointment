@@ -88,4 +88,4 @@
 - [x] Record referral email-share events and delivery status in child audit logs
 - [x] Display email-share events and statuses in clinician audit filters
 - [x] Validate contact approval staff invitations and email-share audit features
-- [ ] Commit and push the completed project update
+- [x] Commit and push the completed project update
