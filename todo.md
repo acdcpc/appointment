@@ -82,3 +82,10 @@
 - [x] Apply role-based audit-log access levels to staff records
 - [x] Add reviewable referral email draft with selected specialist recipient
 - [x] Validate role management and referral email sharing
+- [x] Update reusable clinic workflow skill for contact approval staff invitations and email-share audit status
+- [x] Add clinician approval workflow for specialist address-book contacts
+- [x] Add staff invitation interface with role selection and invitation state
+- [x] Record referral email-share events and delivery status in child audit logs
+- [x] Display email-share events and statuses in clinician audit filters
+- [x] Validate contact approval staff invitations and email-share audit features
+- [x] Commit and push the completed project update

@@ -6,7 +6,7 @@ describe("staff audit access", () => {
     expect(auditEventTypesByRole.receptionist).toEqual(["appointment-change"]);
   });
 
-  it("allows clinician audit access to appointment changes and referrals", () => {
-    expect(auditEventTypesByRole.clinician).toEqual(["appointment-change", "referral-letter"]);
+  it("allows clinician audit access to appointment changes, referrals, and email shares", () => {
+    expect(auditEventTypesByRole.clinician).toEqual(["appointment-change", "referral-letter", "email-share"]);
   });
 });

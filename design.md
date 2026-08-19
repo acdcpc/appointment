@@ -156,3 +156,11 @@ The referral-service address book has a service, recipient, and organisation sea
 The clinician settings workflow includes a staff-role matrix for receptionists, nurses, and clinicians. Reception is limited to appointment-change audit events, nurses can view appointment-change events and referral metadata, and clinicians retain full child-scoped audit filtering and export. The UI makes each level visible and does not place role-management controls in parent-facing screens.
 
 The referral builder may prefill a selected specialist’s email address from the address book. **Quick share** creates a clinician-reviewed email draft with a child-scoped referral attachment; it does not send an email automatically. The specialist recipient, subject, body, and letter attachment remain reviewable in the device mail client before sending.
+
+## Specialist Approval, Invitations, and Email-Share Audit
+
+New specialist address-book entries begin as **Pending clinician approval**. Dr. Ojha can approve, reject, or remove a contact before it can populate a referral email. The sharing action accepts only an approved saved specialist contact, avoiding unverified recipient selection.
+
+Staff management distinguishes **active staff** from **pending invitations**. An invitation records an email address and proposed role but remains pending until an authenticated account-provisioning workflow is connected.
+
+The clinician audit log includes a dedicated **Email shares** filter. It lists the platform-reported status—such as draft opened, sent, saved, cancelled, or unavailable—without claiming delivery success when the platform cannot determine it.
