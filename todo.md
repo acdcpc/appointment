@@ -99,3 +99,9 @@
 - [x] Record clinician name and timestamp for specialist contact approval decisions
 - [x] Add visible referral email resend retry limit and disable behavior
 - [x] Validate deep links decision history and resend safeguards
+- [x] Update reusable clinic workflow skill for failure alerts activity feeds and timestamped email attempts
+- [x] Add prominent unresolved referral delivery failure badge to dashboard
+- [x] Add staff-attributed specialist approval activity feed
+- [x] Record exact referral email attempt timestamps and server-enforced limit state
+- [x] Display email attempt timestamp and server retry limit in clinician audit log
+- [x] Validate failure alerts activity feed and email-attempt audit features

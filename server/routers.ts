@@ -5,6 +5,9 @@ import { adminProcedure, publicProcedure, router } from "./_core/trpc";
 import { invokeLLM } from "./_core/llm";
 import { z } from "zod";
 
+const MAX_REFERRAL_EMAIL_RESENDS = 3;
+const referralRetryAttempts = new Map<string, number>();
+
 export const appRouter = router({
   // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
   system: systemRouter,
@@ -23,6 +26,16 @@ export const appRouter = router({
       allowed: true,
       clinicianName: ctx.user.name ?? "Associate Professor Dr. Anil Ojha",
     })),
+    requestReferralEmailRetry: adminProcedure
+      .input(z.object({ childId: z.string().min(1).max(120), email: z.string().email().max(320) }))
+      .mutation(({ ctx, input }) => {
+        const key = `${ctx.user.id}:${input.childId}:${input.email.trim().toLowerCase()}`;
+        const attemptsUsed = referralRetryAttempts.get(key) ?? 0;
+        if (attemptsUsed >= MAX_REFERRAL_EMAIL_RESENDS) return { allowed: false, attemptsUsed, limit: MAX_REFERRAL_EMAIL_RESENDS, attemptedAt: new Date().toISOString() };
+        const nextAttemptsUsed = attemptsUsed + 1;
+        referralRetryAttempts.set(key, nextAttemptsUsed);
+        return { allowed: true, attemptsUsed: nextAttemptsUsed, limit: MAX_REFERRAL_EMAIL_RESENDS, attemptedAt: new Date().toISOString() };
+      }),
     draftFromConsultation: adminProcedure
       .input(z.object({ consultationNote: z.string().trim().min(20).max(6000) }))
       .mutation(async ({ input }) => {

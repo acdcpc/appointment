@@ -178,3 +178,11 @@ For a cancelled or unavailable referral email-share event, the clinician audit l
 The pending-actions widget now uses protected in-app links. **Contact approvals** opens the referral address-book queue, while **Staff invitations** opens pending team invitations. The selected management surface appears near the top of the clinician workspace for one-handed use.
 
 Approved and rejected contact history entries show the decision maker and recorded decision time. A failed referral email share shows its number of clinician-reviewed retry attempts out of three; the resend draft control visibly disables once the limit is reached.
+
+## Referral Delivery Alerts and Approval Activity
+
+An unresolved referral-delivery badge is positioned immediately below the clinician metrics row, before the longer dashboard content. It uses the error color, reports only unresolved cancelled or unavailable email-share events for the active child, and opens the protected **Email shares** audit filter when tapped.
+
+The clinician workspace includes a compact **Approval activity** feed. Each chronological item names the staff member who approved or rejected a specialist contact, the action, contact identity, and an exact recorded time. It remains clinician-only and is deliberately separate from parent-visible child records.
+
+Email-share audit cards show the exact local attempt time in addition to the platform-reported outcome. A clearly labeled **Server policy: maximum three clinician-reviewed resend attempts** line explains the retry ceiling; the UI can only open a reviewable email draft when the authenticated server policy has accepted the retry request.
