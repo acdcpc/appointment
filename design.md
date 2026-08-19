@@ -164,3 +164,11 @@ New specialist address-book entries begin as **Pending clinician approval**. Dr.
 Staff management distinguishes **active staff** from **pending invitations**. An invitation records an email address and proposed role but remains pending until an authenticated account-provisioning workflow is connected.
 
 The clinician audit log includes a dedicated **Email shares** filter. It lists the platform-reported status—such as draft opened, sent, saved, cancelled, or unavailable—without claiming delivery success when the platform cannot determine it.
+
+## Dashboard Notifications, Contact History, and Email Resend
+
+The clinician dashboard includes a compact notifications widget for **pending specialist-contact approvals** and **pending staff invitations**. It displays only counts and directs Dr. Ojha to the relevant management area.
+
+The referral address book includes a **History** tab for previously approved and rejected contacts. The history preserves explicit decision status and keeps rejected contacts out of selection flows.
+
+For a cancelled or unavailable referral email-share event, the clinician audit log provides **Resend draft**. It verifies that the recorded specialist is still an approved contact, then opens another reviewable mail draft for the active child rather than sending automatically.

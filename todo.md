@@ -89,3 +89,8 @@
 - [x] Display email-share events and statuses in clinician audit filters
 - [x] Validate contact approval staff invitations and email-share audit features
 - [x] Commit and push the completed project update
+- [x] Update reusable clinic workflow skill for dashboard notifications contact history and safe email resend
+- [x] Add dashboard notification widget for pending contact approvals and staff invitations
+- [x] Add approved and rejected specialist-contact history in the address book
+- [x] Add clinician-reviewed resend action for failed or cancelled referral email-share events
+- [x] Validate dashboard notifications contact history and resend behavior

@@ -12,6 +12,7 @@ import { ActiveGrowthReference } from "@/components/active-growth-reference";
 import { ReferralTemplateBuilder } from "@/components/referral-template-builder";
 import { ClinicianAuditLog } from "@/components/clinician-audit-log";
 import { StaffRoleManagement } from "@/components/staff-role-management";
+import { DashboardNotifications } from "@/components/dashboard-notifications";
 
 const durations = [20, 30, 45, 60];
 const weekdays: ClinicOperatingHour["weekday"][] = ["Mon", "Tue", "Wed", "Thu", "Fri"];
@@ -44,6 +45,7 @@ function Dashboard() {
   return <ScreenContainer className="p-5"><ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
     <Pressable onPress={() => router.back()}><Text style={[styles.back, { color: colors.primary }]}>‹  Back</Text></Pressable><Text style={[styles.eyebrow, { color: colors.primary }]}>CLINICIAN WORKSPACE</Text><Text style={[styles.title, { color: colors.foreground }]}>Dr. Anil Ojha</Text><Text style={[styles.subtitle, { color: colors.muted }]}>Manage today’s pediatric appointments, availability, and prescription records.</Text>
     <View style={styles.metrics}>{[[String(today.length), "Today’s visits"], [String(appointments.filter((item) => item.status === "needs-intake").length), "Needs intake"], ["1", "Active child"]].map(([value, label]) => <View key={label} style={[styles.metric, { backgroundColor: colors.surface, borderColor: colors.border }]}><Text style={[styles.metricValue, { color: colors.foreground }]}>{value}</Text><Text style={[styles.cardMeta, { color: colors.muted }]}>{label}</Text></View>)}</View>
+    <DashboardNotifications />
     <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Today’s queue</Text>{today.map((appointment) => <View key={appointment.id} style={[styles.queueCard, { backgroundColor: colors.surface, borderColor: colors.border }]}><Text style={[styles.queueTime, { color: colors.primary }]}>{appointment.time}</Text><View style={{ flex: 1, gap: 3 }}><Text style={[styles.cardTitle, { color: colors.foreground }]}>{activeChild.name} · {appointment.service}</Text><Text style={[styles.cardMeta, { color: colors.muted }]}>{appointment.reason} · {appointment.durationMinutes} minutes</Text></View><Text style={[styles.status, { color: appointment.status === "needs-intake" ? colors.warning : colors.success }]}>{appointment.status === "needs-intake" ? "Intake" : "Confirmed"}</Text></View>)}
     <ClinicianIntelligence onApplyDraft={applyAiDraft} />
     <ActiveGrowthReference />
