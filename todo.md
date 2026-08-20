@@ -117,5 +117,5 @@
 - [x] Persist audit retention policy and archive status in the database
 - [x] Add an auditable manual archive workflow that preserves clinician access
 - [x] Validate retention settings and archival behavior
-- [ ] Commit and push audit retention update to GitHub
+- [x] Commit and push audit retention update to GitHub
 - [x] Provide mobile and web application run instructions
