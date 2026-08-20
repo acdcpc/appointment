@@ -1,12 +1,13 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users } from "../drizzle/schema";
-import { referralAuditEvents, referralDeliveryMonitor, referralRetryCounters } from "../drizzle/schema";
+import { auditRetentionPolicies, referralAuditEvents, referralDeliveryMonitor, referralRetryCounters } from "../drizzle/schema";
 import { and, isNull, lt, or, sql } from "drizzle-orm";
 import { ENV } from "./_core/env";
 
 export const MAX_REFERRAL_EMAIL_RESENDS = 3;
 export const UNRESOLVED_REFERRAL_ALERT_HOURS = 24;
+export const MAX_AUDIT_RETENTION_DAYS = 36500;
 type ReferralAuditInput = {
   clientEventId: string; childId: string; type: "appointment-change" | "referral-letter" | "email-share"; occurredAt: Date; actorName: string; summary: string; message?: string; deliveryStatus?: "draft-opened" | "sent" | "saved" | "cancelled" | "unavailable"; isResend?: boolean; retryLimit?: number; retryAttempts?: number;
 };
@@ -166,4 +167,34 @@ export async function releaseReferralDeliveryFailureAlert(eventId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available for referral delivery monitoring");
   await db.update(referralAuditEvents).set({ alertSentAt: null }).where(eq(referralAuditEvents.id, eventId));
+}
+
+export async function getAuditRetentionPolicy(clinicianUserId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available for audit retention settings");
+  const rows = await db.select().from(auditRetentionPolicies).where(eq(auditRetentionPolicies.clinicianUserId, clinicianUserId)).limit(1);
+  return rows[0] ?? null;
+}
+
+export async function saveAuditRetentionPolicy(clinicianUserId: number, retentionDays: number, updatedBy: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available for audit retention settings");
+  await db.insert(auditRetentionPolicies).values({ clinicianUserId, retentionDays, updatedBy }).onDuplicateKeyUpdate({ set: { retentionDays, updatedBy } });
+  return getAuditRetentionPolicy(clinicianUserId);
+}
+
+export async function getAuditArchivePreview(clinicianUserId: number, retentionDays: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available for audit archival");
+  const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);
+  const result = await db.select({ count: sql<number>`count(*)` }).from(referralAuditEvents).where(and(eq(referralAuditEvents.clinicianUserId, clinicianUserId), isNull(referralAuditEvents.archivedAt), lt(referralAuditEvents.occurredAt, cutoff)));
+  return { retentionDays, cutoff: cutoff.toISOString(), eligibleCount: Number(result[0]?.count ?? 0) };
+}
+
+export async function archiveExpiredAuditEvents(clinicianUserId: number, retentionDays: number, archivedBy: string, archiveReason: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available for audit archival");
+  const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);
+  const result = await db.update(referralAuditEvents).set({ archivedAt: new Date(), archivedBy, archiveReason }).where(and(eq(referralAuditEvents.clinicianUserId, clinicianUserId), isNull(referralAuditEvents.archivedAt), lt(referralAuditEvents.occurredAt, cutoff)));
+  return { archivedCount: Number(result[0]?.affectedRows ?? 0), cutoff: cutoff.toISOString() };
 }

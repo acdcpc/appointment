@@ -29,7 +29,26 @@ export const appRouter = router({
     })),
     listReferralAuditEvents: adminProcedure.query(async ({ ctx }) => {
       const events = await referralDb.listReferralAuditEvents(ctx.user.id);
-      return events.map((event) => ({ ...event, occurredAt: event.occurredAt.toISOString(), alertSentAt: event.alertSentAt?.toISOString() ?? null }));
+      return events.map((event) => ({ ...event, occurredAt: event.occurredAt.toISOString(), alertSentAt: event.alertSentAt?.toISOString() ?? null, archivedAt: event.archivedAt?.toISOString() ?? null }));
+    }),
+    getAuditRetentionPolicy: adminProcedure.query(async ({ ctx }) => {
+      const policy = await referralDb.getAuditRetentionPolicy(ctx.user.id);
+      return policy ? { retentionDays: policy.retentionDays, updatedBy: policy.updatedBy, updatedAt: policy.updatedAt.toISOString() } : { retentionDays: null, updatedBy: null, updatedAt: null };
+    }),
+    saveAuditRetentionPolicy: adminProcedure.input(z.object({ retentionDays: z.number().int().min(30).max(referralDb.MAX_AUDIT_RETENTION_DAYS) })).mutation(async ({ ctx, input }) => {
+      const policy = await referralDb.saveAuditRetentionPolicy(ctx.user.id, input.retentionDays, ctx.user.name ?? "Associate Professor Dr. Anil Ojha");
+      return { retentionDays: policy?.retentionDays ?? input.retentionDays, updatedBy: policy?.updatedBy ?? ctx.user.name ?? "Associate Professor Dr. Anil Ojha" };
+    }),
+    previewAuditArchive: adminProcedure.query(async ({ ctx }) => {
+      const policy = await referralDb.getAuditRetentionPolicy(ctx.user.id);
+      if (!policy) return { configured: false, eligibleCount: 0, retentionDays: null, cutoff: null };
+      const preview = await referralDb.getAuditArchivePreview(ctx.user.id, policy.retentionDays);
+      return { configured: true, ...preview };
+    }),
+    archiveExpiredAuditEvents: adminProcedure.input(z.object({ archiveReason: z.string().trim().min(5).max(500) })).mutation(async ({ ctx, input }) => {
+      const policy = await referralDb.getAuditRetentionPolicy(ctx.user.id);
+      if (!policy) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Set and confirm the clinic’s retention period before archiving audit records." });
+      return referralDb.archiveExpiredAuditEvents(ctx.user.id, policy.retentionDays, ctx.user.name ?? "Associate Professor Dr. Anil Ojha", input.archiveReason);
     }),
     persistReferralAuditEvent: adminProcedure
       .input(z.object({ clientEventId: z.string().min(1).max(80), childId: z.string().min(1).max(120), type: z.enum(["appointment-change", "referral-letter", "email-share"]), occurredAt: z.string().datetime(), summary: z.string().min(1).max(4000), message: z.string().max(4000).optional(), deliveryStatus: z.enum(["draft-opened", "sent", "saved", "cancelled", "unavailable"]).optional(), isResend: z.boolean().optional(), retryLimit: z.number().int().min(1).max(10).optional(), retryAttempts: z.number().int().min(0).max(10).optional() }))

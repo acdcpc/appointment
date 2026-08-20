@@ -112,3 +112,10 @@
 - [x] Run the unresolved-delivery notification check automatically after 24 hours without duplicate alerts
 - [x] Add audit-log date range and staff-action filters to export controls
 - [x] Validate persistent audit records overdue alerts and filtered exports
+- [x] Update reusable clinic workflow skill for audit retention and archival settings
+- [x] Add clinician audit retention and archival settings screen
+- [x] Persist audit retention policy and archive status in the database
+- [x] Add an auditable manual archive workflow that preserves clinician access
+- [x] Validate retention settings and archival behavior
+- [ ] Commit and push audit retention update to GitHub
+- [x] Provide mobile and web application run instructions

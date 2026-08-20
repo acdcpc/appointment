@@ -43,6 +43,9 @@ export const referralAuditEvents = mysqlTable("referral_audit_events", {
   retryLimit: int("retryLimit").default(3).notNull(),
   retryAttempts: int("retryAttempts").default(0).notNull(),
   alertSentAt: timestamp("alertSentAt"),
+  archivedAt: timestamp("archivedAt"),
+  archivedBy: varchar("archivedBy", { length: 255 }),
+  archiveReason: varchar("archiveReason", { length: 500 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 }, (table) => [
   uniqueIndex("referral_audit_events_client_event_unique").on(table.clinicianUserId, table.clientEventId),
@@ -69,6 +72,17 @@ export const referralDeliveryMonitor = mysqlTable("referral_delivery_monitor", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
+
+export const auditRetentionPolicies = mysqlTable("audit_retention_policies", {
+  id: int("id").autoincrement().primaryKey(),
+  clinicianUserId: int("clinicianUserId").notNull(),
+  retentionDays: int("retentionDays").notNull(),
+  updatedBy: varchar("updatedBy", { length: 255 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => [
+  uniqueIndex("audit_retention_policies_clinician_unique").on(table.clinicianUserId),
+]);
 
 export type ReferralAuditEventRow = typeof referralAuditEvents.$inferSelect;
 export type InsertReferralAuditEvent = typeof referralAuditEvents.$inferInsert;

@@ -194,3 +194,9 @@ Referral audit events and resend usage are durable clinician-owned records rathe
 An automatic background check evaluates unresolved cancelled or unavailable referral attempts after **24 hours**. It sends one clinician notification for each qualifying unresolved event and records the notification timestamp to prevent duplicate alerts. A new failed attempt is treated as a separate, reviewable audit event.
 
 The clinician audit log places inclusive date-range inputs and a staff-action filter directly above the export action. Exports state the applied time range and staff-action scope in their header, so printed or saved documents retain the context in which the clinician filtered them.
+
+## Audit Retention and Archive Settings
+
+The clinician workspace includes an **Audit retention & archive** card inside its protected settings area. Dr. Ojha enters a clinic-approved number of days rather than selecting a presumed legal default. The screen clearly states that the clinic must confirm its privacy, clinical-governance, and legal retention obligations before applying a policy.
+
+The screen previews how many clinician audit records are past the configured retention period and requires a written archive note plus an explicit confirmation before archiving. Archiving is non-destructive: records remain accessible to clinicians and exports visibly identify their archive date and responsible clinician. No parent-facing screen exposes this setting or archived audit metadata.
