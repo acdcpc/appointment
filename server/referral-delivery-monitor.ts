@@ -9,7 +9,7 @@ export async function handleReferralDeliveryMonitor(req: Request, res: Response)
     const user = await sdk.authenticateRequest(req);
     if (!user.isCron || !user.taskUid) return res.status(403).json({ error: "cron-only" });
     const monitor = await db.getReferralDeliveryMonitorByTaskUid(user.taskUid);
-    if (!monitor) return res.json({ ok: true, skipped: "orphan" });
+    if (!monitor || !monitor.scheduleEnabled) return res.json({ ok: true, skipped: "disabled-or-orphan" });
     const result = await db.findAndMarkOverdueReferralDeliveryFailures();
     let delivered = 0;
     for (const event of result.alerted) {

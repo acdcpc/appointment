@@ -22,6 +22,20 @@
       "when": 1787209971976,
       "tag": "0002_slimy_scream",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1787210522141,
+      "tag": "0003_amused_gauntlet",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1787210568420,
+      "tag": "0004_brainy_hydra",
+      "breakpoints": true
     }
   ]
 }

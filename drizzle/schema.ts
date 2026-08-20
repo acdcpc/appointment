@@ -69,6 +69,7 @@ export const referralDeliveryMonitor = mysqlTable("referral_delivery_monitor", {
   thresholdHours: int("thresholdHours").default(24).notNull(),
   lastRunAt: timestamp("lastRunAt"),
   scheduleCronTaskUid: varchar("scheduleCronTaskUid", { length: 65 }),
+  scheduleEnabled: boolean("scheduleEnabled").default(false).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -78,10 +79,27 @@ export const auditRetentionPolicies = mysqlTable("audit_retention_policies", {
   clinicianUserId: int("clinicianUserId").notNull(),
   retentionDays: int("retentionDays").notNull(),
   updatedBy: varchar("updatedBy", { length: 255 }).notNull(),
+  automaticArchiveEnabled: boolean("automaticArchiveEnabled").default(false).notNull(),
+  archiveScheduleCronTaskUid: varchar("archiveScheduleCronTaskUid", { length: 65 }),
+  lastArchiveRunAt: timestamp("lastArchiveRunAt"),
+  lastArchiveCount: int("lastArchiveCount").default(0).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, (table) => [
   uniqueIndex("audit_retention_policies_clinician_unique").on(table.clinicianUserId),
+]);
+
+export const auditArchiveRuns = mysqlTable("audit_archive_runs", {
+  id: int("id").autoincrement().primaryKey(),
+  clinicianUserId: int("clinicianUserId").notNull(),
+  retentionDays: int("retentionDays").notNull(),
+  archivedCount: int("archivedCount").notNull(),
+  executionType: mysqlEnum("executionType", ["manual", "scheduled"]).notNull(),
+  executedBy: varchar("executedBy", { length: 255 }).notNull(),
+  reason: varchar("reason", { length: 500 }).notNull(),
+  executedAt: timestamp("executedAt").defaultNow().notNull(),
+}, (table) => [
+  index("audit_archive_runs_clinician_executed_idx").on(table.clinicianUserId, table.executedAt),
 ]);
 
 export type ReferralAuditEventRow = typeof referralAuditEvents.$inferSelect;

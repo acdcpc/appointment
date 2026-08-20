@@ -119,3 +119,8 @@
 - [x] Validate retention settings and archival behavior
 - [x] Commit and push audit retention update to GitHub
 - [x] Provide mobile and web application run instructions
+- [x] Update reusable clinic workflow skill for activated alert and automated archival schedules
+- [x] Activate the unresolved-referral alert scheduler from the clinician control after publication
+- [x] Add a scheduled non-destructive audit archival job based on the saved retention policy
+- [x] Add retention dashboard storage usage and recent archival history
+- [x] Validate scheduled referral alerts archival jobs and retention dashboard

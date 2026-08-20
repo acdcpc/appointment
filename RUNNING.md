@@ -71,6 +71,8 @@ In the project workspace, open the latest checkpoint and select **Publish**. The
 
 After publishing, sign in with Dr. Ojha’s approved clinician account. In the clinician workspace, select **Enable automatic 24-hour check** once to activate the hourly unresolved-referral monitor. The monitor records notification state so a qualifying referral generates only one clinician alert unless a later failed attempt creates a new unresolved event.
 
+In **Audit retention & archive**, first save the clinic-approved retention period. Then select **Enable automatic archive** to activate the daily non-destructive archival job. The dashboard shows stored, active, and archived audit-record counts plus recent archive activity. You can pause or resume either scheduled control later; paused jobs do not alter stored records.
+
 ## 6. Validate changes before sharing them
 
 Run the project checks after code changes:

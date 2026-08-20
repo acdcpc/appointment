@@ -200,3 +200,9 @@ The clinician audit log places inclusive date-range inputs and a staff-action fi
 The clinician workspace includes an **Audit retention & archive** card inside its protected settings area. Dr. Ojha enters a clinic-approved number of days rather than selecting a presumed legal default. The screen clearly states that the clinic must confirm its privacy, clinical-governance, and legal retention obligations before applying a policy.
 
 The screen previews how many clinician audit records are past the configured retention period and requires a written archive note plus an explicit confirmation before archiving. Archiving is non-destructive: records remain accessible to clinicians and exports visibly identify their archive date and responsible clinician. No parent-facing screen exposes this setting or archived audit metadata.
+
+## Automated Retention Monitoring Dashboard
+
+After the published clinician account selects **Enable automatic 24-hour check**, the protected settings screen treats the activation as a single managed schedule. Each hour it reviews unresolved referral deliveries and applies the already-saved retention policy to archive eligible audit records without deletion. The interface differentiates the alert state and archival state, shows the next scheduled run, and allows the clinician to pause or resume future background work.
+
+The retention card presents small, one-handed-friendly metric tiles for total stored audit records, active records, archived records, and a compact list of recent archive runs. These figures are aggregate counts only; they never reveal child names or clinical detail outside the existing protected audit log.

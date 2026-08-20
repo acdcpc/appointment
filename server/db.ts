@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users } from "../drizzle/schema";
-import { auditRetentionPolicies, referralAuditEvents, referralDeliveryMonitor, referralRetryCounters } from "../drizzle/schema";
+import { auditArchiveRuns, auditRetentionPolicies, referralAuditEvents, referralDeliveryMonitor, referralRetryCounters } from "../drizzle/schema";
 import { and, isNull, lt, or, sql } from "drizzle-orm";
 import { ENV } from "./_core/env";
 
@@ -138,7 +138,15 @@ export async function saveReferralDeliveryMonitorSchedule(taskUid: string) {
   const db = await getDb();
   if (!db) throw new Error("Database not available for referral delivery monitoring");
   const config = await getReferralDeliveryMonitorConfig();
-  await db.update(referralDeliveryMonitor).set({ scheduleCronTaskUid: taskUid }).where(eq(referralDeliveryMonitor.id, config.id));
+  await db.update(referralDeliveryMonitor).set({ scheduleCronTaskUid: taskUid, scheduleEnabled: true }).where(eq(referralDeliveryMonitor.id, config.id));
+}
+
+export async function setReferralDeliveryMonitorEnabled(enabled: boolean) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available for referral delivery monitoring");
+  const config = await getReferralDeliveryMonitorConfig();
+  await db.update(referralDeliveryMonitor).set({ scheduleEnabled: enabled }).where(eq(referralDeliveryMonitor.id, config.id));
+  return { ...config, scheduleEnabled: enabled };
 }
 
 export async function getReferralDeliveryMonitorByTaskUid(taskUid: string) {
@@ -183,6 +191,26 @@ export async function saveAuditRetentionPolicy(clinicianUserId: number, retentio
   return getAuditRetentionPolicy(clinicianUserId);
 }
 
+export async function saveAuditArchiveSchedule(clinicianUserId: number, taskUid: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available for audit archival scheduling");
+  await db.update(auditRetentionPolicies).set({ archiveScheduleCronTaskUid: taskUid, automaticArchiveEnabled: true }).where(eq(auditRetentionPolicies.clinicianUserId, clinicianUserId));
+}
+
+export async function setAuditArchiveScheduleEnabled(clinicianUserId: number, enabled: boolean) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available for audit archival scheduling");
+  await db.update(auditRetentionPolicies).set({ automaticArchiveEnabled: enabled }).where(eq(auditRetentionPolicies.clinicianUserId, clinicianUserId));
+  return getAuditRetentionPolicy(clinicianUserId);
+}
+
+export async function getAuditRetentionPolicyByTaskUid(taskUid: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available for audit archival scheduling");
+  const rows = await db.select().from(auditRetentionPolicies).where(eq(auditRetentionPolicies.archiveScheduleCronTaskUid, taskUid)).limit(1);
+  return rows[0] ?? null;
+}
+
 export async function getAuditArchivePreview(clinicianUserId: number, retentionDays: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available for audit archival");
@@ -191,10 +219,30 @@ export async function getAuditArchivePreview(clinicianUserId: number, retentionD
   return { retentionDays, cutoff: cutoff.toISOString(), eligibleCount: Number(result[0]?.count ?? 0) };
 }
 
-export async function archiveExpiredAuditEvents(clinicianUserId: number, retentionDays: number, archivedBy: string, archiveReason: string) {
+export async function archiveExpiredAuditEvents(clinicianUserId: number, retentionDays: number, archivedBy: string, archiveReason: string, executionType: "manual" | "scheduled" = "manual") {
   const db = await getDb();
   if (!db) throw new Error("Database not available for audit archival");
   const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);
   const result = await db.update(referralAuditEvents).set({ archivedAt: new Date(), archivedBy, archiveReason }).where(and(eq(referralAuditEvents.clinicianUserId, clinicianUserId), isNull(referralAuditEvents.archivedAt), lt(referralAuditEvents.occurredAt, cutoff)));
-  return { archivedCount: Number(result[0]?.affectedRows ?? 0), cutoff: cutoff.toISOString() };
+  const archivedCount = Number(result[0]?.affectedRows ?? 0);
+  await db.insert(auditArchiveRuns).values({ clinicianUserId, retentionDays, archivedCount, executionType, executedBy: archivedBy, reason: archiveReason });
+  return { archivedCount, cutoff: cutoff.toISOString() };
+}
+
+export async function runScheduledAuditArchive(taskUid: string) {
+  const policy = await getAuditRetentionPolicyByTaskUid(taskUid);
+  if (!policy || !policy.automaticArchiveEnabled) return { skipped: "disabled-or-orphan", archivedCount: 0 };
+  const result = await archiveExpiredAuditEvents(policy.clinicianUserId, policy.retentionDays, "Automated retention schedule", `Scheduled non-destructive archive after ${policy.retentionDays} days.`, "scheduled");
+  const db = await getDb();
+  if (db) await db.update(auditRetentionPolicies).set({ lastArchiveRunAt: new Date(), lastArchiveCount: result.archivedCount }).where(eq(auditRetentionPolicies.id, policy.id));
+  return { ...result, skipped: null };
+}
+
+export async function getAuditRetentionDashboard(clinicianUserId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available for audit retention reporting");
+  const counts = await db.select({ total: sql<number>`count(*)`, archived: sql<number>`sum(case when ${referralAuditEvents.archivedAt} is not null then 1 else 0 end)`, storageBytes: sql<number>`coalesce(sum(length(${referralAuditEvents.summary}) + coalesce(length(${referralAuditEvents.message}), 0) + coalesce(length(${referralAuditEvents.archiveReason}), 0)), 0)` }).from(referralAuditEvents).where(eq(referralAuditEvents.clinicianUserId, clinicianUserId));
+  const recentRuns = await db.select().from(auditArchiveRuns).where(eq(auditArchiveRuns.clinicianUserId, clinicianUserId)).orderBy(sql`${auditArchiveRuns.executedAt} desc`).limit(5);
+  const total = Number(counts[0]?.total ?? 0); const archived = Number(counts[0]?.archived ?? 0);
+  return { totalRecords: total, activeRecords: total - archived, archivedRecords: archived, storageBytes: Number(counts[0]?.storageBytes ?? 0), recentRuns };
 }

@@ -6,7 +6,7 @@ import { invokeLLM } from "./_core/llm";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { parse as parseCookie } from "cookie";
-import { createHeartbeatJob } from "./_core/heartbeat";
+import { createHeartbeatJob, updateHeartbeatJob } from "./_core/heartbeat";
 import * as referralDb from "./db";
 
 export const appRouter = router({
@@ -33,7 +33,7 @@ export const appRouter = router({
     }),
     getAuditRetentionPolicy: adminProcedure.query(async ({ ctx }) => {
       const policy = await referralDb.getAuditRetentionPolicy(ctx.user.id);
-      return policy ? { retentionDays: policy.retentionDays, updatedBy: policy.updatedBy, updatedAt: policy.updatedAt.toISOString() } : { retentionDays: null, updatedBy: null, updatedAt: null };
+      return policy ? { retentionDays: policy.retentionDays, updatedBy: policy.updatedBy, updatedAt: policy.updatedAt.toISOString(), automaticArchiveEnabled: policy.automaticArchiveEnabled, archiveScheduleConfigured: Boolean(policy.archiveScheduleCronTaskUid), lastArchiveRunAt: policy.lastArchiveRunAt?.toISOString() ?? null, lastArchiveCount: policy.lastArchiveCount } : { retentionDays: null, updatedBy: null, updatedAt: null, automaticArchiveEnabled: false, archiveScheduleConfigured: false, lastArchiveRunAt: null, lastArchiveCount: 0 };
     }),
     saveAuditRetentionPolicy: adminProcedure.input(z.object({ retentionDays: z.number().int().min(30).max(referralDb.MAX_AUDIT_RETENTION_DAYS) })).mutation(async ({ ctx, input }) => {
       const policy = await referralDb.saveAuditRetentionPolicy(ctx.user.id, input.retentionDays, ctx.user.name ?? "Associate Professor Dr. Anil Ojha");
@@ -50,6 +50,28 @@ export const appRouter = router({
       if (!policy) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Set and confirm the clinic’s retention period before archiving audit records." });
       return referralDb.archiveExpiredAuditEvents(ctx.user.id, policy.retentionDays, ctx.user.name ?? "Associate Professor Dr. Anil Ojha", input.archiveReason);
     }),
+    getAuditRetentionDashboard: adminProcedure.query(async ({ ctx }) => {
+      const dashboard = await referralDb.getAuditRetentionDashboard(ctx.user.id);
+      return { ...dashboard, recentRuns: dashboard.recentRuns.map((run) => ({ ...run, executedAt: run.executedAt.toISOString() })) };
+    }),
+    configureAuditArchiveSchedule: adminProcedure.mutation(async ({ ctx }) => {
+      if (process.env.NODE_ENV !== "production") throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Publish the clinic app before enabling automatic audit archival." });
+      const policy = await referralDb.getAuditRetentionPolicy(ctx.user.id);
+      if (!policy) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Set and confirm the clinic retention period before enabling automatic archival." });
+      const session = parseCookie(ctx.req.headers.cookie ?? "")[COOKIE_NAME] ?? "";
+      if (policy.archiveScheduleCronTaskUid) { await updateHeartbeatJob(policy.archiveScheduleCronTaskUid, { enable: true }, session); await referralDb.setAuditArchiveScheduleEnabled(ctx.user.id, true); return { configured: true, enabled: true, nextExecutionAt: null }; }
+      const job = await createHeartbeatJob({ name: `audit-retention-archive-${ctx.user.id}`, cron: "0 0 2 * * *", path: "/api/scheduled/audit-retention-archive", description: "Daily non-destructive archive of audit records beyond the clinician-configured retention period." }, session);
+      await referralDb.saveAuditArchiveSchedule(ctx.user.id, job.taskUid);
+      return { configured: true, enabled: true, nextExecutionAt: job.nextExecutionAt ?? null };
+    }),
+    setAuditArchiveScheduleEnabled: adminProcedure.input(z.object({ enabled: z.boolean() })).mutation(async ({ ctx, input }) => {
+      const policy = await referralDb.getAuditRetentionPolicy(ctx.user.id);
+      if (!policy?.archiveScheduleCronTaskUid) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Enable automatic archival once before pausing or resuming it." });
+      const session = parseCookie(ctx.req.headers.cookie ?? "")[COOKIE_NAME] ?? "";
+      await updateHeartbeatJob(policy.archiveScheduleCronTaskUid, { enable: input.enabled }, session);
+      await referralDb.setAuditArchiveScheduleEnabled(ctx.user.id, input.enabled);
+      return { enabled: input.enabled };
+    }),
     persistReferralAuditEvent: adminProcedure
       .input(z.object({ clientEventId: z.string().min(1).max(80), childId: z.string().min(1).max(120), type: z.enum(["appointment-change", "referral-letter", "email-share"]), occurredAt: z.string().datetime(), summary: z.string().min(1).max(4000), message: z.string().max(4000).optional(), deliveryStatus: z.enum(["draft-opened", "sent", "saved", "cancelled", "unavailable"]).optional(), isResend: z.boolean().optional(), retryLimit: z.number().int().min(1).max(10).optional(), retryAttempts: z.number().int().min(0).max(10).optional() }))
       .mutation(async ({ ctx, input }) => {
@@ -62,11 +84,23 @@ export const appRouter = router({
     configureReferralDeliveryMonitor: adminProcedure.mutation(async ({ ctx }) => {
       if (process.env.NODE_ENV !== "production") throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Publish the clinic app before enabling automatic referral delivery monitoring." });
       const monitor = await referralDb.getReferralDeliveryMonitorConfig();
-      if (monitor.scheduleCronTaskUid) return { configured: true, thresholdHours: monitor.thresholdHours };
       const session = parseCookie(ctx.req.headers.cookie ?? "")[COOKIE_NAME] ?? "";
+      if (monitor.scheduleCronTaskUid) { await updateHeartbeatJob(monitor.scheduleCronTaskUid, { enable: true }, session); await referralDb.setReferralDeliveryMonitorEnabled(true); return { configured: true, enabled: true, thresholdHours: monitor.thresholdHours, nextExecutionAt: null }; }
       const job = await createHeartbeatJob({ name: "referral-delivery-monitor", cron: "0 0 * * * *", path: "/api/scheduled/referral-delivery-monitor", description: "Hourly check for referral deliveries unresolved for at least 24 hours." }, session);
       await referralDb.saveReferralDeliveryMonitorSchedule(job.taskUid);
-      return { configured: true, thresholdHours: monitor.thresholdHours, nextExecutionAt: job.nextExecutionAt ?? null };
+      return { configured: true, enabled: true, thresholdHours: monitor.thresholdHours, nextExecutionAt: job.nextExecutionAt ?? null };
+    }),
+    getReferralDeliveryMonitorStatus: adminProcedure.query(async () => {
+      const monitor = await referralDb.getReferralDeliveryMonitorConfig();
+      return { configured: Boolean(monitor.scheduleCronTaskUid), enabled: monitor.scheduleEnabled, thresholdHours: monitor.thresholdHours, lastRunAt: monitor.lastRunAt?.toISOString() ?? null };
+    }),
+    setReferralDeliveryMonitorEnabled: adminProcedure.input(z.object({ enabled: z.boolean() })).mutation(async ({ ctx, input }) => {
+      const monitor = await referralDb.getReferralDeliveryMonitorConfig();
+      if (!monitor.scheduleCronTaskUid) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Enable the referral monitor once before pausing or resuming it." });
+      const session = parseCookie(ctx.req.headers.cookie ?? "")[COOKIE_NAME] ?? "";
+      await updateHeartbeatJob(monitor.scheduleCronTaskUid, { enable: input.enabled }, session);
+      await referralDb.setReferralDeliveryMonitorEnabled(input.enabled);
+      return { enabled: input.enabled };
     }),
     draftFromConsultation: adminProcedure
       .input(z.object({ consultationNote: z.string().trim().min(20).max(6000) }))
