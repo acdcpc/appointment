@@ -206,3 +206,9 @@ The screen previews how many clinician audit records are past the configured ret
 After the published clinician account selects **Enable automatic 24-hour check**, the protected settings screen treats the activation as a single managed schedule. Each hour it reviews unresolved referral deliveries and applies the already-saved retention policy to archive eligible audit records without deletion. The interface differentiates the alert state and archival state, shows the next scheduled run, and allows the clinician to pause or resume future background work.
 
 The retention card presents small, one-handed-friendly metric tiles for total stored audit records, active records, archived records, and a compact list of recent archive runs. These figures are aggregate counts only; they never reveal child names or clinical detail outside the existing protected audit log.
+
+## Archive Reporting and Retention Policy Trail
+
+The **Recent archive activity** panel includes an export action that creates a child-free staff report of archive run time, run type, record count, retention period, actor, and reason. The report intentionally excludes patient names, child identifiers, and clinical text.
+
+Below the retention controls, a compact **Policy change trail** lists every change to the retention period or automatic archive state. Each entry identifies the prior and new value, the staff member who made the change, and an exact timestamp. This trail remains clinician-only and supports oversight without making retention policy data visible in parent-facing records.

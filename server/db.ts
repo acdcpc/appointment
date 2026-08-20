@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users } from "../drizzle/schema";
-import { auditArchiveRuns, auditRetentionPolicies, referralAuditEvents, referralDeliveryMonitor, referralRetryCounters } from "../drizzle/schema";
+import { auditArchiveRuns, auditRetentionPolicies, auditRetentionPolicyChanges, referralAuditEvents, referralDeliveryMonitor, referralRetryCounters } from "../drizzle/schema";
 import { and, isNull, lt, or, sql } from "drizzle-orm";
 import { ENV } from "./_core/env";
 
@@ -187,20 +187,26 @@ export async function getAuditRetentionPolicy(clinicianUserId: number) {
 export async function saveAuditRetentionPolicy(clinicianUserId: number, retentionDays: number, updatedBy: string) {
   const db = await getDb();
   if (!db) throw new Error("Database not available for audit retention settings");
+  const existing = await getAuditRetentionPolicy(clinicianUserId);
   await db.insert(auditRetentionPolicies).values({ clinicianUserId, retentionDays, updatedBy }).onDuplicateKeyUpdate({ set: { retentionDays, updatedBy } });
+  if (existing?.retentionDays !== retentionDays) await db.insert(auditRetentionPolicyChanges).values({ clinicianUserId, setting: "retention-days", previousValue: existing ? `${existing.retentionDays} days` : "Not configured", nextValue: `${retentionDays} days`, changedBy: updatedBy });
   return getAuditRetentionPolicy(clinicianUserId);
 }
 
-export async function saveAuditArchiveSchedule(clinicianUserId: number, taskUid: string) {
+export async function saveAuditArchiveSchedule(clinicianUserId: number, taskUid: string, changedBy = "Associate Professor Dr. Anil Ojha") {
   const db = await getDb();
   if (!db) throw new Error("Database not available for audit archival scheduling");
+  const existing = await getAuditRetentionPolicy(clinicianUserId);
   await db.update(auditRetentionPolicies).set({ archiveScheduleCronTaskUid: taskUid, automaticArchiveEnabled: true }).where(eq(auditRetentionPolicies.clinicianUserId, clinicianUserId));
+  if (!existing?.automaticArchiveEnabled) await db.insert(auditRetentionPolicyChanges).values({ clinicianUserId, setting: "automatic-archive", previousValue: "Paused", nextValue: "Enabled", changedBy });
 }
 
-export async function setAuditArchiveScheduleEnabled(clinicianUserId: number, enabled: boolean) {
+export async function setAuditArchiveScheduleEnabled(clinicianUserId: number, enabled: boolean, changedBy = "Associate Professor Dr. Anil Ojha") {
   const db = await getDb();
   if (!db) throw new Error("Database not available for audit archival scheduling");
+  const existing = await getAuditRetentionPolicy(clinicianUserId);
   await db.update(auditRetentionPolicies).set({ automaticArchiveEnabled: enabled }).where(eq(auditRetentionPolicies.clinicianUserId, clinicianUserId));
+  if (existing?.automaticArchiveEnabled !== enabled) await db.insert(auditRetentionPolicyChanges).values({ clinicianUserId, setting: "automatic-archive", previousValue: existing?.automaticArchiveEnabled ? "Enabled" : "Paused", nextValue: enabled ? "Enabled" : "Paused", changedBy });
   return getAuditRetentionPolicy(clinicianUserId);
 }
 
@@ -243,6 +249,7 @@ export async function getAuditRetentionDashboard(clinicianUserId: number) {
   if (!db) throw new Error("Database not available for audit retention reporting");
   const counts = await db.select({ total: sql<number>`count(*)`, archived: sql<number>`sum(case when ${referralAuditEvents.archivedAt} is not null then 1 else 0 end)`, storageBytes: sql<number>`coalesce(sum(length(${referralAuditEvents.summary}) + coalesce(length(${referralAuditEvents.message}), 0) + coalesce(length(${referralAuditEvents.archiveReason}), 0)), 0)` }).from(referralAuditEvents).where(eq(referralAuditEvents.clinicianUserId, clinicianUserId));
   const recentRuns = await db.select().from(auditArchiveRuns).where(eq(auditArchiveRuns.clinicianUserId, clinicianUserId)).orderBy(sql`${auditArchiveRuns.executedAt} desc`).limit(5);
+  const policyChanges = await db.select().from(auditRetentionPolicyChanges).where(eq(auditRetentionPolicyChanges.clinicianUserId, clinicianUserId)).orderBy(sql`${auditRetentionPolicyChanges.changedAt} desc`).limit(8);
   const total = Number(counts[0]?.total ?? 0); const archived = Number(counts[0]?.archived ?? 0);
-  return { totalRecords: total, activeRecords: total - archived, archivedRecords: archived, storageBytes: Number(counts[0]?.storageBytes ?? 0), recentRuns };
+  return { totalRecords: total, activeRecords: total - archived, archivedRecords: archived, storageBytes: Number(counts[0]?.storageBytes ?? 0), recentRuns, policyChanges };
 }

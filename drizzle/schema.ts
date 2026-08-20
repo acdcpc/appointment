@@ -102,5 +102,17 @@ export const auditArchiveRuns = mysqlTable("audit_archive_runs", {
   index("audit_archive_runs_clinician_executed_idx").on(table.clinicianUserId, table.executedAt),
 ]);
 
+export const auditRetentionPolicyChanges = mysqlTable("audit_retention_policy_changes", {
+  id: int("id").autoincrement().primaryKey(),
+  clinicianUserId: int("clinicianUserId").notNull(),
+  setting: mysqlEnum("setting", ["retention-days", "automatic-archive"]).notNull(),
+  previousValue: varchar("previousValue", { length: 120 }).notNull(),
+  nextValue: varchar("nextValue", { length: 120 }).notNull(),
+  changedBy: varchar("changedBy", { length: 255 }).notNull(),
+  changedAt: timestamp("changedAt").defaultNow().notNull(),
+}, (table) => [
+  index("audit_retention_policy_changes_clinician_changed_idx").on(table.clinicianUserId, table.changedAt),
+]);
+
 export type ReferralAuditEventRow = typeof referralAuditEvents.$inferSelect;
 export type InsertReferralAuditEvent = typeof referralAuditEvents.$inferInsert;

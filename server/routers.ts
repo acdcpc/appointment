@@ -52,16 +52,16 @@ export const appRouter = router({
     }),
     getAuditRetentionDashboard: adminProcedure.query(async ({ ctx }) => {
       const dashboard = await referralDb.getAuditRetentionDashboard(ctx.user.id);
-      return { ...dashboard, recentRuns: dashboard.recentRuns.map((run) => ({ ...run, executedAt: run.executedAt.toISOString() })) };
+      return { ...dashboard, recentRuns: dashboard.recentRuns.map((run) => ({ ...run, executedAt: run.executedAt.toISOString() })), policyChanges: dashboard.policyChanges.map((change) => ({ ...change, changedAt: change.changedAt.toISOString() })) };
     }),
     configureAuditArchiveSchedule: adminProcedure.mutation(async ({ ctx }) => {
       if (process.env.NODE_ENV !== "production") throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Publish the clinic app before enabling automatic audit archival." });
       const policy = await referralDb.getAuditRetentionPolicy(ctx.user.id);
       if (!policy) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Set and confirm the clinic retention period before enabling automatic archival." });
       const session = parseCookie(ctx.req.headers.cookie ?? "")[COOKIE_NAME] ?? "";
-      if (policy.archiveScheduleCronTaskUid) { await updateHeartbeatJob(policy.archiveScheduleCronTaskUid, { enable: true }, session); await referralDb.setAuditArchiveScheduleEnabled(ctx.user.id, true); return { configured: true, enabled: true, nextExecutionAt: null }; }
+      if (policy.archiveScheduleCronTaskUid) { await updateHeartbeatJob(policy.archiveScheduleCronTaskUid, { enable: true }, session); await referralDb.setAuditArchiveScheduleEnabled(ctx.user.id, true, ctx.user.name ?? "Associate Professor Dr. Anil Ojha"); return { configured: true, enabled: true, nextExecutionAt: null }; }
       const job = await createHeartbeatJob({ name: `audit-retention-archive-${ctx.user.id}`, cron: "0 0 2 * * *", path: "/api/scheduled/audit-retention-archive", description: "Daily non-destructive archive of audit records beyond the clinician-configured retention period." }, session);
-      await referralDb.saveAuditArchiveSchedule(ctx.user.id, job.taskUid);
+      await referralDb.saveAuditArchiveSchedule(ctx.user.id, job.taskUid, ctx.user.name ?? "Associate Professor Dr. Anil Ojha");
       return { configured: true, enabled: true, nextExecutionAt: job.nextExecutionAt ?? null };
     }),
     setAuditArchiveScheduleEnabled: adminProcedure.input(z.object({ enabled: z.boolean() })).mutation(async ({ ctx, input }) => {
@@ -69,7 +69,7 @@ export const appRouter = router({
       if (!policy?.archiveScheduleCronTaskUid) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Enable automatic archival once before pausing or resuming it." });
       const session = parseCookie(ctx.req.headers.cookie ?? "")[COOKIE_NAME] ?? "";
       await updateHeartbeatJob(policy.archiveScheduleCronTaskUid, { enable: input.enabled }, session);
-      await referralDb.setAuditArchiveScheduleEnabled(ctx.user.id, input.enabled);
+      await referralDb.setAuditArchiveScheduleEnabled(ctx.user.id, input.enabled, ctx.user.name ?? "Associate Professor Dr. Anil Ojha");
       return { enabled: input.enabled };
     }),
     persistReferralAuditEvent: adminProcedure

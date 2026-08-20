@@ -124,3 +124,8 @@
 - [x] Add a scheduled non-destructive audit archival job based on the saved retention policy
 - [x] Add retention dashboard storage usage and recent archival history
 - [x] Validate scheduled referral alerts archival jobs and retention dashboard
+- [x] Update reusable clinic workflow skill for archival-history reports and retention-policy change trails
+- [x] Add downloadable clinician archive-history report export
+- [x] Persist staff-attributed retention-policy change events
+- [x] Display retention-policy change trail in protected settings
+- [x] Validate archive report export and retention-policy audit trail
