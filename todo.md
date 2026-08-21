@@ -170,3 +170,8 @@
 - [x] Add optional WhatsApp response-hours notice beside patient contact action
 - [x] Add clinician-reviewed, patient-specific message and PDF/report sharing controls
 - [x] Validate public availability guidance and patient-specific sharing safeguards
+- [x] Update reusable clinic workflow skill for guardian contact confirmation and report acknowledgement tracking
+- [x] Add clinician-editable WhatsApp response notice settings
+- [x] Add confirmed guardian contact records for child-specific communication
+- [x] Add explicit parent report-view acknowledgement recording and clinician display
+- [x] Validate contact confirmation and acknowledgement safeguards

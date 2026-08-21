@@ -28,7 +28,18 @@ export const appRouter = router({
   clinicPublic: router({
     settings: publicProcedure.query(async () => {
       const settings = await referralDb.getClinicPublicSettings();
-      return { clinicName: settings.clinicName, address: settings.address, mapUrl: settings.mapUrl, whatsappNumber: settings.whatsappNumber, isProvisional: settings.isProvisional, updatedAt: settings.updatedAt.toISOString() };
+      return { clinicName: settings.clinicName, address: settings.address, mapUrl: settings.mapUrl, whatsappNumber: settings.whatsappNumber, whatsappResponseNotice: settings.whatsappResponseNotice, isProvisional: settings.isProvisional, updatedAt: settings.updatedAt.toISOString() };
+    }),
+  }),
+  reportAcknowledgement: router({
+    status: publicProcedure.input(z.object({ token: z.string().length(32) })).query(async ({ input }) => {
+      const share = await referralDb.getReportAcknowledgement(input.token);
+      if (!share) throw new TRPCError({ code: "NOT_FOUND", message: "This acknowledgement link is invalid or unavailable." });
+      return { scope: share.scope, createdAt: share.createdAt.toISOString(), acknowledgedAt: share.acknowledgedAt?.toISOString() ?? null };
+    }),
+    confirm: publicProcedure.input(z.object({ token: z.string().length(32), acknowledgementText: z.string().trim().min(5).max(500) })).mutation(async ({ input }) => {
+      const acknowledged = await referralDb.acknowledgeReport(input.token, input.acknowledgementText);
+      return { acknowledged };
     }),
   }),
   clinician: router({
@@ -38,11 +49,35 @@ export const appRouter = router({
     })),
     clinicPublicSettings: adminProcedure.query(async () => {
       const settings = await referralDb.getClinicPublicSettings();
-      return { clinicName: settings.clinicName, address: settings.address, mapUrl: settings.mapUrl, whatsappNumber: settings.whatsappNumber, isProvisional: settings.isProvisional };
+      return { clinicName: settings.clinicName, address: settings.address, mapUrl: settings.mapUrl, whatsappNumber: settings.whatsappNumber, whatsappResponseNotice: settings.whatsappResponseNotice, isProvisional: settings.isProvisional };
     }),
-    saveClinicPublicSettings: adminProcedure.input(z.object({ address: z.string().trim().min(5).max(1000), mapUrl: z.string().url().max(2048), whatsappNumber: z.string().regex(/^\d{10,15}$/, "Enter the WhatsApp number with country code and digits only.") })).mutation(async ({ ctx, input }) => {
+    saveClinicPublicSettings: adminProcedure.input(z.object({ address: z.string().trim().min(5).max(1000), mapUrl: z.string().url().max(2048), whatsappNumber: z.string().regex(/^\d{10,15}$/, "Enter the WhatsApp number with country code and digits only."), whatsappResponseNotice: z.string().trim().min(12).max(500) })).mutation(async ({ ctx, input }) => {
       const settings = await referralDb.saveClinicPublicSettings({ ...input, updatedBy: ctx.user.name ?? "Associate Professor Dr. Anil Ojha" });
-      return { address: settings.address, mapUrl: settings.mapUrl, whatsappNumber: settings.whatsappNumber, isProvisional: settings.isProvisional };
+      return { address: settings.address, mapUrl: settings.mapUrl, whatsappNumber: settings.whatsappNumber, whatsappResponseNotice: settings.whatsappResponseNotice, isProvisional: settings.isProvisional };
+    }),
+    listGuardianContacts: adminProcedure.input(z.object({ childId: z.string().min(1).max(120).optional() }).optional()).query(async ({ ctx, input }) => {
+      const contacts = await referralDb.listGuardianContacts(ctx.user.id, input?.childId);
+      return contacts.map((contact) => ({ ...contact, confirmedAt: contact.confirmedAt?.toISOString() ?? null, createdAt: contact.createdAt.toISOString(), updatedAt: contact.updatedAt.toISOString() }));
+    }),
+    createGuardianContact: adminProcedure.input(z.object({ childId: z.string().min(1).max(120), fullName: z.string().trim().min(2).max(255), relationship: z.string().trim().min(2).max(120), email: z.string().email().max(320) })).mutation(async ({ ctx, input }) => {
+      const contact = await referralDb.createGuardianContact(ctx.user.id, input);
+      return { ...contact, confirmedAt: contact.confirmedAt?.toISOString() ?? null, createdAt: contact.createdAt.toISOString(), updatedAt: contact.updatedAt.toISOString() };
+    }),
+    confirmGuardianContact: adminProcedure.input(z.object({ contactId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+      const contact = await referralDb.confirmGuardianContact(ctx.user.id, input.contactId, ctx.user.name ?? "Associate Professor Dr. Anil Ojha");
+      return { ...contact, confirmedAt: contact.confirmedAt?.toISOString() ?? null };
+    }),
+    createPatientReportShare: adminProcedure.input(z.object({ childId: z.string().min(1).max(120), guardianContactId: z.number().int().positive(), scope: z.enum(["record-pdf", "timeline-report"]) })).mutation(async ({ ctx, input }) => {
+      const share = await referralDb.createPatientReportShare(ctx.user.id, input);
+      return { id: share.id, acknowledgementToken: share.acknowledgementToken, createdAt: share.createdAt.toISOString() };
+    }),
+    updatePatientReportShareStatus: adminProcedure.input(z.object({ shareId: z.number().int().positive(), deliveryStatus: z.enum(["draft-opened", "sent", "saved", "cancelled", "unavailable"]) })).mutation(async ({ ctx, input }) => {
+      await referralDb.updatePatientReportShareStatus(ctx.user.id, input.shareId, input.deliveryStatus);
+      return { saved: true };
+    }),
+    listPatientReportShares: adminProcedure.input(z.object({ childId: z.string().min(1).max(120) })).query(async ({ ctx, input }) => {
+      const shares = await referralDb.listPatientReportShares(ctx.user.id, input.childId);
+      return shares.map((share) => ({ ...share, createdAt: share.createdAt.toISOString(), acknowledgedAt: share.acknowledgedAt?.toISOString() ?? null }));
     }),
     listReferralAuditEvents: adminProcedure.query(async ({ ctx }) => {
       const events = await referralDb.listReferralAuditEvents(ctx.user.id);

@@ -129,10 +129,44 @@ export const clinicPublicSettings = mysqlTable("clinic_public_settings", {
   address: text("address").notNull(),
   mapUrl: varchar("mapUrl", { length: 2048 }).notNull(),
   whatsappNumber: varchar("whatsappNumber", { length: 20 }).notNull(),
+  whatsappResponseNotice: varchar("whatsappResponseNotice", { length: 500 }).notNull().default("Messages are reviewed during clinic hours; please allow a response on the next working day."),
   isProvisional: boolean("isProvisional").default(true).notNull(),
   updatedBy: varchar("updatedBy", { length: 255 }).notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
+
+export const guardianContacts = mysqlTable("guardian_contacts", {
+  id: int("id").autoincrement().primaryKey(),
+  clinicianUserId: int("clinicianUserId").notNull(),
+  childId: varchar("childId", { length: 120 }).notNull(),
+  fullName: varchar("fullName", { length: 255 }).notNull(),
+  relationship: varchar("relationship", { length: 120 }).notNull(),
+  email: varchar("email", { length: 320 }).notNull(),
+  status: mysqlEnum("status", ["pending", "confirmed"]).notNull().default("pending"),
+  confirmedBy: varchar("confirmedBy", { length: 255 }),
+  confirmedAt: timestamp("confirmedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => [
+  uniqueIndex("guardian_contacts_scope_email_unique").on(table.clinicianUserId, table.childId, table.email),
+  index("guardian_contacts_child_status_idx").on(table.clinicianUserId, table.childId, table.status),
+]);
+
+export const patientReportShares = mysqlTable("patient_report_shares", {
+  id: int("id").autoincrement().primaryKey(),
+  clinicianUserId: int("clinicianUserId").notNull(),
+  childId: varchar("childId", { length: 120 }).notNull(),
+  guardianContactId: int("guardianContactId").notNull(),
+  scope: mysqlEnum("scope", ["record-pdf", "timeline-report"]).notNull(),
+  acknowledgementToken: varchar("acknowledgementToken", { length: 96 }).notNull(),
+  deliveryStatus: mysqlEnum("deliveryStatus", ["draft-opened", "sent", "saved", "cancelled", "unavailable"]).notNull().default("draft-opened"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  acknowledgedAt: timestamp("acknowledgedAt"),
+  acknowledgementText: varchar("acknowledgementText", { length: 500 }),
+}, (table) => [
+  uniqueIndex("patient_report_shares_token_unique").on(table.acknowledgementToken),
+  index("patient_report_shares_child_created_idx").on(table.clinicianUserId, table.childId, table.createdAt),
+]);
 
 export type ReferralAuditEventRow = typeof referralAuditEvents.$inferSelect;
 export type InsertReferralAuditEvent = typeof referralAuditEvents.$inferInsert;

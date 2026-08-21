@@ -1,14 +1,14 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users } from "../drizzle/schema";
-import { auditArchiveRuns, auditRetentionPolicies, auditRetentionPolicyChanges, clinicPublicSettings, referralAuditEvents, referralDeliveryMonitor, referralRetryCounters } from "../drizzle/schema";
+import { auditArchiveRuns, auditRetentionPolicies, auditRetentionPolicyChanges, clinicPublicSettings, guardianContacts, patientReportShares, referralAuditEvents, referralDeliveryMonitor, referralRetryCounters } from "../drizzle/schema";
 import { and, gte, isNull, lt, lte, or, sql } from "drizzle-orm";
 import { ENV } from "./_core/env";
 
 export const MAX_REFERRAL_EMAIL_RESENDS = 3;
 export const UNRESOLVED_REFERRAL_ALERT_HOURS = 24;
 export const MAX_AUDIT_RETENTION_DAYS = 36500;
-const defaultClinicPublicSettings = { clinicName: "Rainbow Child Development Clinic", address: "Patan Hospital, Lagankhel, Lalitpur", mapUrl: "https://www.google.com/maps/search/?api=1&query=Patan%20Hospital%2C%20Lagankhel%2C%20Lalitpur", whatsappNumber: "9779765002862", isProvisional: true, updatedBy: "Initial clinic setup" };
+const defaultClinicPublicSettings = { clinicName: "Rainbow Child Development Clinic", address: "Patan Hospital, Lagankhel, Lalitpur", mapUrl: "https://www.google.com/maps/search/?api=1&query=Patan%20Hospital%2C%20Lagankhel%2C%20Lalitpur", whatsappNumber: "9779765002862", whatsappResponseNotice: "Messages are reviewed during clinic hours; please allow a response on the next working day.", isProvisional: true, updatedBy: "Initial clinic setup" };
 type ReferralAuditInput = {
   clientEventId: string; childId: string; type: "appointment-change" | "referral-letter" | "email-share" | "patient-communication"; occurredAt: Date; actorName: string; summary: string; message?: string; deliveryStatus?: "draft-opened" | "sent" | "saved" | "cancelled" | "unavailable"; isResend?: boolean; retryLimit?: number; retryAttempts?: number;
 };
@@ -106,7 +106,7 @@ export async function getClinicPublicSettings() {
   return rows[0] ?? { ...defaultClinicPublicSettings, id: 0, updatedAt: new Date() };
 }
 
-export async function saveClinicPublicSettings(input: { address: string; mapUrl: string; whatsappNumber: string; updatedBy: string }) {
+export async function saveClinicPublicSettings(input: { address: string; mapUrl: string; whatsappNumber: string; whatsappResponseNotice: string; updatedBy: string }) {
   const db = await getDb();
   if (!db) throw new Error("Database not available for clinic public settings");
   const existing = await db.select().from(clinicPublicSettings).orderBy(sql`${clinicPublicSettings.id} asc`).limit(1);
@@ -114,6 +114,70 @@ export async function saveClinicPublicSettings(input: { address: string; mapUrl:
   if (existing[0]) await db.update(clinicPublicSettings).set(values).where(eq(clinicPublicSettings.id, existing[0].id));
   else await db.insert(clinicPublicSettings).values(values);
   return getClinicPublicSettings();
+}
+
+export async function listGuardianContacts(clinicianUserId: number, childId?: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available for guardian contacts");
+  const where = childId ? and(eq(guardianContacts.clinicianUserId, clinicianUserId), eq(guardianContacts.childId, childId)) : eq(guardianContacts.clinicianUserId, clinicianUserId);
+  return db.select().from(guardianContacts).where(where).orderBy(sql`${guardianContacts.status} asc`, sql`${guardianContacts.fullName} asc`);
+}
+
+export async function createGuardianContact(clinicianUserId: number, input: { childId: string; fullName: string; relationship: string; email: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available for guardian contacts");
+  const email = input.email.trim().toLowerCase();
+  const existing = await db.select().from(guardianContacts).where(and(eq(guardianContacts.clinicianUserId, clinicianUserId), eq(guardianContacts.childId, input.childId), eq(guardianContacts.email, email))).limit(1);
+  if (existing[0]) return existing[0];
+  const result = await db.insert(guardianContacts).values({ clinicianUserId, childId: input.childId, fullName: input.fullName.trim(), relationship: input.relationship.trim(), email });
+  const rows = await db.select().from(guardianContacts).where(eq(guardianContacts.id, Number(result[0].insertId))).limit(1);
+  return rows[0];
+}
+
+export async function confirmGuardianContact(clinicianUserId: number, contactId: number, confirmedBy: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available for guardian contacts");
+  await db.update(guardianContacts).set({ status: "confirmed", confirmedBy, confirmedAt: new Date() }).where(and(eq(guardianContacts.id, contactId), eq(guardianContacts.clinicianUserId, clinicianUserId)));
+  const rows = await db.select().from(guardianContacts).where(and(eq(guardianContacts.id, contactId), eq(guardianContacts.clinicianUserId, clinicianUserId))).limit(1);
+  if (!rows[0]) throw new Error("Guardian contact not found");
+  return rows[0];
+}
+
+export async function createPatientReportShare(clinicianUserId: number, input: { childId: string; guardianContactId: number; scope: "record-pdf" | "timeline-report" }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available for report acknowledgements");
+  const guardian = await db.select().from(guardianContacts).where(and(eq(guardianContacts.id, input.guardianContactId), eq(guardianContacts.clinicianUserId, clinicianUserId), eq(guardianContacts.childId, input.childId), eq(guardianContacts.status, "confirmed"))).limit(1);
+  if (!guardian[0]) throw new Error("Select a confirmed guardian contact before sharing a report");
+  const acknowledgementToken = crypto.randomUUID().replaceAll("-", "");
+  const result = await db.insert(patientReportShares).values({ clinicianUserId, ...input, acknowledgementToken });
+  const rows = await db.select().from(patientReportShares).where(eq(patientReportShares.id, Number(result[0].insertId))).limit(1);
+  return rows[0];
+}
+
+export async function updatePatientReportShareStatus(clinicianUserId: number, shareId: number, deliveryStatus: "draft-opened" | "sent" | "saved" | "cancelled" | "unavailable") {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available for report acknowledgement");
+  await db.update(patientReportShares).set({ deliveryStatus }).where(and(eq(patientReportShares.id, shareId), eq(patientReportShares.clinicianUserId, clinicianUserId)));
+}
+
+export async function listPatientReportShares(clinicianUserId: number, childId: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available for report acknowledgements");
+  return db.select({ id: patientReportShares.id, childId: patientReportShares.childId, scope: patientReportShares.scope, deliveryStatus: patientReportShares.deliveryStatus, createdAt: patientReportShares.createdAt, acknowledgedAt: patientReportShares.acknowledgedAt, acknowledgementText: patientReportShares.acknowledgementText, guardianName: guardianContacts.fullName, guardianEmail: guardianContacts.email }).from(patientReportShares).innerJoin(guardianContacts, eq(patientReportShares.guardianContactId, guardianContacts.id)).where(and(eq(patientReportShares.clinicianUserId, clinicianUserId), eq(patientReportShares.childId, childId))).orderBy(sql`${patientReportShares.createdAt} desc`);
+}
+
+export async function getReportAcknowledgement(token: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available for report acknowledgement");
+  const rows = await db.select({ scope: patientReportShares.scope, createdAt: patientReportShares.createdAt, acknowledgedAt: patientReportShares.acknowledgedAt }).from(patientReportShares).where(eq(patientReportShares.acknowledgementToken, token)).limit(1);
+  return rows[0];
+}
+
+export async function acknowledgeReport(token: string, acknowledgementText: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available for report acknowledgement");
+  const result = await db.update(patientReportShares).set({ acknowledgedAt: new Date(), acknowledgementText: acknowledgementText.trim() || "Guardian confirmed receipt." }).where(and(eq(patientReportShares.acknowledgementToken, token), isNull(patientReportShares.acknowledgedAt)));
+  return Number(result[0]?.affectedRows ?? 0) > 0;
 }
 
 export async function persistReferralAuditEvent(clinicianUserId: number, input: ReferralAuditInput): Promise<void> {
