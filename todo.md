@@ -149,3 +149,9 @@
 - [x] Update clinic name contact number and Dr. Ojha’s full designation across patient and clinician experiences
 - [x] Update reusable clinic workflow skill for supplied clinic branding assets
 - [x] Validate Rainbow Child Development Clinic branding and contact presentation
+- [x] Update reusable clinic workflow skill for clinic call access About Us profile and logo animation
+- [x] Add direct clinic call action on the parent home screen
+- [x] Create protected public About Us screen with clinic address map link and Dr. Ojha profile
+- [x] Present Patan Hospital, Lagankhel, Lalitpur as a provisional editable clinic address
+- [x] Add subtle Rainbow clinic logo fade-in on the parent home header
+- [x] Validate call action About Us profile map link and logo animation
