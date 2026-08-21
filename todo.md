@@ -129,3 +129,8 @@
 - [x] Persist staff-attributed retention-policy change events
 - [x] Display retention-policy change trail in protected settings
 - [x] Validate archive report export and retention-policy audit trail
+- [x] Update reusable clinic workflow skill for archive-history date filters and monthly storage summaries
+- [x] Add inclusive date-range filters to archive-history display and export
+- [x] Add a clinician monthly archive activity and storage summary notification
+- [x] Add clinician control for the monthly archive-summary schedule
+- [x] Validate archive-history filtering and monthly summary notification safeguards

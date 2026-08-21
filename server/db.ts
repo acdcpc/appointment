@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users } from "../drizzle/schema";
 import { auditArchiveRuns, auditRetentionPolicies, auditRetentionPolicyChanges, referralAuditEvents, referralDeliveryMonitor, referralRetryCounters } from "../drizzle/schema";
-import { and, isNull, lt, or, sql } from "drizzle-orm";
+import { and, gte, isNull, lt, lte, or, sql } from "drizzle-orm";
 import { ENV } from "./_core/env";
 
 export const MAX_REFERRAL_EMAIL_RESENDS = 3;
@@ -217,6 +217,26 @@ export async function getAuditRetentionPolicyByTaskUid(taskUid: string) {
   return rows[0] ?? null;
 }
 
+export async function saveMonthlyArchiveSummarySchedule(clinicianUserId: number, taskUid: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available for monthly archive summaries");
+  await db.update(auditRetentionPolicies).set({ monthlySummaryCronTaskUid: taskUid, monthlySummaryEnabled: true }).where(eq(auditRetentionPolicies.clinicianUserId, clinicianUserId));
+}
+
+export async function setMonthlyArchiveSummaryEnabled(clinicianUserId: number, enabled: boolean) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available for monthly archive summaries");
+  await db.update(auditRetentionPolicies).set({ monthlySummaryEnabled: enabled }).where(eq(auditRetentionPolicies.clinicianUserId, clinicianUserId));
+  return getAuditRetentionPolicy(clinicianUserId);
+}
+
+export async function getAuditRetentionPolicyByMonthlySummaryTaskUid(taskUid: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available for monthly archive summaries");
+  const rows = await db.select().from(auditRetentionPolicies).where(eq(auditRetentionPolicies.monthlySummaryCronTaskUid, taskUid)).limit(1);
+  return rows[0] ?? null;
+}
+
 export async function getAuditArchivePreview(clinicianUserId: number, retentionDays: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available for audit archival");
@@ -244,12 +264,36 @@ export async function runScheduledAuditArchive(taskUid: string) {
   return { ...result, skipped: null };
 }
 
-export async function getAuditRetentionDashboard(clinicianUserId: number) {
+export async function getAuditArchiveRuns(clinicianUserId: number, range: { start?: Date; end?: Date } = {}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available for audit archive reporting");
+  const conditions = [eq(auditArchiveRuns.clinicianUserId, clinicianUserId)];
+  if (range.start) conditions.push(gte(auditArchiveRuns.executedAt, range.start));
+  if (range.end) conditions.push(lte(auditArchiveRuns.executedAt, range.end));
+  return db.select().from(auditArchiveRuns).where(and(...conditions)).orderBy(sql`${auditArchiveRuns.executedAt} desc`).limit(100);
+}
+
+export async function getAuditRetentionDashboard(clinicianUserId: number, range: { start?: Date; end?: Date } = {}) {
   const db = await getDb();
   if (!db) throw new Error("Database not available for audit retention reporting");
   const counts = await db.select({ total: sql<number>`count(*)`, archived: sql<number>`sum(case when ${referralAuditEvents.archivedAt} is not null then 1 else 0 end)`, storageBytes: sql<number>`coalesce(sum(length(${referralAuditEvents.summary}) + coalesce(length(${referralAuditEvents.message}), 0) + coalesce(length(${referralAuditEvents.archiveReason}), 0)), 0)` }).from(referralAuditEvents).where(eq(referralAuditEvents.clinicianUserId, clinicianUserId));
-  const recentRuns = await db.select().from(auditArchiveRuns).where(eq(auditArchiveRuns.clinicianUserId, clinicianUserId)).orderBy(sql`${auditArchiveRuns.executedAt} desc`).limit(5);
+  const recentRuns = await getAuditArchiveRuns(clinicianUserId, range);
   const policyChanges = await db.select().from(auditRetentionPolicyChanges).where(eq(auditRetentionPolicyChanges.clinicianUserId, clinicianUserId)).orderBy(sql`${auditRetentionPolicyChanges.changedAt} desc`).limit(8);
   const total = Number(counts[0]?.total ?? 0); const archived = Number(counts[0]?.archived ?? 0);
   return { totalRecords: total, activeRecords: total - archived, archivedRecords: archived, storageBytes: Number(counts[0]?.storageBytes ?? 0), recentRuns, policyChanges };
+}
+
+export async function getMonthlyArchiveSummaryForTask(taskUid: string) {
+  const policy = await getAuditRetentionPolicyByMonthlySummaryTaskUid(taskUid);
+  if (!policy || !policy.monthlySummaryEnabled) return { skipped: "disabled-or-orphan" as const };
+  const now = new Date(); const periodEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)); const periodStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1)); const period = `${periodStart.getUTCFullYear()}-${String(periodStart.getUTCMonth() + 1).padStart(2, "0")}`;
+  if (policy.lastMonthlySummaryPeriod === period) return { skipped: "already-sent" as const, period };
+  const [runs, dashboard] = await Promise.all([getAuditArchiveRuns(policy.clinicianUserId, { start: periodStart, end: new Date(periodEnd.getTime() - 1) }), getAuditRetentionDashboard(policy.clinicianUserId)]);
+  return { skipped: null, policy, period, archiveRuns: runs.length, archivedRecords: runs.reduce((total, run) => total + run.archivedCount, 0), activeRecords: dashboard.activeRecords, storageBytes: dashboard.storageBytes };
+}
+
+export async function markMonthlyArchiveSummarySent(policyId: number, period: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available for monthly archive summaries");
+  await db.update(auditRetentionPolicies).set({ lastMonthlySummaryPeriod: period, lastMonthlySummaryAt: new Date() }).where(eq(auditRetentionPolicies.id, policyId));
 }
