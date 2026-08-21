@@ -8,7 +8,7 @@ import { ENV } from "./_core/env";
 export const MAX_REFERRAL_EMAIL_RESENDS = 3;
 export const UNRESOLVED_REFERRAL_ALERT_HOURS = 24;
 export const MAX_AUDIT_RETENTION_DAYS = 36500;
-const defaultClinicPublicSettings = { clinicName: "Rainbow Child Development Clinic", address: "Patan Hospital, Lagankhel, Lalitpur", mapUrl: "https://www.google.com/maps/search/?api=1&query=Patan%20Hospital%2C%20Lagankhel%2C%20Lalitpur", whatsappNumber: "9779765002862", whatsappResponseNotice: "Messages are reviewed during clinic hours; please allow a response on the next working day.", isProvisional: true, updatedBy: "Initial clinic setup" };
+const defaultClinicPublicSettings = { clinicName: "Rainbow Child Development Clinic", address: "Patan Hospital, Lagankhel, Lalitpur", mapUrl: "https://www.google.com/maps/search/?api=1&query=Patan%20Hospital%2C%20Lagankhel%2C%20Lalitpur", whatsappNumber: "9779765002862", whatsappResponseNotice: "Messages are reviewed during clinic hours; please allow a response on the next working day.", guardianReverificationDays: 180, isProvisional: true, updatedBy: "Initial clinic setup" };
 type ReferralAuditInput = {
   clientEventId: string; childId: string; type: "appointment-change" | "referral-letter" | "email-share" | "patient-communication"; occurredAt: Date; actorName: string; summary: string; message?: string; deliveryStatus?: "draft-opened" | "sent" | "saved" | "cancelled" | "unavailable"; isResend?: boolean; retryLimit?: number; retryAttempts?: number;
 };
@@ -113,6 +113,15 @@ export async function saveClinicPublicSettings(input: { address: string; mapUrl:
   const values = { ...defaultClinicPublicSettings, ...input, clinicName: "Rainbow Child Development Clinic", isProvisional: false };
   if (existing[0]) await db.update(clinicPublicSettings).set(values).where(eq(clinicPublicSettings.id, existing[0].id));
   else await db.insert(clinicPublicSettings).values(values);
+  return getClinicPublicSettings();
+}
+
+export async function saveGuardianReverificationDays(guardianReverificationDays: number, updatedBy: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available for guardian verification settings");
+  const existing = await db.select().from(clinicPublicSettings).orderBy(sql`${clinicPublicSettings.id} asc`).limit(1);
+  if (existing[0]) await db.update(clinicPublicSettings).set({ guardianReverificationDays, updatedBy }).where(eq(clinicPublicSettings.id, existing[0].id));
+  else await db.insert(clinicPublicSettings).values({ ...defaultClinicPublicSettings, guardianReverificationDays, updatedBy });
   return getClinicPublicSettings();
 }
 

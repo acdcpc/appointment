@@ -1,0 +1,1 @@
+ALTER TABLE `clinic_public_settings` ADD `guardianReverificationDays` int DEFAULT 180 NOT NULL;

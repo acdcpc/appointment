@@ -181,3 +181,8 @@
 - [x] Add a clinician-reviewed 48-hour reminder draft workflow for unacknowledged reports
 - [x] Keep all 48-hour guardian reminder emails as clinician-reviewed drafts with no automatic send
 - [x] Validate export evidence, contact-review reminders, and 48-hour follow-up safeguards
+- [x] Update reusable clinic workflow skill for configurable guardian verification, reminder audit history, and printable verification forms
+- [x] Add clinician setting for guardian contact re-verification interval
+- [x] Log clinician-reviewed report reminder drafts in child timeline history
+- [x] Add printable guardian-contact verification form for in-person visits
+- [x] Validate guardian interval, reminder timeline, and printable verification form safeguards

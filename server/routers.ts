@@ -55,6 +55,14 @@ export const appRouter = router({
       const settings = await referralDb.saveClinicPublicSettings({ ...input, updatedBy: ctx.user.name ?? "Associate Professor Dr. Anil Ojha" });
       return { address: settings.address, mapUrl: settings.mapUrl, whatsappNumber: settings.whatsappNumber, whatsappResponseNotice: settings.whatsappResponseNotice, isProvisional: settings.isProvisional };
     }),
+    guardianVerificationSettings: adminProcedure.query(async () => {
+      const settings = await referralDb.getClinicPublicSettings();
+      return { guardianReverificationDays: settings.guardianReverificationDays };
+    }),
+    saveGuardianVerificationSettings: adminProcedure.input(z.object({ guardianReverificationDays: z.number().int().min(30).max(730) })).mutation(async ({ ctx, input }) => {
+      const settings = await referralDb.saveGuardianReverificationDays(input.guardianReverificationDays, ctx.user.name ?? "Associate Professor Dr. Anil Ojha");
+      return { guardianReverificationDays: settings.guardianReverificationDays };
+    }),
     listGuardianContacts: adminProcedure.input(z.object({ childId: z.string().min(1).max(120).optional() }).optional()).query(async ({ ctx, input }) => {
       const contacts = await referralDb.listGuardianContacts(ctx.user.id, input?.childId);
       return contacts.map((contact) => ({ ...contact, confirmedAt: contact.confirmedAt?.toISOString() ?? null, createdAt: contact.createdAt.toISOString(), updatedAt: contact.updatedAt.toISOString() }));

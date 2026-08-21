@@ -130,6 +130,7 @@ export const clinicPublicSettings = mysqlTable("clinic_public_settings", {
   mapUrl: varchar("mapUrl", { length: 2048 }).notNull(),
   whatsappNumber: varchar("whatsappNumber", { length: 20 }).notNull(),
   whatsappResponseNotice: varchar("whatsappResponseNotice", { length: 500 }).notNull().default("Messages are reviewed during clinic hours; please allow a response on the next working day."),
+  guardianReverificationDays: int("guardianReverificationDays").notNull().default(180),
   isProvisional: boolean("isProvisional").default(true).notNull(),
   updatedBy: varchar("updatedBy", { length: 255 }).notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

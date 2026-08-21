@@ -85,6 +85,13 @@
       "when": 1787300384466,
       "tag": "0011_kind_gauntlet",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "5",
+      "when": 1787302462803,
+      "tag": "0012_amusing_darkstar",
+      "breakpoints": true
     }
   ]
 }
