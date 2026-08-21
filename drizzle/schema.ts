@@ -32,7 +32,7 @@ export const referralAuditEvents = mysqlTable("referral_audit_events", {
   clinicianUserId: int("clinicianUserId").notNull(),
   clientEventId: varchar("clientEventId", { length: 80 }).notNull(),
   childId: varchar("childId", { length: 120 }).notNull(),
-  type: mysqlEnum("type", ["appointment-change", "referral-letter", "email-share"]).notNull(),
+  type: mysqlEnum("type", ["appointment-change", "referral-letter", "email-share", "patient-communication"]).notNull(),
   occurredAt: timestamp("occurredAt").notNull(),
   actorRole: mysqlEnum("actorRole", ["clinician"]).notNull(),
   actorName: varchar("actorName", { length: 255 }).notNull(),

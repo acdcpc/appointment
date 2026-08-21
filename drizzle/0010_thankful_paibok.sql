@@ -1,0 +1,1 @@
+ALTER TABLE `referral_audit_events` MODIFY COLUMN `type` enum('appointment-change','referral-letter','email-share','patient-communication') NOT NULL;

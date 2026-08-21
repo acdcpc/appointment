@@ -130,7 +130,7 @@ export const appRouter = router({
       const session = parseCookie(ctx.req.headers.cookie ?? "")[COOKIE_NAME] ?? ""; await updateHeartbeatJob(policy.quarterlyReviewCronTaskUid, { enable: input.enabled }, session); await referralDb.setQuarterlyRetentionReviewEnabled(ctx.user.id, input.enabled); return { enabled: input.enabled };
     }),
     persistReferralAuditEvent: adminProcedure
-      .input(z.object({ clientEventId: z.string().min(1).max(80), childId: z.string().min(1).max(120), type: z.enum(["appointment-change", "referral-letter", "email-share"]), occurredAt: z.string().datetime(), summary: z.string().min(1).max(4000), message: z.string().max(4000).optional(), deliveryStatus: z.enum(["draft-opened", "sent", "saved", "cancelled", "unavailable"]).optional(), isResend: z.boolean().optional(), retryLimit: z.number().int().min(1).max(10).optional(), retryAttempts: z.number().int().min(0).max(10).optional() }))
+      .input(z.object({ clientEventId: z.string().min(1).max(80), childId: z.string().min(1).max(120), type: z.enum(["appointment-change", "referral-letter", "email-share", "patient-communication"]), occurredAt: z.string().datetime(), summary: z.string().min(1).max(4000), message: z.string().max(4000).optional(), deliveryStatus: z.enum(["draft-opened", "sent", "saved", "cancelled", "unavailable"]).optional(), isResend: z.boolean().optional(), retryLimit: z.number().int().min(1).max(10).optional(), retryAttempts: z.number().int().min(0).max(10).optional() }))
       .mutation(async ({ ctx, input }) => {
         await referralDb.persistReferralAuditEvent(ctx.user.id, { ...input, occurredAt: new Date(input.occurredAt), actorName: ctx.user.name ?? "Associate Professor Dr. Anil Ojha" });
         return { saved: true };

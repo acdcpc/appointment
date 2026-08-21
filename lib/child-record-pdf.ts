@@ -25,7 +25,7 @@ export function buildReferralLetterHtml(child: ChildProfile, recipient: string, 
 }
 
 export function buildChildAuditHtml(child: ChildProfile, events: PatientAuditEvent[], filters: { dateRange: string; staffAction: string } = { dateRange: "All recorded dates", staffAction: "All clinician actions" }) {
-  const rows = events.map((event) => `<article><p class="label">${escapeHtml(event.type === "appointment-change" ? "APPOINTMENT CHANGE" : event.type === "referral-letter" ? "REFERRAL LETTER" : "REFERRAL EMAIL SHARE")} · ${escapeHtml(event.occurredOn)} · ${escapeHtml(event.actorRole)}</p><h3>${escapeHtml(event.summary)}</h3><p><strong>Recorded by:</strong> ${escapeHtml(event.actorName ?? "Clinician")}</p>${event.attemptedAt ? `<p><strong>Exact attempt time:</strong> ${escapeHtml(event.attemptedAt)}</p>` : ""}${event.deliveryStatus ? `<p><strong>Platform status:</strong> ${escapeHtml(event.deliveryStatus.replace("-", " "))}</p>` : ""}${event.message ? `<p>${escapeHtml(event.message)}</p>` : ""}</article>`).join("") || "<p>No permitted audit events are available for this child and filter scope.</p>";
+  const rows = events.map((event) => `<article><p class="label">${escapeHtml(event.type === "appointment-change" ? "APPOINTMENT CHANGE" : event.type === "referral-letter" ? "REFERRAL LETTER" : event.type === "patient-communication" ? "PARENT COMMUNICATION" : "REFERRAL EMAIL SHARE")} · ${escapeHtml(event.occurredOn)} · ${escapeHtml(event.actorRole)}</p><h3>${escapeHtml(event.summary)}</h3><p><strong>Recorded by:</strong> ${escapeHtml(event.actorName ?? "Clinician")}</p>${event.attemptedAt ? `<p><strong>Exact attempt time:</strong> ${escapeHtml(event.attemptedAt)}</p>` : ""}${event.deliveryStatus ? `<p><strong>Platform status:</strong> ${escapeHtml(event.deliveryStatus.replace("-", " "))}</p>` : ""}${event.message ? `<p>${escapeHtml(event.message)}</p>` : ""}</article>`).join("") || "<p>No permitted audit events are available for this child and filter scope.</p>";
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/><style>@page { margin: 36px; } body { font-family: Arial, sans-serif; color: #102A43; line-height: 1.45; } header { border-bottom: 3px solid #0E7490; padding-bottom: 14px; margin-bottom: 20px; } h1 { font-size: 22px; margin: 0 0 4px; } h3 { font-size: 14px; margin: 2px 0 4px; } p { font-size: 12px; margin: 3px 0; white-space: pre-wrap; } .label { font-size: 10px; color: #627D98; font-weight: bold; } article { border: 1px solid #D9E2EC; border-radius: 8px; padding: 12px; margin: 8px 0; }</style></head><body><header><p class="label">DR. ANIL OJHA CHILD CARE</p><h1>Child Audit Log</h1><p><strong>${escapeHtml(child.name)}</strong> · Date of birth: ${escapeHtml(child.dateOfBirth)}</p><p><strong>Date range:</strong> ${escapeHtml(filters.dateRange)}</p><p><strong>Staff action scope:</strong> ${escapeHtml(filters.staffAction)}</p></header>${rows}</body></html>`;
 }
 
@@ -66,5 +66,24 @@ export async function composeReferralEmail(html: string, recipientEmail: string,
     return { ok: true, status, message: status === "sent" ? "The system email flow reported the referral as sent." : "A referral email draft opened. Review the recipient, content, and attachment before sending." };
   } catch {
     return { ok: false, status: "unavailable" as const, message: "We could not open the referral email draft. Please export the letter and use your secure email client." };
+  }
+}
+
+export async function composePatientEmail(html: string | undefined, recipientEmail: string, subject: string, body: string) {
+  if (!recipientEmail.trim()) return { ok: false, status: "unavailable" as const, message: "Enter the parent or guardian email before opening a reviewed draft." };
+  if (Platform.OS === "web") {
+    if (typeof window === "undefined") return { ok: false, status: "unavailable" as const, message: "Email sharing is not available in this browser session." };
+    const attachmentNotice = html ? "\n\nA child-specific report was prepared in the clinic app. Print or save it as a PDF, attach it in your email client, then review before sending." : "";
+    window.location.href = `mailto:${encodeURIComponent(recipientEmail.trim())}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(`${body}${attachmentNotice}`)}`;
+    return { ok: true, status: "draft-opened" as const, message: "A parent email draft opened. Review the recipient and message; attach the prepared report yourself if needed." };
+  }
+  try {
+    if (!(await MailComposer.isAvailableAsync())) return { ok: false, status: "unavailable" as const, message: "No configured email client is available on this device." };
+    const attachment = html ? (await Print.printToFileAsync({ html, margins: { top: 34, right: 34, bottom: 34, left: 34 } })).uri : undefined;
+    const result = await MailComposer.composeAsync({ recipients: [recipientEmail.trim()], subject, body, attachments: attachment ? [attachment] : undefined });
+    const reported = String(result.status).toLowerCase(); const status = reported === "sent" ? "sent" as const : reported === "saved" ? "saved" as const : reported === "cancelled" ? "cancelled" as const : "draft-opened" as const;
+    return { ok: true, status, message: status === "sent" ? "The device mail client reported this parent communication as sent." : "A reviewed parent email draft opened. Confirm the recipient, message, and attachment before sending." };
+  } catch {
+    return { ok: false, status: "unavailable" as const, message: "We could not open the parent email draft. Please export the child record and use the clinic’s secure email client." };
   }
 }

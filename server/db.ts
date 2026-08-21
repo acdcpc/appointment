@@ -10,7 +10,7 @@ export const UNRESOLVED_REFERRAL_ALERT_HOURS = 24;
 export const MAX_AUDIT_RETENTION_DAYS = 36500;
 const defaultClinicPublicSettings = { clinicName: "Rainbow Child Development Clinic", address: "Patan Hospital, Lagankhel, Lalitpur", mapUrl: "https://www.google.com/maps/search/?api=1&query=Patan%20Hospital%2C%20Lagankhel%2C%20Lalitpur", whatsappNumber: "9779765002862", isProvisional: true, updatedBy: "Initial clinic setup" };
 type ReferralAuditInput = {
-  clientEventId: string; childId: string; type: "appointment-change" | "referral-letter" | "email-share"; occurredAt: Date; actorName: string; summary: string; message?: string; deliveryStatus?: "draft-opened" | "sent" | "saved" | "cancelled" | "unavailable"; isResend?: boolean; retryLimit?: number; retryAttempts?: number;
+  clientEventId: string; childId: string; type: "appointment-change" | "referral-letter" | "email-share" | "patient-communication"; occurredAt: Date; actorName: string; summary: string; message?: string; deliveryStatus?: "draft-opened" | "sent" | "saved" | "cancelled" | "unavailable"; isResend?: boolean; retryLimit?: number; retryAttempts?: number;
 };
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -179,7 +179,7 @@ export async function findAndMarkOverdueReferralDeliveryFailures() {
   if (!db) throw new Error("Database not available for referral delivery monitoring");
   const config = await getReferralDeliveryMonitorConfig();
   const cutoff = new Date(Date.now() - config.thresholdHours * 60 * 60 * 1000);
-  const candidates = await db.select().from(referralAuditEvents).where(and(or(eq(referralAuditEvents.deliveryStatus, "cancelled"), eq(referralAuditEvents.deliveryStatus, "unavailable")), isNull(referralAuditEvents.alertSentAt), lt(referralAuditEvents.occurredAt, cutoff)));
+  const candidates = await db.select().from(referralAuditEvents).where(and(eq(referralAuditEvents.type, "email-share"), or(eq(referralAuditEvents.deliveryStatus, "cancelled"), eq(referralAuditEvents.deliveryStatus, "unavailable")), isNull(referralAuditEvents.alertSentAt), lt(referralAuditEvents.occurredAt, cutoff)));
   const alerted = [] as typeof candidates;
   for (const event of candidates) {
     const update = await db.update(referralAuditEvents).set({ alertSentAt: new Date() }).where(and(eq(referralAuditEvents.id, event.id), isNull(referralAuditEvents.alertSentAt)));

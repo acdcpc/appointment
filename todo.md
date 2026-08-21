@@ -165,3 +165,8 @@
 - [x] Persist final clinic address and map link in the database
 - [x] Show upcoming clinic holiday closures on public About Us
 - [x] Validate persistent contact settings and public holiday closure display
+- [x] Update reusable clinic workflow skill for public closure calendars and clinician-reviewed patient communication
+- [x] Add an upcoming clinic closure calendar view to About Us
+- [x] Add optional WhatsApp response-hours notice beside patient contact action
+- [x] Add clinician-reviewed, patient-specific message and PDF/report sharing controls
+- [x] Validate public availability guidance and patient-specific sharing safeguards
