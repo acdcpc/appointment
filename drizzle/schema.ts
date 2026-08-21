@@ -85,6 +85,7 @@ export const auditRetentionPolicies = mysqlTable("audit_retention_policies", {
   lastArchiveCount: int("lastArchiveCount").default(0).notNull(),
   monthlySummaryEnabled: boolean("monthlySummaryEnabled").default(false).notNull(),
   monthlySummaryCronTaskUid: varchar("monthlySummaryCronTaskUid", { length: 65 }),
+  monthlySummaryDeliveryMinute: int("monthlySummaryDeliveryMinute").default(540).notNull(),
   lastMonthlySummaryPeriod: varchar("lastMonthlySummaryPeriod", { length: 7 }),
   lastMonthlySummaryAt: timestamp("lastMonthlySummaryAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

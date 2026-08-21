@@ -9,6 +9,9 @@ import { parse as parseCookie } from "cookie";
 import { createHeartbeatJob, updateHeartbeatJob } from "./_core/heartbeat";
 import * as referralDb from "./db";
 
+function parseUtcDeliveryTime(value: string) { const match = /^(\d{2}):(\d{2})$/.exec(value); if (!match) throw new TRPCError({ code: "BAD_REQUEST", message: "Enter the delivery time as HH:MM in UTC." }); const hours = Number(match[1]); const minutes = Number(match[2]); if (hours > 23 || minutes > 59) throw new TRPCError({ code: "BAD_REQUEST", message: "Enter a valid UTC delivery time." }); return { minuteOfDay: hours * 60 + minutes, cron: `0 ${minutes} ${hours} 1 * *` }; }
+function formatUtcDeliveryTime(minuteOfDay: number) { return `${String(Math.floor(minuteOfDay / 60)).padStart(2, "0")}:${String(minuteOfDay % 60).padStart(2, "0")}`; }
+
 export const appRouter = router({
   // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
   system: systemRouter,
@@ -33,7 +36,7 @@ export const appRouter = router({
     }),
     getAuditRetentionPolicy: adminProcedure.query(async ({ ctx }) => {
       const policy = await referralDb.getAuditRetentionPolicy(ctx.user.id);
-      return policy ? { retentionDays: policy.retentionDays, updatedBy: policy.updatedBy, updatedAt: policy.updatedAt.toISOString(), automaticArchiveEnabled: policy.automaticArchiveEnabled, archiveScheduleConfigured: Boolean(policy.archiveScheduleCronTaskUid), lastArchiveRunAt: policy.lastArchiveRunAt?.toISOString() ?? null, lastArchiveCount: policy.lastArchiveCount, monthlySummaryEnabled: policy.monthlySummaryEnabled, monthlySummaryConfigured: Boolean(policy.monthlySummaryCronTaskUid), lastMonthlySummaryAt: policy.lastMonthlySummaryAt?.toISOString() ?? null } : { retentionDays: null, updatedBy: null, updatedAt: null, automaticArchiveEnabled: false, archiveScheduleConfigured: false, lastArchiveRunAt: null, lastArchiveCount: 0, monthlySummaryEnabled: false, monthlySummaryConfigured: false, lastMonthlySummaryAt: null };
+      return policy ? { retentionDays: policy.retentionDays, updatedBy: policy.updatedBy, updatedAt: policy.updatedAt.toISOString(), automaticArchiveEnabled: policy.automaticArchiveEnabled, archiveScheduleConfigured: Boolean(policy.archiveScheduleCronTaskUid), lastArchiveRunAt: policy.lastArchiveRunAt?.toISOString() ?? null, lastArchiveCount: policy.lastArchiveCount, monthlySummaryEnabled: policy.monthlySummaryEnabled, monthlySummaryConfigured: Boolean(policy.monthlySummaryCronTaskUid), monthlySummaryDeliveryTime: formatUtcDeliveryTime(policy.monthlySummaryDeliveryMinute), lastMonthlySummaryAt: policy.lastMonthlySummaryAt?.toISOString() ?? null } : { retentionDays: null, updatedBy: null, updatedAt: null, automaticArchiveEnabled: false, archiveScheduleConfigured: false, lastArchiveRunAt: null, lastArchiveCount: 0, monthlySummaryEnabled: false, monthlySummaryConfigured: false, monthlySummaryDeliveryTime: "09:00", lastMonthlySummaryAt: null };
     }),
     saveAuditRetentionPolicy: adminProcedure.input(z.object({ retentionDays: z.number().int().min(30).max(referralDb.MAX_AUDIT_RETENTION_DAYS) })).mutation(async ({ ctx, input }) => {
       const policy = await referralDb.saveAuditRetentionPolicy(ctx.user.id, input.retentionDays, ctx.user.name ?? "Associate Professor Dr. Anil Ojha");
@@ -56,6 +59,7 @@ export const appRouter = router({
       const dashboard = await referralDb.getAuditRetentionDashboard(ctx.user.id, { start, end });
       return { ...dashboard, recentRuns: dashboard.recentRuns.map((run) => ({ ...run, executedAt: run.executedAt.toISOString() })), policyChanges: dashboard.policyChanges.map((change) => ({ ...change, changedAt: change.changedAt.toISOString() })) };
     }),
+    runArchiveSummaryNow: adminProcedure.mutation(async ({ ctx }) => referralDb.getOnDemandArchiveSummary(ctx.user.id)),
     configureAuditArchiveSchedule: adminProcedure.mutation(async ({ ctx }) => {
       if (process.env.NODE_ENV !== "production") throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Publish the clinic app before enabling automatic audit archival." });
       const policy = await referralDb.getAuditRetentionPolicy(ctx.user.id);
@@ -80,7 +84,8 @@ export const appRouter = router({
       if (!policy) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Set and confirm the clinic retention period before enabling monthly summaries." });
       const session = parseCookie(ctx.req.headers.cookie ?? "")[COOKIE_NAME] ?? "";
       if (policy.monthlySummaryCronTaskUid) { await updateHeartbeatJob(policy.monthlySummaryCronTaskUid, { enable: true }, session); await referralDb.setMonthlyArchiveSummaryEnabled(ctx.user.id, true); return { configured: true, enabled: true, nextExecutionAt: null }; }
-      const job = await createHeartbeatJob({ name: `monthly-archive-summary-${ctx.user.id}`, cron: "0 0 9 1 * *", path: "/api/scheduled/monthly-archive-summary", description: "Monthly clinician summary of aggregate archive activity and audit storage." }, session);
+      const time = formatUtcDeliveryTime(policy.monthlySummaryDeliveryMinute); const cron = parseUtcDeliveryTime(time).cron;
+      const job = await createHeartbeatJob({ name: `monthly-archive-summary-${ctx.user.id}`, cron, path: "/api/scheduled/monthly-archive-summary", description: "Monthly clinician summary of aggregate archive activity and audit storage." }, session);
       await referralDb.saveMonthlyArchiveSummarySchedule(ctx.user.id, job.taskUid);
       return { configured: true, enabled: true, nextExecutionAt: job.nextExecutionAt ?? null };
     }),
@@ -91,6 +96,13 @@ export const appRouter = router({
       await updateHeartbeatJob(policy.monthlySummaryCronTaskUid, { enable: input.enabled }, session);
       await referralDb.setMonthlyArchiveSummaryEnabled(ctx.user.id, input.enabled);
       return { enabled: input.enabled };
+    }),
+    saveMonthlyArchiveSummaryDeliveryTime: adminProcedure.input(z.object({ deliveryTime: z.string() })).mutation(async ({ ctx, input }) => {
+      const { minuteOfDay, cron } = parseUtcDeliveryTime(input.deliveryTime); const policy = await referralDb.getAuditRetentionPolicy(ctx.user.id);
+      if (!policy) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Set the clinic retention period before saving a monthly summary time." });
+      if (policy.monthlySummaryCronTaskUid) { const session = parseCookie(ctx.req.headers.cookie ?? "")[COOKIE_NAME] ?? ""; await updateHeartbeatJob(policy.monthlySummaryCronTaskUid, { cron }, session); }
+      await referralDb.setMonthlyArchiveSummaryDeliveryMinute(ctx.user.id, minuteOfDay);
+      return { deliveryTime: formatUtcDeliveryTime(minuteOfDay) };
     }),
     persistReferralAuditEvent: adminProcedure
       .input(z.object({ clientEventId: z.string().min(1).max(80), childId: z.string().min(1).max(120), type: z.enum(["appointment-change", "referral-letter", "email-share"]), occurredAt: z.string().datetime(), summary: z.string().min(1).max(4000), message: z.string().max(4000).optional(), deliveryStatus: z.enum(["draft-opened", "sent", "saved", "cancelled", "unavailable"]).optional(), isResend: z.boolean().optional(), retryLimit: z.number().int().min(1).max(10).optional(), retryAttempts: z.number().int().min(0).max(10).optional() }))

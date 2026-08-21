@@ -1,0 +1,1 @@
+ALTER TABLE `audit_retention_policies` ADD `monthlySummaryDeliveryMinute` int DEFAULT 540 NOT NULL;

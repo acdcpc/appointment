@@ -216,3 +216,7 @@ Below the retention controls, a compact **Policy change trail** lists every chan
 ## Archive Run Filters and Monthly Summary
 
 The archive-history panel includes start and end date fields using `YYYY-MM-DD`; both bounds are inclusive. The selected range filters the visible run list and the downloadable report, whose header repeats the applied date scope. A separate monthly-summary control lets Dr. Ojha enable, pause, or resume a once-per-month clinician notification. The summary contains only aggregate archive-run count, archived-record count, active-record count, and estimated audit-text storage; it never includes child names or clinical details.
+
+## Archive Summary Insights
+
+The retention dashboard adds a **Run summary now** action that calculates and shows the current aggregate archive activity and audit storage without sending a notification or changing monthly delivery history. A compact, touch-friendly archive-volume chart plots archived-record count by recent calendar month, including zero-volume months for continuity. Monthly summary settings include a validated UTC delivery-time field; its visible label clarifies that the chosen time applies on the first day of each month after the clinician enables the published schedule.

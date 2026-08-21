@@ -134,3 +134,8 @@
 - [x] Add a clinician monthly archive activity and storage summary notification
 - [x] Add clinician control for the monthly archive-summary schedule
 - [x] Validate archive-history filtering and monthly summary notification safeguards
+- [x] Update reusable clinic workflow skill for on-demand summaries archive trends and delivery time
+- [x] Add a clinician Run summary now action for aggregate archive activity
+- [x] Add archive-volume trend chart to retention dashboard
+- [x] Add saved monthly archive-summary delivery time setting
+- [x] Validate on-demand summary trend chart and delivery time safeguards

@@ -230,6 +230,13 @@ export async function setMonthlyArchiveSummaryEnabled(clinicianUserId: number, e
   return getAuditRetentionPolicy(clinicianUserId);
 }
 
+export async function setMonthlyArchiveSummaryDeliveryMinute(clinicianUserId: number, deliveryMinute: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available for monthly archive summaries");
+  await db.update(auditRetentionPolicies).set({ monthlySummaryDeliveryMinute: deliveryMinute }).where(eq(auditRetentionPolicies.clinicianUserId, clinicianUserId));
+  return getAuditRetentionPolicy(clinicianUserId);
+}
+
 export async function getAuditRetentionPolicyByMonthlySummaryTaskUid(taskUid: string) {
   const db = await getDb();
   if (!db) throw new Error("Database not available for monthly archive summaries");
@@ -280,7 +287,20 @@ export async function getAuditRetentionDashboard(clinicianUserId: number, range:
   const recentRuns = await getAuditArchiveRuns(clinicianUserId, range);
   const policyChanges = await db.select().from(auditRetentionPolicyChanges).where(eq(auditRetentionPolicyChanges.clinicianUserId, clinicianUserId)).orderBy(sql`${auditRetentionPolicyChanges.changedAt} desc`).limit(8);
   const total = Number(counts[0]?.total ?? 0); const archived = Number(counts[0]?.archived ?? 0);
-  return { totalRecords: total, activeRecords: total - archived, archivedRecords: archived, storageBytes: Number(counts[0]?.storageBytes ?? 0), recentRuns, policyChanges };
+  const archiveTrend = await getArchiveVolumeTrend(clinicianUserId);
+  return { totalRecords: total, activeRecords: total - archived, archivedRecords: archived, storageBytes: Number(counts[0]?.storageBytes ?? 0), recentRuns, policyChanges, archiveTrend };
+}
+
+export async function getArchiveVolumeTrend(clinicianUserId: number) {
+  const now = new Date(); const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 5, 1)); const rows = await getAuditArchiveRuns(clinicianUserId, { start });
+  const buckets = Array.from({ length: 6 }, (_, index) => { const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 5 + index, 1)); return { key: `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`, label: date.toLocaleString("en", { month: "short", timeZone: "UTC" }), archivedRecords: 0, archiveRuns: 0 }; });
+  for (const row of rows) { const key = `${row.executedAt.getUTCFullYear()}-${String(row.executedAt.getUTCMonth() + 1).padStart(2, "0")}`; const bucket = buckets.find((item) => item.key === key); if (bucket) { bucket.archivedRecords += row.archivedCount; bucket.archiveRuns += 1; } }
+  return buckets;
+}
+
+export async function getOnDemandArchiveSummary(clinicianUserId: number) {
+  const now = new Date(); const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)); const [runs, dashboard] = await Promise.all([getAuditArchiveRuns(clinicianUserId, { start }), getAuditRetentionDashboard(clinicianUserId)]);
+  return { period: `${start.toLocaleString("en", { month: "long", year: "numeric", timeZone: "UTC" })} to date`, archiveRuns: runs.length, archivedRecords: runs.reduce((total, run) => total + run.archivedCount, 0), activeRecords: dashboard.activeRecords, archivedRecordsTotal: dashboard.archivedRecords, storageBytes: dashboard.storageBytes };
 }
 
 export async function getMonthlyArchiveSummaryForTask(taskUid: string) {
