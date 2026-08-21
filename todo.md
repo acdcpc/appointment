@@ -186,3 +186,8 @@
 - [x] Log clinician-reviewed report reminder drafts in child timeline history
 - [x] Add printable guardian-contact verification form for in-person visits
 - [x] Validate guardian interval, reminder timeline, and printable verification form safeguards
+- [x] Update reusable clinic workflow skill for benchmark-led patient portal and appointment experience improvements
+- [x] Research leading global patient portal and appointment app patterns
+- [x] Add clinic-appropriate booking and patient experience improvements based on research
+- [x] Add clinician workflow improvements based on research
+- [x] Validate benchmark-informed patient and clinician experience improvements

@@ -88,6 +88,12 @@ const config: ExpoConfig = {
     "expo-router",
     "expo-mail-composer",
     [
+      "expo-calendar",
+      {
+        calendarPermission: "Allow $(PRODUCT_NAME) to add confirmed clinic appointments to your calendar.",
+      },
+    ],
+    [
       "expo-audio",
       {
         microphonePermission: "Allow $(PRODUCT_NAME) to access your microphone.",
