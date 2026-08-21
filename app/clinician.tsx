@@ -17,6 +17,7 @@ import { ApprovalActivityFeed } from "@/components/approval-activity-feed";
 import { ReferralDeliveryMonitor } from "@/components/referral-delivery-monitor";
 import { AuditRetentionSettings } from "@/components/audit-retention-settings";
 import { RetentionInsights } from "@/components/retention-insights";
+import { ClinicContactSettings } from "@/components/clinic-contact-settings";
 
 const durations = [20, 30, 45, 60];
 const weekdays: ClinicOperatingHour["weekday"][] = ["Mon", "Tue", "Wed", "Thu", "Fri"];
@@ -61,6 +62,7 @@ function Dashboard({ focus }: { focus?: "contacts" | "staff" | "email-shares" })
     <ClinicianAuditLog forcedFilter={focus === "email-shares" ? "email-share" : undefined} />
     <AuditRetentionSettings />
     <RetentionInsights />
+    <ClinicContactSettings />
     {!focus ? <StaffRoleManagement /> : null}
     <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Schedule settings</Text><Text style={[styles.cardMeta, { color: colors.muted }]}>Changes block new bookings only. Review existing appointments separately if you change clinic availability.</Text>
     <Text style={[styles.subsection, { color: colors.foreground }]}>Clinic operating hours</Text>{clinicHours.map((hour) => <View key={hour.weekday} style={[styles.hourRow, { backgroundColor: colors.surface, borderColor: colors.border }]}><View style={{ width: 72 }}><Text style={[styles.cardTitle, { color: colors.foreground }]}>{hour.label}</Text><Pressable onPress={() => updateClinicHour(hour.weekday, { isOpen: !hour.isOpen })}><Text style={{ color: hour.isOpen ? colors.success : colors.muted, fontSize: 12, fontWeight: "800" }}>{hour.isOpen ? "Open" : "Closed"}</Text></Pressable></View>{hour.isOpen ? <View style={styles.timeFields}><TextInput value={hour.start} onChangeText={(value) => updateTime(hour.weekday, "start", value)} style={[styles.timeInput, { color: colors.foreground, borderColor: colors.border }]} placeholder="09:00" /><Text style={{ color: colors.muted }}>–</Text><TextInput value={hour.end} onChangeText={(value) => updateTime(hour.weekday, "end", value)} style={[styles.timeInput, { color: colors.foreground, borderColor: colors.border }]} placeholder="17:00" /></View> : <Text style={{ color: colors.muted }}>No parent bookings</Text>}</View>)}

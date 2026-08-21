@@ -155,3 +155,8 @@
 - [x] Present Patan Hospital, Lagankhel, Lalitpur as a provisional editable clinic address
 - [x] Add subtle Rainbow clinic logo fade-in on the parent home header
 - [x] Validate call action About Us profile map link and logo animation
+- [x] Update reusable clinic workflow skill for clinic hours WhatsApp and editable final address
+- [x] Show clinic opening hours on About Us
+- [x] Add WhatsApp message action next to direct call on the home screen
+- [x] Add clinician-admin setting to update the provisional clinic address and map link
+- [x] Validate clinic hours WhatsApp contact and address administration
