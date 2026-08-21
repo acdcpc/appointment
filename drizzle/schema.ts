@@ -123,5 +123,16 @@ export const auditRetentionPolicyChanges = mysqlTable("audit_retention_policy_ch
   index("audit_retention_policy_changes_clinician_changed_idx").on(table.clinicianUserId, table.changedAt),
 ]);
 
+export const clinicPublicSettings = mysqlTable("clinic_public_settings", {
+  id: int("id").autoincrement().primaryKey(),
+  clinicName: varchar("clinicName", { length: 255 }).notNull(),
+  address: text("address").notNull(),
+  mapUrl: varchar("mapUrl", { length: 2048 }).notNull(),
+  whatsappNumber: varchar("whatsappNumber", { length: 20 }).notNull(),
+  isProvisional: boolean("isProvisional").default(true).notNull(),
+  updatedBy: varchar("updatedBy", { length: 255 }).notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
 export type ReferralAuditEventRow = typeof referralAuditEvents.$inferSelect;
 export type InsertReferralAuditEvent = typeof referralAuditEvents.$inferInsert;

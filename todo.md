@@ -160,3 +160,8 @@
 - [x] Add WhatsApp message action next to direct call on the home screen
 - [x] Add clinician-admin setting to update the provisional clinic address and map link
 - [x] Validate clinic hours WhatsApp contact and address administration
+- [x] Update reusable clinic workflow skill for persistent contact settings and public holiday closures
+- [x] Persist clinician-managed WhatsApp number in the database
+- [x] Persist final clinic address and map link in the database
+- [x] Show upcoming clinic holiday closures on public About Us
+- [x] Validate persistent contact settings and public holiday closure display

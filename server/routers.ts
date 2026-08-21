@@ -25,11 +25,25 @@ export const appRouter = router({
       } as const;
     }),
   }),
+  clinicPublic: router({
+    settings: publicProcedure.query(async () => {
+      const settings = await referralDb.getClinicPublicSettings();
+      return { clinicName: settings.clinicName, address: settings.address, mapUrl: settings.mapUrl, whatsappNumber: settings.whatsappNumber, isProvisional: settings.isProvisional, updatedAt: settings.updatedAt.toISOString() };
+    }),
+  }),
   clinician: router({
     access: adminProcedure.query(({ ctx }) => ({
       allowed: true,
       clinicianName: ctx.user.name ?? "Associate Professor Dr. Anil Ojha",
     })),
+    clinicPublicSettings: adminProcedure.query(async () => {
+      const settings = await referralDb.getClinicPublicSettings();
+      return { clinicName: settings.clinicName, address: settings.address, mapUrl: settings.mapUrl, whatsappNumber: settings.whatsappNumber, isProvisional: settings.isProvisional };
+    }),
+    saveClinicPublicSettings: adminProcedure.input(z.object({ address: z.string().trim().min(5).max(1000), mapUrl: z.string().url().max(2048), whatsappNumber: z.string().regex(/^\d{10,15}$/, "Enter the WhatsApp number with country code and digits only.") })).mutation(async ({ ctx, input }) => {
+      const settings = await referralDb.saveClinicPublicSettings({ ...input, updatedBy: ctx.user.name ?? "Associate Professor Dr. Anil Ojha" });
+      return { address: settings.address, mapUrl: settings.mapUrl, whatsappNumber: settings.whatsappNumber, isProvisional: settings.isProvisional };
+    }),
     listReferralAuditEvents: adminProcedure.query(async ({ ctx }) => {
       const events = await referralDb.listReferralAuditEvents(ctx.user.id);
       return events.map((event) => ({ ...event, occurredAt: event.occurredAt.toISOString(), alertSentAt: event.alertSentAt?.toISOString() ?? null, archivedAt: event.archivedAt?.toISOString() ?? null }));

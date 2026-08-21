@@ -5,6 +5,7 @@ import * as Linking from "expo-linking";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { usePediatricCare } from "@/lib/pediatric-care";
+import { trpc } from "@/lib/trpc";
 
 export default function HomeScreen() {
   const colors = useColors();
@@ -12,10 +13,11 @@ export default function HomeScreen() {
   const { activeChild, appointments, history } = usePediatricCare();
   const nextAppointment = appointments.find((appointment) => appointment.status !== "completed");
   const developmentNote = history.find((entry) => entry.category === "Development");
+  const publicSettings = trpc.clinicPublic.settings.useQuery();
   const logoOpacity = useRef(new Animated.Value(0)).current;
   useEffect(() => { Animated.timing(logoOpacity, { toValue: 1, duration: 320, useNativeDriver: true }).start(); }, [logoOpacity]);
   const callClinic = () => { Linking.openURL("tel:9765002862").catch(() => undefined); };
-  const messageClinic = () => { Linking.openURL("https://wa.me/9779765002862?text=Hello%20Rainbow%20Child%20Development%20Clinic").catch(() => undefined); };
+  const messageClinic = () => { const number = publicSettings.data?.whatsappNumber ?? "9779765002862"; Linking.openURL(`https://wa.me/${number}?text=Hello%20Rainbow%20Child%20Development%20Clinic`).catch(() => undefined); };
   return <ScreenContainer className="p-5"><ScrollView showsVerticalScrollIndicator={false}>
     <View style={styles.header}><View style={{ flex: 1 }}><Text style={[styles.eyebrow, { color: colors.primary }]}>RAINBOW CHILD DEVELOPMENT CLINIC</Text><Text style={[styles.title, { color: colors.foreground }]}>Good morning, Jordan</Text><Text style={[styles.subtitle, { color: colors.muted }]}>Developmental pediatric care · 9765002862</Text></View><Animated.View style={[styles.avatar, { backgroundColor: "#FFFFFF", borderColor: colors.border, borderWidth: 1, opacity: logoOpacity }]}><Image source={require("../../assets/images/icon.png")} style={{ width: 38, height: 38, borderRadius: 19 }} /></Animated.View></View>
     <View style={[styles.childCard, { backgroundColor: "#E0F2F3", borderColor: colors.primary }]}><View style={[styles.initials, { backgroundColor: colors.primary }]}><Text style={styles.initialsText}>{activeChild.name.split(" ").map((part) => part[0]).join("")}</Text></View><View style={{ flex: 1 }}><Text style={[styles.cardTitle, { color: colors.foreground }]}>{activeChild.name}</Text><Text style={[styles.cardMeta, { color: colors.muted }]}>Child profile · {activeChild.dateOfBirth}</Text></View><Pressable onPress={() => router.push("/(tabs)/profile")} accessibilityRole="button"><Text style={{ color: colors.primary, fontWeight: "800" }}>Manage</Text></Pressable></View>

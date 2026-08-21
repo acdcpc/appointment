@@ -1,13 +1,14 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users } from "../drizzle/schema";
-import { auditArchiveRuns, auditRetentionPolicies, auditRetentionPolicyChanges, referralAuditEvents, referralDeliveryMonitor, referralRetryCounters } from "../drizzle/schema";
+import { auditArchiveRuns, auditRetentionPolicies, auditRetentionPolicyChanges, clinicPublicSettings, referralAuditEvents, referralDeliveryMonitor, referralRetryCounters } from "../drizzle/schema";
 import { and, gte, isNull, lt, lte, or, sql } from "drizzle-orm";
 import { ENV } from "./_core/env";
 
 export const MAX_REFERRAL_EMAIL_RESENDS = 3;
 export const UNRESOLVED_REFERRAL_ALERT_HOURS = 24;
 export const MAX_AUDIT_RETENTION_DAYS = 36500;
+const defaultClinicPublicSettings = { clinicName: "Rainbow Child Development Clinic", address: "Patan Hospital, Lagankhel, Lalitpur", mapUrl: "https://www.google.com/maps/search/?api=1&query=Patan%20Hospital%2C%20Lagankhel%2C%20Lalitpur", whatsappNumber: "9779765002862", isProvisional: true, updatedBy: "Initial clinic setup" };
 type ReferralAuditInput = {
   clientEventId: string; childId: string; type: "appointment-change" | "referral-letter" | "email-share"; occurredAt: Date; actorName: string; summary: string; message?: string; deliveryStatus?: "draft-opened" | "sent" | "saved" | "cancelled" | "unavailable"; isResend?: boolean; retryLimit?: number; retryAttempts?: number;
 };
@@ -96,6 +97,23 @@ export async function getUserByOpenId(openId: string) {
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
 
   return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getClinicPublicSettings() {
+  const db = await getDb();
+  if (!db) return { ...defaultClinicPublicSettings, id: 0, updatedAt: new Date() };
+  const rows = await db.select().from(clinicPublicSettings).orderBy(sql`${clinicPublicSettings.id} asc`).limit(1);
+  return rows[0] ?? { ...defaultClinicPublicSettings, id: 0, updatedAt: new Date() };
+}
+
+export async function saveClinicPublicSettings(input: { address: string; mapUrl: string; whatsappNumber: string; updatedBy: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available for clinic public settings");
+  const existing = await db.select().from(clinicPublicSettings).orderBy(sql`${clinicPublicSettings.id} asc`).limit(1);
+  const values = { ...defaultClinicPublicSettings, ...input, clinicName: "Rainbow Child Development Clinic", isProvisional: false };
+  if (existing[0]) await db.update(clinicPublicSettings).set(values).where(eq(clinicPublicSettings.id, existing[0].id));
+  else await db.insert(clinicPublicSettings).values(values);
+  return getClinicPublicSettings();
 }
 
 export async function persistReferralAuditEvent(clinicianUserId: number, input: ReferralAuditInput): Promise<void> {
