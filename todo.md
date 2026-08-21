@@ -196,3 +196,8 @@
 - [x] Add clinician-managed service-specific visit preparation checklists
 - [x] Add a parent earlier-slot request flow for clinician review
 - [x] Validate parent confirmation, checklist, and earlier-slot request safeguards
+- [x] Update reusable clinic workflow skill for clinician-approved earlier-slot offers and attendance indicators
+- [x] Add parent withdrawal for pending earlier-slot requests
+- [x] Add clinician-approved specific earlier-slot offer workflow
+- [x] Add clinician dashboard indicators for guardian-confirmed upcoming appointments
+- [x] Validate offer, withdrawal, and attendance indicator safeguards
