@@ -175,3 +175,9 @@
 - [x] Add confirmed guardian contact records for child-specific communication
 - [x] Add explicit parent report-view acknowledgement recording and clinician display
 - [x] Validate contact confirmation and acknowledgement safeguards
+- [x] Update reusable clinic workflow skill for acknowledgement evidence exports and guardian re-verification safeguards
+- [x] Add clinician-only PDF and CSV export for child-scoped report acknowledgement status
+- [x] Add dashboard reminders for guardian contacts needing re-verification
+- [x] Add a clinician-reviewed 48-hour reminder draft workflow for unacknowledged reports
+- [x] Keep all 48-hour guardian reminder emails as clinician-reviewed drafts with no automatic send
+- [x] Validate export evidence, contact-review reminders, and 48-hour follow-up safeguards

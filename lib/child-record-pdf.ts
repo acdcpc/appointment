@@ -2,6 +2,7 @@ import { Platform } from "react-native";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import * as MailComposer from "expo-mail-composer";
+import * as FileSystem from "expo-file-system/legacy";
 import type { ChildProfile, GrowthMetric, MedicalHistoryEntry, PatientAuditEvent, PediatricAppointment, PrescriptionRecord, ReferralLetterSettings } from "@/lib/pediatric-care";
 
 const escapeHtml = (value: string) => value.replace(/[&<>'"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[character] ?? character);
@@ -86,4 +87,32 @@ export async function composePatientEmail(html: string | undefined, recipientEma
   } catch {
     return { ok: false, status: "unavailable" as const, message: "We could not open the parent email draft. Please export the child record and use the clinic’s secure email client." };
   }
+}
+
+export type ReportAcknowledgementEvidence = { scope: "record-pdf" | "timeline-report"; guardianName: string; guardianEmail: string; deliveryStatus: string; createdAt: string; acknowledgedAt: string | null; acknowledgementText: string | null };
+
+export function buildReportAcknowledgementHtml(child: ChildProfile, shares: ReportAcknowledgementEvidence[]) {
+  const rows = shares.map((share) => `<article><p class="label">${escapeHtml(share.scope === "record-pdf" ? "MEDICAL RECORD PDF" : "TIMELINE REPORT PDF")} · ${escapeHtml(new Date(share.createdAt).toLocaleString())}</p><h3>${escapeHtml(share.guardianName)}</h3><p><strong>Recipient email:</strong> ${escapeHtml(share.guardianEmail)}</p><p><strong>Draft/client outcome:</strong> ${escapeHtml(share.deliveryStatus.replace("-", " "))}</p><p><strong>Explicit receipt acknowledgement:</strong> ${share.acknowledgedAt ? escapeHtml(new Date(share.acknowledgedAt).toLocaleString()) : "Not yet recorded"}</p>${share.acknowledgementText ? `<p><strong>Guardian statement:</strong> ${escapeHtml(share.acknowledgementText)}</p>` : ""}</article>`).join("") || "<p>No report acknowledgement records are available for this child.</p>";
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"/><style>@page { margin: 36px; } body { font-family: Arial, sans-serif; color: #102A43; line-height: 1.45; } header { border-bottom: 3px solid #0E7490; padding-bottom: 14px; margin-bottom: 20px; } h1 { font-size: 22px; margin: 0 0 4px; } h3 { font-size: 14px; margin: 2px 0 4px; } p { font-size: 12px; margin: 3px 0; white-space: pre-wrap; } .label { font-size: 10px; color: #627D98; font-weight: bold; } article { border: 1px solid #D9E2EC; border-radius: 8px; padding: 12px; margin: 8px 0; } footer { border-top: 1px solid #D9E2EC; color: #627D98; font-size: 10px; margin-top: 24px; padding-top: 12px; }</style></head><body><header><p class="label">RAINBOW CHILD DEVELOPMENT CLINIC</p><h1>Report Acknowledgement Status</h1><p><strong>${escapeHtml(child.name)}</strong> · Date of birth: ${escapeHtml(child.dateOfBirth)}</p><p>Generated ${escapeHtml(new Date().toLocaleString())}</p></header>${rows}<footer>This clinician-only attachment documents platform-reported sharing outcomes and explicit guardian receipt acknowledgements. It does not prove report delivery, reading, understanding, or agreement.</footer></body></html>`;
+}
+
+export function buildReportAcknowledgementCsv(shares: ReportAcknowledgementEvidence[]) {
+  const escapeCsv = (value: string | null) => `"${(value ?? "").replaceAll('"', '""')}"`;
+  return ["Report scope,Guardian name,Guardian email,Draft/client outcome,Shared at,Explicit receipt at,Guardian acknowledgement", ...shares.map((share) => [share.scope, share.guardianName, share.guardianEmail, share.deliveryStatus, share.createdAt, share.acknowledgedAt, share.acknowledgementText].map(escapeCsv).join(","))].join("\n");
+}
+
+export async function exportReportAcknowledgementCsv(csv: string, filename: string) {
+  if (Platform.OS === "web") {
+    if (typeof window === "undefined") return { ok: false, message: "CSV export is not available in this browser session." };
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" }); const url = URL.createObjectURL(blob); const link = document.createElement("a"); link.href = url; link.download = filename; link.click(); URL.revokeObjectURL(url);
+    return { ok: true, message: "Acknowledgement status CSV downloaded." };
+  }
+  try {
+    const directory = FileSystem.cacheDirectory;
+    if (!directory) return { ok: false, message: "Temporary file storage is unavailable on this device." };
+    const uri = `${directory}${filename}`; await FileSystem.writeAsStringAsync(uri, csv, { encoding: FileSystem.EncodingType.UTF8 });
+    if (!(await Sharing.isAvailableAsync())) return { ok: false, message: "CSV created, but sharing is not available on this device." };
+    await Sharing.shareAsync(uri, { mimeType: "text/csv", dialogTitle: "Export acknowledgement status" });
+    return { ok: true, message: "Acknowledgement status CSV is ready to save or attach." };
+  } catch { return { ok: false, message: "We could not create the acknowledgement status CSV." }; }
 }

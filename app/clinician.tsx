@@ -19,6 +19,7 @@ import { AuditRetentionSettings } from "@/components/audit-retention-settings";
 import { RetentionInsights } from "@/components/retention-insights";
 import { ClinicContactSettings } from "@/components/clinic-contact-settings";
 import { PatientCommunication } from "@/components/patient-communication";
+import { GuardianFollowUp } from "@/components/guardian-follow-up";
 
 const durations = [20, 30, 45, 60];
 const weekdays: ClinicOperatingHour["weekday"][] = ["Mon", "Tue", "Wed", "Thu", "Fri"];
@@ -59,6 +60,7 @@ function Dashboard({ focus }: { focus?: "contacts" | "staff" | "email-shares" })
     <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Today’s queue</Text>{today.map((appointment) => <View key={appointment.id} style={[styles.queueCard, { backgroundColor: colors.surface, borderColor: colors.border }]}><Text style={[styles.queueTime, { color: colors.primary }]}>{appointment.time}</Text><View style={{ flex: 1, gap: 3 }}><Text style={[styles.cardTitle, { color: colors.foreground }]}>{activeChild.name} · {appointment.service}</Text><Text style={[styles.cardMeta, { color: colors.muted }]}>{appointment.reason} · {appointment.durationMinutes} minutes</Text></View><Text style={[styles.status, { color: appointment.status === "needs-intake" ? colors.warning : colors.success }]}>{appointment.status === "needs-intake" ? "Intake" : "Confirmed"}</Text></View>)}
     <ClinicianIntelligence onApplyDraft={applyAiDraft} />
     <PatientCommunication />
+    <GuardianFollowUp />
     <ActiveGrowthReference />
     {!focus ? <ReferralTemplateBuilder /> : null}
     <ClinicianAuditLog forcedFilter={focus === "email-shares" ? "email-share" : undefined} />
