@@ -139,3 +139,9 @@
 - [x] Add archive-volume trend chart to retention dashboard
 - [x] Add saved monthly archive-summary delivery time setting
 - [x] Validate on-demand summary trend chart and delivery time safeguards
+- [x] Update reusable clinic workflow skill for trend CSV export quarterly reviews and summary feedback
+- [x] Add customizable date-range controls and CSV export for archive-volume trends
+- [x] Add clinician quarterly retention review reminder notification
+- [x] Add clinician control for quarterly review reminder schedule
+- [x] Add loading and success feedback for Run summary now
+- [x] Validate trend export quarterly reminder and summary feedback safeguards

@@ -1,0 +1,5 @@
+import type { Request, Response } from "express";
+import * as db from "./db";
+import { notifyOwner } from "./_core/notification";
+import { sdk } from "./_core/sdk";
+export async function handleQuarterlyRetentionReview(req: Request, res: Response) { try { const user = await sdk.authenticateRequest(req); if (!user.isCron || !user.taskUid) return res.status(403).json({ error: "cron-only" }); const review = await db.getQuarterlyRetentionReviewForTask(user.taskUid); if (review.skipped) return res.json({ ok: true, skipped: review.skipped }); const accepted = await notifyOwner({ title: `Retention review due · ${review.period}`, content: `Review the clinic audit retention policy. Aggregate status: ${review.activeRecords} active records, ${review.archivedRecords} archived records, and ${review.storageBytes} bytes of audit text.` }); if (!accepted) return res.status(503).json({ error: "notification-unavailable" }); await db.markQuarterlyRetentionReviewSent(review.policy.id, review.period); return res.json({ ok: true, period: review.period }); } catch (error) { return res.status(500).json({ error: "quarterly-retention-review-failed", detail: String(error) }); } }

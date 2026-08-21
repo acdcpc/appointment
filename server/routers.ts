@@ -104,6 +104,17 @@ export const appRouter = router({
       await referralDb.setMonthlyArchiveSummaryDeliveryMinute(ctx.user.id, minuteOfDay);
       return { deliveryTime: formatUtcDeliveryTime(minuteOfDay) };
     }),
+    configureQuarterlyRetentionReview: adminProcedure.mutation(async ({ ctx }) => {
+      if (process.env.NODE_ENV !== "production") throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Publish the clinic app before enabling quarterly retention reviews." });
+      const policy = await referralDb.getAuditRetentionPolicy(ctx.user.id); if (!policy) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Set the clinic retention period before enabling quarterly reviews." });
+      const session = parseCookie(ctx.req.headers.cookie ?? "")[COOKIE_NAME] ?? "";
+      if (policy.quarterlyReviewCronTaskUid) { await updateHeartbeatJob(policy.quarterlyReviewCronTaskUid, { enable: true }, session); await referralDb.setQuarterlyRetentionReviewEnabled(ctx.user.id, true); return { enabled: true }; }
+      const job = await createHeartbeatJob({ name: `quarterly-retention-review-${ctx.user.id}`, cron: "0 0 9 1 1,4,7,10 *", path: "/api/scheduled/quarterly-retention-review", description: "Quarterly clinician reminder to review aggregate audit retention storage." }, session); await referralDb.saveQuarterlyRetentionReviewSchedule(ctx.user.id, job.taskUid); return { enabled: true };
+    }),
+    setQuarterlyRetentionReviewEnabled: adminProcedure.input(z.object({ enabled: z.boolean() })).mutation(async ({ ctx, input }) => {
+      const policy = await referralDb.getAuditRetentionPolicy(ctx.user.id); if (!policy?.quarterlyReviewCronTaskUid) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Enable quarterly retention review once before pausing or resuming it." });
+      const session = parseCookie(ctx.req.headers.cookie ?? "")[COOKIE_NAME] ?? ""; await updateHeartbeatJob(policy.quarterlyReviewCronTaskUid, { enable: input.enabled }, session); await referralDb.setQuarterlyRetentionReviewEnabled(ctx.user.id, input.enabled); return { enabled: input.enabled };
+    }),
     persistReferralAuditEvent: adminProcedure
       .input(z.object({ clientEventId: z.string().min(1).max(80), childId: z.string().min(1).max(120), type: z.enum(["appointment-change", "referral-letter", "email-share"]), occurredAt: z.string().datetime(), summary: z.string().min(1).max(4000), message: z.string().max(4000).optional(), deliveryStatus: z.enum(["draft-opened", "sent", "saved", "cancelled", "unavailable"]).optional(), isResend: z.boolean().optional(), retryLimit: z.number().int().min(1).max(10).optional(), retryAttempts: z.number().int().min(0).max(10).optional() }))
       .mutation(async ({ ctx, input }) => {

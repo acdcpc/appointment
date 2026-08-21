@@ -10,6 +10,7 @@ import { createContext } from "./context";
 import { handleReferralDeliveryMonitor } from "../referral-delivery-monitor";
 import { handleAuditRetentionArchive } from "../audit-retention-archive";
 import { handleMonthlyArchiveSummary } from "../monthly-archive-summary";
+import { handleQuarterlyRetentionReview } from "../quarterly-retention-review";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -68,6 +69,7 @@ async function startServer() {
   app.post("/api/scheduled/referral-delivery-monitor", handleReferralDeliveryMonitor);
   app.post("/api/scheduled/audit-retention-archive", handleAuditRetentionArchive);
   app.post("/api/scheduled/monthly-archive-summary", handleMonthlyArchiveSummary);
+  app.post("/api/scheduled/quarterly-retention-review", handleQuarterlyRetentionReview);
 
   app.use(
     "/api/trpc",

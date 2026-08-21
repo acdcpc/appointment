@@ -244,6 +244,19 @@ export async function getAuditRetentionPolicyByMonthlySummaryTaskUid(taskUid: st
   return rows[0] ?? null;
 }
 
+export async function saveQuarterlyRetentionReviewSchedule(clinicianUserId: number, taskUid: string) {
+  const db = await getDb(); if (!db) throw new Error("Database not available for quarterly retention reviews");
+  await db.update(auditRetentionPolicies).set({ quarterlyReviewCronTaskUid: taskUid, quarterlyReviewEnabled: true }).where(eq(auditRetentionPolicies.clinicianUserId, clinicianUserId));
+}
+export async function setQuarterlyRetentionReviewEnabled(clinicianUserId: number, enabled: boolean) {
+  const db = await getDb(); if (!db) throw new Error("Database not available for quarterly retention reviews");
+  await db.update(auditRetentionPolicies).set({ quarterlyReviewEnabled: enabled }).where(eq(auditRetentionPolicies.clinicianUserId, clinicianUserId)); return getAuditRetentionPolicy(clinicianUserId);
+}
+export async function getAuditRetentionPolicyByQuarterlyReviewTaskUid(taskUid: string) {
+  const db = await getDb(); if (!db) throw new Error("Database not available for quarterly retention reviews");
+  const rows = await db.select().from(auditRetentionPolicies).where(eq(auditRetentionPolicies.quarterlyReviewCronTaskUid, taskUid)).limit(1); return rows[0] ?? null;
+}
+
 export async function getAuditArchivePreview(clinicianUserId: number, retentionDays: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available for audit archival");
@@ -287,13 +300,13 @@ export async function getAuditRetentionDashboard(clinicianUserId: number, range:
   const recentRuns = await getAuditArchiveRuns(clinicianUserId, range);
   const policyChanges = await db.select().from(auditRetentionPolicyChanges).where(eq(auditRetentionPolicyChanges.clinicianUserId, clinicianUserId)).orderBy(sql`${auditRetentionPolicyChanges.changedAt} desc`).limit(8);
   const total = Number(counts[0]?.total ?? 0); const archived = Number(counts[0]?.archived ?? 0);
-  const archiveTrend = await getArchiveVolumeTrend(clinicianUserId);
+  const archiveTrend = await getArchiveVolumeTrend(clinicianUserId, range);
   return { totalRecords: total, activeRecords: total - archived, archivedRecords: archived, storageBytes: Number(counts[0]?.storageBytes ?? 0), recentRuns, policyChanges, archiveTrend };
 }
 
-export async function getArchiveVolumeTrend(clinicianUserId: number) {
-  const now = new Date(); const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 5, 1)); const rows = await getAuditArchiveRuns(clinicianUserId, { start });
-  const buckets = Array.from({ length: 6 }, (_, index) => { const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 5 + index, 1)); return { key: `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`, label: date.toLocaleString("en", { month: "short", timeZone: "UTC" }), archivedRecords: 0, archiveRuns: 0 }; });
+export async function getArchiveVolumeTrend(clinicianUserId: number, range: { start?: Date; end?: Date } = {}) {
+  const now = new Date(); const end = range.end ?? new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0, 23, 59, 59)); const start = range.start ?? new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 5, 1)); const startMonth = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), 1)); const endMonth = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), 1)); const length = Math.min(24, Math.max(1, (endMonth.getUTCFullYear() - startMonth.getUTCFullYear()) * 12 + endMonth.getUTCMonth() - startMonth.getUTCMonth() + 1)); const rows = await getAuditArchiveRuns(clinicianUserId, { start, end });
+  const buckets = Array.from({ length }, (_, index) => { const date = new Date(Date.UTC(startMonth.getUTCFullYear(), startMonth.getUTCMonth() + index, 1)); return { key: `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`, label: date.toLocaleString("en", { month: "short", timeZone: "UTC" }), archivedRecords: 0, archiveRuns: 0 }; });
   for (const row of rows) { const key = `${row.executedAt.getUTCFullYear()}-${String(row.executedAt.getUTCMonth() + 1).padStart(2, "0")}`; const bucket = buckets.find((item) => item.key === key); if (bucket) { bucket.archivedRecords += row.archivedCount; bucket.archiveRuns += 1; } }
   return buckets;
 }
@@ -317,3 +330,10 @@ export async function markMonthlyArchiveSummarySent(policyId: number, period: st
   if (!db) throw new Error("Database not available for monthly archive summaries");
   await db.update(auditRetentionPolicies).set({ lastMonthlySummaryPeriod: period, lastMonthlySummaryAt: new Date() }).where(eq(auditRetentionPolicies.id, policyId));
 }
+
+export async function getQuarterlyRetentionReviewForTask(taskUid: string) {
+  const policy = await getAuditRetentionPolicyByQuarterlyReviewTaskUid(taskUid); if (!policy || !policy.quarterlyReviewEnabled) return { skipped: "disabled-or-orphan" as const };
+  const now = new Date(); const period = `${now.getUTCFullYear()}-Q${Math.floor(now.getUTCMonth() / 3) + 1}`; if (policy.lastQuarterlyReviewPeriod === period) return { skipped: "already-sent" as const, period };
+  const dashboard = await getAuditRetentionDashboard(policy.clinicianUserId); return { skipped: null, policy, period, activeRecords: dashboard.activeRecords, archivedRecords: dashboard.archivedRecords, storageBytes: dashboard.storageBytes };
+}
+export async function markQuarterlyRetentionReviewSent(policyId: number, period: string) { const db = await getDb(); if (!db) throw new Error("Database not available for quarterly retention reviews"); await db.update(auditRetentionPolicies).set({ lastQuarterlyReviewPeriod: period, lastQuarterlyReviewAt: new Date() }).where(eq(auditRetentionPolicies.id, policyId)); }

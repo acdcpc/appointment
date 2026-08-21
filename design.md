@@ -220,3 +220,7 @@ The archive-history panel includes start and end date fields using `YYYY-MM-DD`;
 ## Archive Summary Insights
 
 The retention dashboard adds a **Run summary now** action that calculates and shows the current aggregate archive activity and audit storage without sending a notification or changing monthly delivery history. A compact, touch-friendly archive-volume chart plots archived-record count by recent calendar month, including zero-volume months for continuity. Monthly summary settings include a validated UTC delivery-time field; its visible label clarifies that the chosen time applies on the first day of each month after the clinician enables the published schedule.
+
+## Trend Export and Quarterly Review
+
+The archive-volume chart provides a clinician-selected start and end month range, with a CSV export that includes only month bucket, archive-run count, archived-record count, and selected range metadata. The dashboard adds a quarterly retention-review control that can enable, pause, or resume a published reminder; each reminder contains aggregate storage and archive information only. While **Run summary now** is executing, its button changes to a progress label and remains disabled. A success card confirms the completed summary period and aggregate result after the action finishes.

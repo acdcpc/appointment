@@ -88,6 +88,10 @@ export const auditRetentionPolicies = mysqlTable("audit_retention_policies", {
   monthlySummaryDeliveryMinute: int("monthlySummaryDeliveryMinute").default(540).notNull(),
   lastMonthlySummaryPeriod: varchar("lastMonthlySummaryPeriod", { length: 7 }),
   lastMonthlySummaryAt: timestamp("lastMonthlySummaryAt"),
+  quarterlyReviewEnabled: boolean("quarterlyReviewEnabled").default(false).notNull(),
+  quarterlyReviewCronTaskUid: varchar("quarterlyReviewCronTaskUid", { length: 65 }),
+  lastQuarterlyReviewPeriod: varchar("lastQuarterlyReviewPeriod", { length: 7 }),
+  lastQuarterlyReviewAt: timestamp("lastQuarterlyReviewAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, (table) => [
