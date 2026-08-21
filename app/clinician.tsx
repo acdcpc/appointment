@@ -21,6 +21,8 @@ import { ClinicContactSettings } from "@/components/clinic-contact-settings";
 import { PatientCommunication } from "@/components/patient-communication";
 import { GuardianFollowUp } from "@/components/guardian-follow-up";
 import { ClinicDayFocus } from "@/components/clinic-day-focus";
+import { ServicePreparationSettings } from "@/components/service-preparation-settings";
+import { EarlierSlotRequests } from "@/components/earlier-slot-requests";
 
 const durations = [20, 30, 45, 60];
 const weekdays: ClinicOperatingHour["weekday"][] = ["Mon", "Tue", "Wed", "Thu", "Fri"];
@@ -63,6 +65,8 @@ function Dashboard({ focus }: { focus?: "contacts" | "staff" | "email-shares" })
     <ClinicianIntelligence onApplyDraft={applyAiDraft} />
     <PatientCommunication />
     <GuardianFollowUp />
+    <ServicePreparationSettings />
+    <EarlierSlotRequests />
     <ActiveGrowthReference />
     {!focus ? <ReferralTemplateBuilder /> : null}
     <ClinicianAuditLog forcedFilter={focus === "email-shares" ? "email-share" : undefined} />

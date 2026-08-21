@@ -191,3 +191,8 @@
 - [x] Add clinic-appropriate booking and patient experience improvements based on research
 - [x] Add clinician workflow improvements based on research
 - [x] Validate benchmark-informed patient and clinician experience improvements
+- [x] Update reusable clinic workflow skill for parent confirmations, service preparation, and earlier-slot request safeguards
+- [x] Add parent confirmation action for the upcoming appointment
+- [x] Add clinician-managed service-specific visit preparation checklists
+- [x] Add a parent earlier-slot request flow for clinician review
+- [x] Validate parent confirmation, checklist, and earlier-slot request safeguards
