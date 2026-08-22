@@ -189,5 +189,13 @@ export const capacityTargetChangeAlerts = mysqlTable("capacity_target_change_ale
   id: int("id").autoincrement().primaryKey(), clinicianUserId: int("clinicianUserId").notNull(), alertId: varchar("alertId", { length: 120 }).notNull(), staffId: varchar("staffId", { length: 120 }).notNull(), staffName: varchar("staffName", { length: 255 }).notNull(), previousTarget: int("previousTarget").notNull(), newTarget: int("newTarget").notNull(), changedBy: varchar("changedBy", { length: 255 }).notNull(), changedAt: timestamp("changedAt").notNull(), acknowledgedAt: timestamp("acknowledgedAt"), acknowledgedBy: varchar("acknowledgedBy", { length: 255 }), createdAt: timestamp("createdAt").defaultNow().notNull(),
 }, (table) => [uniqueIndex("capacity_target_change_alerts_scope_alert_unique").on(table.clinicianUserId, table.alertId), index("capacity_target_change_alerts_scope_changed_idx").on(table.clinicianUserId, table.changedAt), index("capacity_target_change_alerts_scope_acknowledged_idx").on(table.clinicianUserId, table.acknowledgedAt)]);
 
+export const printAuditFilterPresets = mysqlTable("print_audit_filter_presets", {
+  id: int("id").autoincrement().primaryKey(), clinicianUserId: int("clinicianUserId").notNull(), presetId: varchar("presetId", { length: 120 }).notNull(), name: varchar("name", { length: 80 }).notNull(), startDate: varchar("startDate", { length: 10 }).notNull(), endDate: varchar("endDate", { length: 10 }).notNull(), actorName: varchar("actorName", { length: 255 }), createdAt: timestamp("createdAt").defaultNow().notNull(), updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => [uniqueIndex("print_audit_filter_presets_scope_preset_unique").on(table.clinicianUserId, table.presetId), uniqueIndex("print_audit_filter_presets_scope_name_unique").on(table.clinicianUserId, table.name)]);
+
+export const capacityAlertVisibilitySettings = mysqlTable("capacity_alert_visibility_settings", {
+  id: int("id").autoincrement().primaryKey(), clinicianUserId: int("clinicianUserId").notNull(), dailyDashboardSummaryEnabled: boolean("dailyDashboardSummaryEnabled").notNull().default(true), receptionistVisible: boolean("receptionistVisible").notNull().default(false), nurseVisible: boolean("nurseVisible").notNull().default(false), clinicianVisible: boolean("clinicianVisible").notNull().default(true), updatedBy: varchar("updatedBy", { length: 255 }).notNull(), updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => [uniqueIndex("capacity_alert_visibility_settings_scope_unique").on(table.clinicianUserId)]);
+
 export type ReferralAuditEventRow = typeof referralAuditEvents.$inferSelect;
 export type InsertReferralAuditEvent = typeof referralAuditEvents.$inferInsert;

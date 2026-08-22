@@ -251,3 +251,8 @@
 - [x] Add clinician-only filters and export for internal follow-up print-access audits
 - [x] Add immediate clinician capacity-target change alerts with factual audit context
 - [x] Validate filtered export, alert timing, and clinician-only access safeguards
+- [x] Update reusable clinic workflow for print-audit presets, capacity-alert digests, and role visibility
+- [x] Add clinician-managed saved print-access audit filter presets
+- [x] Add free in-dashboard daily summary for unacknowledged capacity alerts
+- [x] Add role-specific capacity-alert visibility settings and protected enforcement
+- [x] Validate saved presets, daily dashboard summary, and role-aware capacity-alert safeguards

@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users } from "../drizzle/schema";
-import { auditArchiveRuns, auditRetentionPolicies, auditRetentionPolicyChanges, capacityTargetChangeAlerts, clinicPublicSettings, guardianContacts, internalFollowUpPrintAudits, patientReportShares, referralAuditEvents, referralDeliveryMonitor, referralRetryCounters, staffCapacitySnapshots, waitlistEventLog, waitlistRequests } from "../drizzle/schema";
+import { auditArchiveRuns, auditRetentionPolicies, auditRetentionPolicyChanges, capacityAlertVisibilitySettings, capacityTargetChangeAlerts, clinicPublicSettings, guardianContacts, internalFollowUpPrintAudits, patientReportShares, printAuditFilterPresets, referralAuditEvents, referralDeliveryMonitor, referralRetryCounters, staffCapacitySnapshots, waitlistEventLog, waitlistRequests } from "../drizzle/schema";
 import { and, gte, isNull, lt, lte, or, sql } from "drizzle-orm";
 import { ENV } from "./_core/env";
 
@@ -476,4 +476,36 @@ export async function acknowledgeCapacityTargetChangeAlert(clinicianUserId: numb
   const db = await getDb(); if (!db) throw new Error("Database not available for capacity alerts");
   await db.update(capacityTargetChangeAlerts).set({ acknowledgedAt: new Date(), acknowledgedBy }).where(and(eq(capacityTargetChangeAlerts.clinicianUserId, clinicianUserId), eq(capacityTargetChangeAlerts.alertId, alertId)));
   return listCapacityTargetChangeAlerts(clinicianUserId);
+}
+
+export type PrintAuditFilterPresetInput = { presetId: string; name: string; startDate: string; endDate: string; actorName?: string };
+export const defaultCapacityAlertVisibility = { dailyDashboardSummaryEnabled: true, receptionistVisible: false, nurseVisible: false, clinicianVisible: true };
+
+export async function listPrintAuditFilterPresets(clinicianUserId: number) {
+  const db = await getDb(); if (!db) return [];
+  return db.select().from(printAuditFilterPresets).where(eq(printAuditFilterPresets.clinicianUserId, clinicianUserId));
+}
+
+export async function savePrintAuditFilterPreset(clinicianUserId: number, input: PrintAuditFilterPresetInput) {
+  const db = await getDb(); if (!db) throw new Error("Database not available for print-audit presets");
+  await db.insert(printAuditFilterPresets).values({ clinicianUserId, ...input, actorName: input.actorName ?? null }).onDuplicateKeyUpdate({ set: { name: input.name, startDate: input.startDate, endDate: input.endDate, actorName: input.actorName ?? null } });
+  return listPrintAuditFilterPresets(clinicianUserId);
+}
+
+export async function deletePrintAuditFilterPreset(clinicianUserId: number, presetId: string) {
+  const db = await getDb(); if (!db) throw new Error("Database not available for print-audit presets");
+  await db.delete(printAuditFilterPresets).where(and(eq(printAuditFilterPresets.clinicianUserId, clinicianUserId), eq(printAuditFilterPresets.presetId, presetId)));
+  return listPrintAuditFilterPresets(clinicianUserId);
+}
+
+export async function getCapacityAlertVisibilitySettings(clinicianUserId: number) {
+  const db = await getDb(); if (!db) return defaultCapacityAlertVisibility;
+  const rows = await db.select().from(capacityAlertVisibilitySettings).where(eq(capacityAlertVisibilitySettings.clinicianUserId, clinicianUserId)).limit(1);
+  return rows[0] ?? defaultCapacityAlertVisibility;
+}
+
+export async function saveCapacityAlertVisibilitySettings(clinicianUserId: number, settings: typeof defaultCapacityAlertVisibility, updatedBy: string) {
+  const db = await getDb(); if (!db) throw new Error("Database not available for capacity-alert visibility settings");
+  await db.insert(capacityAlertVisibilitySettings).values({ clinicianUserId, ...settings, updatedBy }).onDuplicateKeyUpdate({ set: { ...settings, updatedBy } });
+  return getCapacityAlertVisibilitySettings(clinicianUserId);
 }

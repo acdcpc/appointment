@@ -35,6 +35,7 @@ import { StaffCapacityHistory } from "@/components/staff-capacity-history";
 import { ClinicianOperationalSync } from "@/components/clinician-operational-sync";
 import { CapacityTargetAlerts } from "@/components/capacity-target-alerts";
 import { PrintAccessAuditExport } from "@/components/print-access-audit-export";
+import { CapacityAlertOperationsSettings } from "@/components/capacity-alert-operations-settings";
 
 const durations = [20, 30, 45, 60];
 const weekdays: ClinicOperatingHour["weekday"][] = ["Mon", "Tue", "Wed", "Thu", "Fri"];
@@ -71,6 +72,7 @@ function Dashboard({ focus }: { focus?: "contacts" | "staff" | "email-shares" })
     <DailyWaitlistTriage />
     <TriageCapacitySettings />
     <CapacityTargetAlerts />
+    <CapacityAlertOperationsSettings />
     <WeeklyWaitlistSummary />
     <MonthlyWaitlistConversionReport />
     <WaitlistConversionTrend />

@@ -109,6 +109,29 @@ export const appRouter = router({
       const audits = await referralDb.listInternalFollowUpPrintAudits(ctx.user.id, { start, end, actorName: input?.actorName });
       return audits.map((item) => ({ id: item.id, auditId: item.auditId, documentScope: item.documentScope, itemCount: item.itemCount, actorName: item.actorName, initiatedAt: item.initiatedAt.toISOString() }));
     }),
+    listPrintAuditFilterPresets: adminProcedure.query(async ({ ctx }) => {
+      const presets = await referralDb.listPrintAuditFilterPresets(ctx.user.id);
+      return presets.map((preset) => ({ ...preset, createdAt: preset.createdAt.toISOString(), updatedAt: preset.updatedAt.toISOString() }));
+    }),
+    savePrintAuditFilterPreset: adminProcedure.input(z.object({ presetId: z.string().min(1).max(120), name: z.string().trim().min(1).max(80), startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), actorName: z.string().trim().min(1).max(255).optional() })).mutation(async ({ ctx, input }) => {
+      if (input.startDate > input.endDate) throw new TRPCError({ code: "BAD_REQUEST", message: "A saved preset must start on or before its end date." });
+      await referralDb.savePrintAuditFilterPreset(ctx.user.id, input);
+      return { saved: true };
+    }),
+    deletePrintAuditFilterPreset: adminProcedure.input(z.object({ presetId: z.string().min(1).max(120) })).mutation(async ({ ctx, input }) => {
+      await referralDb.deletePrintAuditFilterPreset(ctx.user.id, input.presetId);
+      return { deleted: true };
+    }),
+    getCapacityAlertVisibilitySettings: adminProcedure.query(async ({ ctx }) => {
+      const settings = await referralDb.getCapacityAlertVisibilitySettings(ctx.user.id);
+      const updatedAt = "updatedAt" in settings && settings.updatedAt instanceof Date ? settings.updatedAt.toISOString() : null;
+      const updatedBy = "updatedBy" in settings && typeof settings.updatedBy === "string" ? settings.updatedBy : null;
+      return { dailyDashboardSummaryEnabled: settings.dailyDashboardSummaryEnabled, receptionistVisible: settings.receptionistVisible, nurseVisible: settings.nurseVisible, clinicianVisible: settings.clinicianVisible, updatedBy, updatedAt, enforcement: "Capacity-alert records remain restricted to authenticated clinician administrators until staff accounts have server-enforced role claims." };
+    }),
+    saveCapacityAlertVisibilitySettings: adminProcedure.input(z.object({ dailyDashboardSummaryEnabled: z.boolean(), receptionistVisible: z.boolean(), nurseVisible: z.boolean(), clinicianVisible: z.literal(true) })).mutation(async ({ ctx, input }) => {
+      await referralDb.saveCapacityAlertVisibilitySettings(ctx.user.id, input, ctx.user.name ?? "Associate Professor Dr. Anil Ojha");
+      return { saved: true };
+    }),
     recordCapacityTargetChangeAlert: adminProcedure.input(z.object({ alertId: z.string().min(1).max(120), staffId: z.string().min(1).max(120), staffName: z.string().trim().min(1).max(255), previousTarget: z.number().int().min(1).max(30), newTarget: z.number().int().min(1).max(30), changedAt: z.date() })).mutation(async ({ ctx, input }) => {
       if (input.previousTarget === input.newTarget) throw new TRPCError({ code: "BAD_REQUEST", message: "A capacity alert requires a changed target." });
       await referralDb.recordCapacityTargetChangeAlert(ctx.user.id, { ...input, changedBy: ctx.user.name ?? "Associate Professor Dr. Anil Ojha" });
