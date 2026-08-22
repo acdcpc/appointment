@@ -185,5 +185,9 @@ export const internalFollowUpPrintAudits = mysqlTable("internal_follow_up_print_
   id: int("id").autoincrement().primaryKey(), clinicianUserId: int("clinicianUserId").notNull(), auditId: varchar("auditId", { length: 120 }).notNull(), documentScope: mysqlEnum("documentScope", ["appointment-change-follow-up"]).notNull(), itemCount: int("itemCount").notNull(), actorName: varchar("actorName", { length: 255 }).notNull(), initiatedAt: timestamp("initiatedAt").notNull(), createdAt: timestamp("createdAt").defaultNow().notNull(),
 }, (table) => [uniqueIndex("internal_follow_up_print_audits_scope_audit_unique").on(table.clinicianUserId, table.auditId), index("internal_follow_up_print_audits_scope_initiated_idx").on(table.clinicianUserId, table.initiatedAt)]);
 
+export const capacityTargetChangeAlerts = mysqlTable("capacity_target_change_alerts", {
+  id: int("id").autoincrement().primaryKey(), clinicianUserId: int("clinicianUserId").notNull(), alertId: varchar("alertId", { length: 120 }).notNull(), staffId: varchar("staffId", { length: 120 }).notNull(), staffName: varchar("staffName", { length: 255 }).notNull(), previousTarget: int("previousTarget").notNull(), newTarget: int("newTarget").notNull(), changedBy: varchar("changedBy", { length: 255 }).notNull(), changedAt: timestamp("changedAt").notNull(), acknowledgedAt: timestamp("acknowledgedAt"), acknowledgedBy: varchar("acknowledgedBy", { length: 255 }), createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => [uniqueIndex("capacity_target_change_alerts_scope_alert_unique").on(table.clinicianUserId, table.alertId), index("capacity_target_change_alerts_scope_changed_idx").on(table.clinicianUserId, table.changedAt), index("capacity_target_change_alerts_scope_acknowledged_idx").on(table.clinicianUserId, table.acknowledgedAt)]);
+
 export type ReferralAuditEventRow = typeof referralAuditEvents.$inferSelect;
 export type InsertReferralAuditEvent = typeof referralAuditEvents.$inferInsert;

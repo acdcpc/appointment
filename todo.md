@@ -247,3 +247,7 @@
 - [x] Add clinician-selected custom calendar start and end date filters for reporting
 - [x] Record and display clinician-only print-audit events for internal follow-up logs
 - [x] Validate persistent reporting, custom date filters, and print-audit safeguards
+- [x] Update reusable clinic workflow for filtered print-audit export and immediate capacity-change alerts
+- [x] Add clinician-only filters and export for internal follow-up print-access audits
+- [x] Add immediate clinician capacity-target change alerts with factual audit context
+- [x] Validate filtered export, alert timing, and clinician-only access safeguards

@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users } from "../drizzle/schema";
-import { auditArchiveRuns, auditRetentionPolicies, auditRetentionPolicyChanges, clinicPublicSettings, guardianContacts, internalFollowUpPrintAudits, patientReportShares, referralAuditEvents, referralDeliveryMonitor, referralRetryCounters, staffCapacitySnapshots, waitlistEventLog, waitlistRequests } from "../drizzle/schema";
+import { auditArchiveRuns, auditRetentionPolicies, auditRetentionPolicyChanges, capacityTargetChangeAlerts, clinicPublicSettings, guardianContacts, internalFollowUpPrintAudits, patientReportShares, referralAuditEvents, referralDeliveryMonitor, referralRetryCounters, staffCapacitySnapshots, waitlistEventLog, waitlistRequests } from "../drizzle/schema";
 import { and, gte, isNull, lt, lte, or, sql } from "drizzle-orm";
 import { ENV } from "./_core/env";
 
@@ -450,4 +450,30 @@ export async function recordInternalFollowUpPrintAudit(clinicianUserId: number, 
   const db = await getDb(); if (!db) throw new Error("Database not available for print auditing");
   await db.insert(internalFollowUpPrintAudits).values({ clinicianUserId, ...input, documentScope: "appointment-change-follow-up" }).onDuplicateKeyUpdate({ set: { auditId: input.auditId } });
   return getDurableWaitlistState(clinicianUserId);
+}
+
+export async function listInternalFollowUpPrintAudits(clinicianUserId: number, filters: { start?: Date; end?: Date; actorName?: string } = {}) {
+  const db = await getDb(); if (!db) return [];
+  const conditions = [eq(internalFollowUpPrintAudits.clinicianUserId, clinicianUserId)];
+  if (filters.start) conditions.push(gte(internalFollowUpPrintAudits.initiatedAt, filters.start));
+  if (filters.end) conditions.push(lte(internalFollowUpPrintAudits.initiatedAt, filters.end));
+  if (filters.actorName) conditions.push(eq(internalFollowUpPrintAudits.actorName, filters.actorName));
+  return db.select().from(internalFollowUpPrintAudits).where(and(...conditions));
+}
+
+export async function recordCapacityTargetChangeAlert(clinicianUserId: number, input: { alertId: string; staffId: string; staffName: string; previousTarget: number; newTarget: number; changedBy: string; changedAt: Date }) {
+  const db = await getDb(); if (!db) throw new Error("Database not available for capacity alerts");
+  await db.insert(capacityTargetChangeAlerts).values({ clinicianUserId, ...input }).onDuplicateKeyUpdate({ set: { alertId: input.alertId } });
+  return listCapacityTargetChangeAlerts(clinicianUserId);
+}
+
+export async function listCapacityTargetChangeAlerts(clinicianUserId: number) {
+  const db = await getDb(); if (!db) return [];
+  return db.select().from(capacityTargetChangeAlerts).where(eq(capacityTargetChangeAlerts.clinicianUserId, clinicianUserId));
+}
+
+export async function acknowledgeCapacityTargetChangeAlert(clinicianUserId: number, alertId: string, acknowledgedBy: string) {
+  const db = await getDb(); if (!db) throw new Error("Database not available for capacity alerts");
+  await db.update(capacityTargetChangeAlerts).set({ acknowledgedAt: new Date(), acknowledgedBy }).where(and(eq(capacityTargetChangeAlerts.clinicianUserId, clinicianUserId), eq(capacityTargetChangeAlerts.alertId, alertId)));
+  return listCapacityTargetChangeAlerts(clinicianUserId);
 }

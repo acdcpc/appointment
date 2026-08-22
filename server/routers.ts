@@ -103,9 +103,24 @@ export const appRouter = router({
       await referralDb.recordInternalFollowUpPrintAudit(ctx.user.id, { ...input, actorName: ctx.user.name ?? "Associate Professor Dr. Anil Ojha" });
       return { recorded: true, meaning: "Print dialog opened; this is not proof of a physical print, delivery, or viewing." };
     }),
-    listInternalFollowUpPrintAudits: adminProcedure.query(async ({ ctx }) => {
-      const state = await referralDb.getDurableWaitlistState(ctx.user.id);
-      return state.printAudits.map((item) => ({ id: item.id, documentScope: item.documentScope, itemCount: item.itemCount, actorName: item.actorName, initiatedAt: item.initiatedAt.toISOString() }));
+    listInternalFollowUpPrintAudits: adminProcedure.input(z.object({ startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(), endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(), actorName: z.string().trim().min(1).max(255).optional() }).optional()).query(async ({ ctx, input }) => {
+      const start = input?.startDate ? new Date(`${input.startDate}T00:00:00.000Z`) : undefined; const end = input?.endDate ? new Date(`${input.endDate}T23:59:59.999Z`) : undefined;
+      if (start && end && start > end) throw new TRPCError({ code: "BAD_REQUEST", message: "The print-audit start date must be on or before the end date." });
+      const audits = await referralDb.listInternalFollowUpPrintAudits(ctx.user.id, { start, end, actorName: input?.actorName });
+      return audits.map((item) => ({ id: item.id, auditId: item.auditId, documentScope: item.documentScope, itemCount: item.itemCount, actorName: item.actorName, initiatedAt: item.initiatedAt.toISOString() }));
+    }),
+    recordCapacityTargetChangeAlert: adminProcedure.input(z.object({ alertId: z.string().min(1).max(120), staffId: z.string().min(1).max(120), staffName: z.string().trim().min(1).max(255), previousTarget: z.number().int().min(1).max(30), newTarget: z.number().int().min(1).max(30), changedAt: z.date() })).mutation(async ({ ctx, input }) => {
+      if (input.previousTarget === input.newTarget) throw new TRPCError({ code: "BAD_REQUEST", message: "A capacity alert requires a changed target." });
+      await referralDb.recordCapacityTargetChangeAlert(ctx.user.id, { ...input, changedBy: ctx.user.name ?? "Associate Professor Dr. Anil Ojha" });
+      return { recorded: true };
+    }),
+    listCapacityTargetChangeAlerts: adminProcedure.query(async ({ ctx }) => {
+      const alerts = await referralDb.listCapacityTargetChangeAlerts(ctx.user.id);
+      return alerts.map((item) => ({ ...item, changedAt: item.changedAt.toISOString(), acknowledgedAt: item.acknowledgedAt?.toISOString() ?? null }));
+    }),
+    acknowledgeCapacityTargetChangeAlert: adminProcedure.input(z.object({ alertId: z.string().min(1).max(120) })).mutation(async ({ ctx, input }) => {
+      await referralDb.acknowledgeCapacityTargetChangeAlert(ctx.user.id, input.alertId, ctx.user.name ?? "Associate Professor Dr. Anil Ojha");
+      return { acknowledged: true };
     }),
     getAuditRetentionPolicy: adminProcedure.query(async ({ ctx }) => {
       const policy = await referralDb.getAuditRetentionPolicy(ctx.user.id);
