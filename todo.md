@@ -217,3 +217,8 @@
 - [x] Add clinician-managed service-specific waitlist offer-duration presets
 - [x] Add dedicated clinician daily waitlist triage filter
 - [x] Validate confirmation PDF, duration presets, and daily triage safeguards
+- [x] Update reusable clinic workflow skill for appointment-change acknowledgements, weekly waitlist summaries, and triage ownership
+- [x] Add parent acknowledgement action for updated appointment times
+- [x] Add clinician triage ownership assignment for open waitlist items
+- [x] Add weekly dashboard summary chart for offered, accepted, and expired waitlist slots
+- [x] Validate appointment acknowledgement, triage ownership, and weekly summary safeguards

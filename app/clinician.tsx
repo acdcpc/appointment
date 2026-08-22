@@ -25,6 +25,7 @@ import { ServicePreparationSettings } from "@/components/service-preparation-set
 import { EarlierSlotRequests } from "@/components/earlier-slot-requests";
 import { WaitlistActivity } from "@/components/waitlist-activity";
 import { DailyWaitlistTriage } from "@/components/daily-waitlist-triage";
+import { WeeklyWaitlistSummary } from "@/components/weekly-waitlist-summary";
 
 const durations = [20, 30, 45, 60];
 const weekdays: ClinicOperatingHour["weekday"][] = ["Mon", "Tue", "Wed", "Thu", "Fri"];
@@ -59,6 +60,7 @@ function Dashboard({ focus }: { focus?: "contacts" | "staff" | "email-shares" })
     <View style={styles.metrics}>{[[String(today.length), "Today’s visits"], [String(appointments.filter((item) => item.status === "needs-intake").length), "Needs intake"], ["1", "Active child"]].map(([value, label]) => <View key={label} style={[styles.metric, { backgroundColor: colors.surface, borderColor: colors.border }]}><Text style={[styles.metricValue, { color: colors.foreground }]}>{value}</Text><Text style={[styles.cardMeta, { color: colors.muted }]}>{label}</Text></View>)}</View>
     <ClinicDayFocus />
     <DailyWaitlistTriage />
+    <WeeklyWaitlistSummary />
     <DashboardNotifications onOpenContacts={() => router.push({ pathname: "/clinician", params: { focus: "contacts" } })} onOpenStaff={() => router.push({ pathname: "/clinician", params: { focus: "staff" } })} onOpenEmailShares={() => router.push({ pathname: "/clinician", params: { focus: "email-shares" } })} />
     <ApprovalActivityFeed />
     <ReferralDeliveryMonitor />
