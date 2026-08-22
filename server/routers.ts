@@ -166,6 +166,7 @@ export const appRouter = router({
       const activity = await referralDb.listStaffAccountActivity(ctx.user.id, input);
       return activity.map((item) => ({ ...item, occurredAt: item.occurredAt.toISOString(), createdAt: item.createdAt.toISOString() }));
     }),
+    getMonthlyStaffAccountActivitySummary: adminProcedure.input(z.object({ months: z.number().int().min(3).max(12).default(6) }).optional()).query(async ({ ctx, input }) => referralDb.getMonthlyStaffAccountActivitySummary(ctx.user.id, input?.months ?? 6)),
     recordCapacityTargetChangeAlert: adminProcedure.input(z.object({ alertId: z.string().min(1).max(120), staffId: z.string().min(1).max(120), staffName: z.string().trim().min(1).max(255), previousTarget: z.number().int().min(1).max(30), newTarget: z.number().int().min(1).max(30), changedAt: z.date() })).mutation(async ({ ctx, input }) => {
       if (input.previousTarget === input.newTarget) throw new TRPCError({ code: "BAD_REQUEST", message: "A capacity alert requires a changed target." });
       await referralDb.recordCapacityTargetChangeAlert(ctx.user.id, { ...input, changedBy: ctx.user.name ?? "Associate Professor Dr. Anil Ojha" });
@@ -190,6 +191,9 @@ export const appRouter = router({
       requireWeeklyCapacityRange(input.weekStartDate, input.weekEndDate);
       await referralDb.recordWeeklyCapacitySummaryExport(ctx.user.id, { ...input, reviewedBy: ctx.user.name ?? "Associate Professor Dr. Anil Ojha" });
       return { recorded: true };
+    }),
+    getWeeklyCapacitySummaryReportReference: adminProcedure.input(z.object({ internalReportId: z.string().min(1).max(120) })).query(async ({ ctx, input }) => {
+      const report = await referralDb.getWeeklyCapacitySummaryReportReference(ctx.user.id, input.internalReportId); if (!report) throw new TRPCError({ code: "NOT_FOUND", message: "This protected internal report reference is unavailable for the signed-in clinician." }); return { internalReportId: report.internalReportId, weekStartDate: report.weekStartDate, weekEndDate: report.weekEndDate, exportFormat: report.exportFormat, reviewedBy: report.reviewedBy, reviewedAt: report.reviewedAt.toISOString() };
     }),
     getAuditRetentionPolicy: adminProcedure.query(async ({ ctx }) => {
       const policy = await referralDb.getAuditRetentionPolicy(ctx.user.id);

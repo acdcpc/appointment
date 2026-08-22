@@ -1,0 +1,11 @@
+import { StyleSheet, Text, View } from "react-native";
+
+import { useColors } from "@/hooks/use-colors";
+import { trpc } from "@/lib/trpc";
+
+export function MonthlyStaffAccessSummary() {
+  const colors = useColors(); const summary = trpc.clinician.getMonthlyStaffAccountActivitySummary.useQuery({ months: 6 }, { retry: false }); const max = Math.max(1, ...(summary.data ?? []).map((item) => item.total));
+  return <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}><Text style={[styles.title, { color: colors.foreground }]}>Monthly staff-access activity</Text><Text style={[styles.note, { color: colors.muted }]}>Six-month summary of recorded staff lifecycle events. It does not infer sign-ins or usage when no event was recorded.</Text>{(summary.data ?? []).map((item) => <View key={item.month} style={styles.row}><View style={styles.label}><Text style={[styles.month, { color: colors.foreground }]}>{new Date(`${item.month}-01T00:00:00`).toLocaleDateString(undefined, { month: "short", year: "numeric" })}</Text><Text style={[styles.note, { color: colors.muted }]}>{item.total ? `${item.invitationCreated} prepared · ${item.activated} activated · ${item.resendPrepared} refreshed · ${item.expired} expired · ${item.revoked} revoked` : "No recorded staff lifecycle activity"}</Text></View><View style={[styles.track, { backgroundColor: colors.border }]}><View style={[styles.bar, { backgroundColor: colors.primary, width: `${(item.total / max) * 100}%` }]} /></View><Text style={[styles.count, { color: colors.foreground }]}>{item.total}</Text></View>)}{!summary.data?.length ? <Text style={[styles.note, { color: colors.muted }]}>No monthly staff lifecycle records are available yet.</Text> : null}</View>;
+}
+
+const styles = StyleSheet.create({ card: { borderWidth: 1, borderRadius: 16, padding: 14, gap: 10, marginTop: 16 }, title: { fontSize: 17, fontWeight: "800" }, note: { fontSize: 11, lineHeight: 16 }, row: { flexDirection: "row", gap: 8, alignItems: "center" }, label: { flex: 1, gap: 1 }, month: { fontSize: 12, fontWeight: "800" }, track: { width: 86, height: 8, borderRadius: 8, overflow: "hidden" }, bar: { height: 8, borderRadius: 8 }, count: { width: 18, textAlign: "right", fontSize: 12, fontWeight: "800" } });

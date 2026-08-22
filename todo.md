@@ -271,3 +271,8 @@
 - [x] Add clinician-only staff-account activity date filters and metadata-only export
 - [x] Add signed internal identifiers to reviewed weekly capacity summary PDFs
 - [x] Validate invitation reminders, activity export, and PDF identifier safeguards
+- [x] Update reusable clinic workflow for invitation search, monthly activity summaries, and protected QR report references
+- [x] Add clinician invitation search and status filtering
+- [x] Add clinician-only monthly staff-access activity summary view
+- [x] Add protected QR references to reviewed weekly capacity summary PDFs
+- [x] Validate invitation search, activity summaries, and QR reference safeguards

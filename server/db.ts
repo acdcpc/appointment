@@ -583,6 +583,13 @@ export async function listStaffAccountActivity(clinicianUserId: number, input?: 
   return db.select().from(staffAccountActivity).where(and(...filters)).orderBy(sql`${staffAccountActivity.occurredAt} desc`);
 }
 
+export async function getMonthlyStaffAccountActivitySummary(clinicianUserId: number, months = 6) {
+  const today = new Date(); const start = new Date(today.getFullYear(), today.getMonth() - months + 1, 1); const activity = await listStaffAccountActivity(clinicianUserId, { startDate: `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}-01`, endDate: `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}` }); const buckets = new Map<string, { month: string; total: number; invitationCreated: number; resendPrepared: number; activated: number; expired: number; revoked: number }>();
+  for (let index = 0; index < months; index += 1) { const date = new Date(today.getFullYear(), today.getMonth() - months + 1 + index, 1); const month = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`; buckets.set(month, { month, total: 0, invitationCreated: 0, resendPrepared: 0, activated: 0, expired: 0, revoked: 0 }); }
+  activity.forEach((item) => { const bucket = buckets.get(`${item.occurredAt.getFullYear()}-${String(item.occurredAt.getMonth() + 1).padStart(2, "0")}`); if (!bucket) return; bucket.total += 1; if (item.eventType === "invitation-created") bucket.invitationCreated += 1; if (item.eventType === "resend-prepared") bucket.resendPrepared += 1; if (item.eventType === "activated") bucket.activated += 1; if (item.eventType === "expired") bucket.expired += 1; if (item.eventType === "revoked") bucket.revoked += 1; });
+  return [...buckets.values()];
+}
+
 export async function getAuthenticatedStaffAccess(user: { id: number; email: string | null; name: string | null; role: "user" | "admin" }) {
   if (user.role === "admin") return { allowed: true, isOwner: true, clinicianUserId: user.id, staffRole: "clinician" as ClinicStaffRole };
   const email = user.email ? normalizedEmail(user.email) : "";
@@ -620,4 +627,8 @@ export async function recordWeeklyCapacitySummaryExport(clinicianUserId: number,
   const db = await getDb(); if (!db) throw new Error("Database not available for capacity summary export"); const summary = await getWeeklyCapacitySummary(clinicianUserId, input.weekStartDate, input.weekEndDate);
   await db.insert(weeklyCapacitySummaryExports).values({ clinicianUserId, ...input, staffCount: summary.rows.length, unacknowledgedAlertCount: summary.unacknowledgedAlertCount }).onDuplicateKeyUpdate({ set: { exportId: input.exportId } });
   return summary;
+}
+
+export async function getWeeklyCapacitySummaryReportReference(clinicianUserId: number, internalReportId: string) {
+  const db = await getDb(); if (!db) return null; const rows = await db.select().from(weeklyCapacitySummaryExports).where(and(eq(weeklyCapacitySummaryExports.clinicianUserId, clinicianUserId), eq(weeklyCapacitySummaryExports.internalReportId, internalReportId))).limit(1); return rows[0] ?? null;
 }

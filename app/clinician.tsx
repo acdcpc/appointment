@@ -41,6 +41,8 @@ import { AuditPresetManager } from "@/components/audit-preset-manager";
 import { WeeklyCapacitySummaryExport } from "@/components/weekly-capacity-summary-export";
 import { StaffInvitationExpiryReminders } from "@/components/staff-invitation-expiry-reminders";
 import { StaffAccountActivityAudit } from "@/components/staff-account-activity-audit";
+import { MonthlyStaffAccessSummary } from "@/components/monthly-staff-access-summary";
+import { WeeklyCapacityReportReference } from "@/components/weekly-capacity-report-reference";
 
 const durations = [20, 30, 45, 60];
 const weekdays: ClinicOperatingHour["weekday"][] = ["Mon", "Tue", "Wed", "Thu", "Fri"];
@@ -54,15 +56,15 @@ function ClinicianLogin({ onBack }: { onBack: () => void }) {
 }
 
 export default function ClinicianDashboard() {
-  const colors = useColors(); const router = useRouter(); const { focus } = useLocalSearchParams<{ focus?: "contacts" | "staff" | "email-shares" }>(); const { isAuthenticated, loading: authLoading, logout } = useAuth(); const access = trpc.clinician.access.useQuery(undefined, { enabled: isAuthenticated, retry: false });
+  const colors = useColors(); const router = useRouter(); const { focus, reportId } = useLocalSearchParams<{ focus?: "contacts" | "staff" | "email-shares"; reportId?: string }>(); const { isAuthenticated, loading: authLoading, logout } = useAuth(); const access = trpc.clinician.access.useQuery(undefined, { enabled: isAuthenticated, retry: false });
   if (authLoading || (isAuthenticated && access.isLoading)) return <ScreenContainer className="items-center justify-center"><ActivityIndicator color={colors.primary} size="large" /><Text style={[styles.loadingText, { color: colors.muted }]}>Verifying clinician access…</Text></ScreenContainer>;
   if (!isAuthenticated) return <ClinicianLogin onBack={() => router.back()} />;
   if (access.error || !access.data?.allowed) return <ScreenContainer className="p-5"><View style={styles.loginWrap}><Pressable onPress={() => router.back()}><Text style={[styles.back, { color: colors.primary }]}>‹  Back</Text></Pressable><View style={[styles.loginCard, { backgroundColor: colors.surface, borderColor: colors.border }]}><Text style={[styles.loginTitle, { color: colors.foreground }]}>Clinic access required</Text><Text style={[styles.loginText, { color: colors.muted }]}>{access.data?.reason ?? "This signed-in account is not assigned to the clinic. Ask the practice owner to create an invitation matching your account email."}</Text><Pressable onPress={logout} style={[styles.secondaryButton, { borderColor: colors.primary }]}><Text style={{ color: colors.primary, fontWeight: "800" }}>Sign out</Text></Pressable></View></View></ScreenContainer>;
   if (!access.data.isOwner) return <StaffCapacityAlertWorkspace role={access.data.staffRole ?? "receptionist"} onSignOut={logout} />;
-  return <Dashboard focus={focus} />;
+  return <Dashboard focus={focus} reportId={reportId} />;
 }
 
-function Dashboard({ focus }: { focus?: "contacts" | "staff" | "email-shares" }) {
+function Dashboard({ focus, reportId }: { focus?: "contacts" | "staff" | "email-shares"; reportId?: string }) {
   const colors = useColors(); const router = useRouter(); const { appointments, activeChild, clinicHours, clinicBreaks, clinicHolidays, services, updateClinicHour, updateServiceDuration, addClinicBreak, removeClinicBreak, addClinicHoliday, removeClinicHoliday, writePrescription } = usePediatricCare();
   const [selectedAppointment, setSelectedAppointment] = useState(appointments[0]?.id ?? ""); const [medication, setMedication] = useState(""); const [instructions, setInstructions] = useState(""); const [breakDay, setBreakDay] = useState<ClinicOperatingHour["weekday"]>("Tue"); const [breakStart, setBreakStart] = useState("12:30"); const [breakEnd, setBreakEnd] = useState("13:00"); const [holidayDate, setHolidayDate] = useState(""); const [holidayLabel, setHolidayLabel] = useState(""); const [message, setMessage] = useState("");
   const today = useMemo(() => appointments.filter((appointment) => appointment.date === "Tue, Aug 20"), [appointments]);
@@ -76,6 +78,7 @@ function Dashboard({ focus }: { focus?: "contacts" | "staff" | "email-shares" })
     <View style={styles.metrics}>{[[String(today.length), "Today’s visits"], [String(appointments.filter((item) => item.status === "needs-intake").length), "Needs intake"], ["1", "Active child"]].map(([value, label]) => <View key={label} style={[styles.metric, { backgroundColor: colors.surface, borderColor: colors.border }]}><Text style={[styles.metricValue, { color: colors.foreground }]}>{value}</Text><Text style={[styles.cardMeta, { color: colors.muted }]}>{label}</Text></View>)}</View>
     <ClinicDayFocus />
     <StaffInvitationExpiryReminders onOpenStaff={() => router.push({ pathname: "/clinician", params: { focus: "staff" } })} />
+    {reportId ? <WeeklyCapacityReportReference internalReportId={reportId} /> : null}
     <DailyWaitlistTriage />
     <TriageCapacitySettings />
     <CapacityTargetAlerts />
@@ -89,6 +92,7 @@ function Dashboard({ focus }: { focus?: "contacts" | "staff" | "email-shares" })
     <AuditPresetManager />
     <WeeklyCapacitySummaryExport />
     <StaffAccountActivityAudit />
+    <MonthlyStaffAccessSummary />
     <BulkAppointmentChangeReminders />
     <DashboardNotifications onOpenContacts={() => router.push({ pathname: "/clinician", params: { focus: "contacts" } })} onOpenStaff={() => router.push({ pathname: "/clinician", params: { focus: "staff" } })} onOpenEmailShares={() => router.push({ pathname: "/clinician", params: { focus: "email-shares" } })} />
     <ApprovalActivityFeed />
