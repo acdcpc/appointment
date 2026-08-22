@@ -232,3 +232,7 @@
 - [x] Add clinician-reviewed bulk reminder preparation for overdue appointment changes
 - [x] Add CSV export for monthly aggregate waitlist conversion reporting
 - [x] Validate capacity targets, bulk reminder review, and conversion CSV export safeguards
+- [x] Update reusable clinic workflow skill for bulk preparation logs and monthly waitlist trend comparisons
+- [x] Add clinician-downloadable bulk reminder preparation log
+- [x] Add visual month-to-month waitlist conversion trend comparison
+- [x] Validate bulk preparation log and waitlist trend comparison safeguards

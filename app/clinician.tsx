@@ -30,6 +30,7 @@ import { MonthlyWaitlistConversionReport } from "@/components/monthly-waitlist-c
 import { AppointmentChangeFollowUp } from "@/components/appointment-change-follow-up";
 import { TriageCapacitySettings } from "@/components/triage-capacity-settings";
 import { BulkAppointmentChangeReminders } from "@/components/bulk-appointment-change-reminders";
+import { WaitlistConversionTrend } from "@/components/waitlist-conversion-trend";
 
 const durations = [20, 30, 45, 60];
 const weekdays: ClinicOperatingHour["weekday"][] = ["Mon", "Tue", "Wed", "Thu", "Fri"];
@@ -67,6 +68,7 @@ function Dashboard({ focus }: { focus?: "contacts" | "staff" | "email-shares" })
     <TriageCapacitySettings />
     <WeeklyWaitlistSummary />
     <MonthlyWaitlistConversionReport />
+    <WaitlistConversionTrend />
     <AppointmentChangeFollowUp />
     <BulkAppointmentChangeReminders />
     <DashboardNotifications onOpenContacts={() => router.push({ pathname: "/clinician", params: { focus: "contacts" } })} onOpenStaff={() => router.push({ pathname: "/clinician", params: { focus: "staff" } })} onOpenEmailShares={() => router.push({ pathname: "/clinician", params: { focus: "email-shares" } })} />
