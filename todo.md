@@ -236,3 +236,8 @@
 - [x] Add clinician-downloadable bulk reminder preparation log
 - [x] Add visual month-to-month waitlist conversion trend comparison
 - [x] Validate bulk preparation log and waitlist trend comparison safeguards
+- [x] Update reusable clinic workflow skill for custom trend ranges, printable follow-up logs, and capacity history
+- [x] Add selectable reporting ranges to waitlist conversion trend comparison
+- [x] Add printable clinician-only appointment-change follow-up log
+- [x] Add six-month staff capacity history chart
+- [x] Validate custom reporting, printable follow-up, and capacity history safeguards
