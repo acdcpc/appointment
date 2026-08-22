@@ -127,6 +127,13 @@
       "when": 1787403801544,
       "tag": "0017_married_turbo",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "5",
+      "when": 1787407940151,
+      "tag": "0018_slim_hitman",
+      "breakpoints": true
     }
   ]
 }

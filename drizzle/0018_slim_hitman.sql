@@ -1,0 +1,1 @@
+ALTER TABLE `weekly_capacity_summary_exports` ADD `internalReportId` varchar(120);

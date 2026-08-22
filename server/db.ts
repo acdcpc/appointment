@@ -577,9 +577,10 @@ export async function prepareStaffInvitationResend(clinicianUserId: number, staf
   return listClinicStaffAccounts(clinicianUserId);
 }
 
-export async function listStaffAccountActivity(clinicianUserId: number) {
+export async function listStaffAccountActivity(clinicianUserId: number, input?: { startDate?: string; endDate?: string }) {
   const db = await getDb(); if (!db) return [];
-  return db.select().from(staffAccountActivity).where(eq(staffAccountActivity.clinicianUserId, clinicianUserId)).orderBy(sql`${staffAccountActivity.occurredAt} desc`);
+  const filters = [eq(staffAccountActivity.clinicianUserId, clinicianUserId)]; if (input?.startDate) filters.push(gte(staffAccountActivity.occurredAt, new Date(`${input.startDate}T00:00:00.000Z`))); if (input?.endDate) filters.push(lte(staffAccountActivity.occurredAt, new Date(`${input.endDate}T23:59:59.999Z`)));
+  return db.select().from(staffAccountActivity).where(and(...filters)).orderBy(sql`${staffAccountActivity.occurredAt} desc`);
 }
 
 export async function getAuthenticatedStaffAccess(user: { id: number; email: string | null; name: string | null; role: "user" | "admin" }) {
@@ -615,7 +616,7 @@ export async function getWeeklyCapacitySummary(clinicianUserId: number, weekStar
   return { rows: [...latestByStaff.values()].map((snapshot) => ({ staffId: snapshot.staffId, staffName: snapshot.staffName, triageCapacity: snapshot.triageCapacity, assignmentCount: assignedCounts.get(snapshot.staffId) ?? 0, targetEffectiveAt: snapshot.effectiveAt })), unacknowledgedAlertCount: alerts.length };
 }
 
-export async function recordWeeklyCapacitySummaryExport(clinicianUserId: number, input: { exportId: string; exportFormat: "csv" | "pdf"; weekStartDate: string; weekEndDate: string; reviewedBy: string; reviewedAt: Date }) {
+export async function recordWeeklyCapacitySummaryExport(clinicianUserId: number, input: { exportId: string; internalReportId?: string; exportFormat: "csv" | "pdf"; weekStartDate: string; weekEndDate: string; reviewedBy: string; reviewedAt: Date }) {
   const db = await getDb(); if (!db) throw new Error("Database not available for capacity summary export"); const summary = await getWeeklyCapacitySummary(clinicianUserId, input.weekStartDate, input.weekEndDate);
   await db.insert(weeklyCapacitySummaryExports).values({ clinicianUserId, ...input, staffCount: summary.rows.length, unacknowledgedAlertCount: summary.unacknowledgedAlertCount }).onDuplicateKeyUpdate({ set: { exportId: input.exportId } });
   return summary;

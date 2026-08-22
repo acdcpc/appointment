@@ -266,3 +266,8 @@
 - [x] Add clinician-only durable staff-account activity history
 - [x] Add clinician-reviewed weekly capacity summary PDF export alongside CSV
 - [x] Validate invitation lifecycle, staff activity history, and PDF export safeguards
+- [x] Update reusable clinic workflow for invitation-expiry reminders, staff activity export, and signed PDF identifiers
+- [x] Add clinician dashboard invitation-expiry reminders with safe resend context
+- [x] Add clinician-only staff-account activity date filters and metadata-only export
+- [x] Add signed internal identifiers to reviewed weekly capacity summary PDFs
+- [x] Validate invitation reminders, activity export, and PDF identifier safeguards
