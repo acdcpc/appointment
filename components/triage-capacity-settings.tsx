@@ -1,0 +1,11 @@
+import { Pressable, StyleSheet, Text, View } from "react-native";
+
+import { useColors } from "@/hooks/use-colors";
+import { usePediatricCare } from "@/lib/pediatric-care";
+
+export function TriageCapacitySettings() {
+  const colors = useColors(); const { staffMembers, updateStaffTriageCapacity } = usePediatricCare();
+  return <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}><Text style={[styles.title, { color: colors.foreground }]}>Triage capacity targets</Text><Text style={[styles.note, { color: colors.muted }]}>Set each active staff member’s preferred open-item target. Targets guide distribution but do not block deliberate assignments.</Text>{staffMembers.map((staff) => { const target = staff.triageCapacity ?? 3; return <View key={staff.id} style={[styles.row, { borderColor: colors.border }]}><View style={{ flex: 1 }}><Text style={[styles.name, { color: colors.foreground }]}>{staff.name}</Text><Text style={[styles.note, { color: colors.muted }]}>{staff.role} · target {target} open items</Text></View><View style={styles.controls}><Pressable onPress={() => updateStaffTriageCapacity(staff.id, target - 1)} style={[styles.button, { borderColor: colors.border }]}><Text style={{ color: colors.foreground, fontWeight: "800" }}>−</Text></Pressable><Text style={[styles.count, { color: colors.foreground }]}>{target}</Text><Pressable onPress={() => updateStaffTriageCapacity(staff.id, target + 1)} style={[styles.button, { borderColor: colors.primary }]}><Text style={{ color: colors.primary, fontWeight: "800" }}>+</Text></Pressable></View></View>; })}</View>;
+}
+
+const styles = StyleSheet.create({ card: { borderWidth: 1, borderRadius: 16, padding: 14, gap: 10, marginTop: 16 }, title: { fontSize: 18, fontWeight: "800" }, note: { fontSize: 12, lineHeight: 18 }, row: { borderTopWidth: 1, paddingTop: 10, flexDirection: "row", alignItems: "center", gap: 10 }, name: { fontSize: 13, fontWeight: "800" }, controls: { flexDirection: "row", alignItems: "center", gap: 8 }, button: { borderWidth: 1, width: 30, height: 30, borderRadius: 8, alignItems: "center", justifyContent: "center" }, count: { minWidth: 18, textAlign: "center", fontWeight: "800" } });

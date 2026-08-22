@@ -227,3 +227,8 @@
 - [x] Add a clinician-reviewed 24-hour reminder draft for unacknowledged appointment changes
 - [x] Add monthly waitlist conversion report on the clinician dashboard
 - [x] Validate workload counts, monthly conversion reporting, and follow-up safeguards
+- [x] Update reusable clinic workflow skill for triage capacity, bulk reminder review, and monthly conversion CSV export
+- [x] Add configurable staff capacity targets to waitlist triage ownership controls
+- [x] Add clinician-reviewed bulk reminder preparation for overdue appointment changes
+- [x] Add CSV export for monthly aggregate waitlist conversion reporting
+- [x] Validate capacity targets, bulk reminder review, and conversion CSV export safeguards
