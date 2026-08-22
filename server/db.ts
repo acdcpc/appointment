@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users } from "../drizzle/schema";
-import { auditArchiveRuns, auditRetentionPolicies, auditRetentionPolicyChanges, clinicPublicSettings, guardianContacts, patientReportShares, referralAuditEvents, referralDeliveryMonitor, referralRetryCounters } from "../drizzle/schema";
+import { auditArchiveRuns, auditRetentionPolicies, auditRetentionPolicyChanges, clinicPublicSettings, guardianContacts, internalFollowUpPrintAudits, patientReportShares, referralAuditEvents, referralDeliveryMonitor, referralRetryCounters, staffCapacitySnapshots, waitlistEventLog, waitlistRequests } from "../drizzle/schema";
 import { and, gte, isNull, lt, lte, or, sql } from "drizzle-orm";
 import { ENV } from "./_core/env";
 
@@ -428,3 +428,26 @@ export async function getQuarterlyRetentionReviewForTask(taskUid: string) {
   const dashboard = await getAuditRetentionDashboard(policy.clinicianUserId); return { skipped: null, policy, period, activeRecords: dashboard.activeRecords, archivedRecords: dashboard.archivedRecords, storageBytes: dashboard.storageBytes };
 }
 export async function markQuarterlyRetentionReviewSent(policyId: number, period: string) { const db = await getDb(); if (!db) throw new Error("Database not available for quarterly retention reviews"); await db.update(auditRetentionPolicies).set({ lastQuarterlyReviewPeriod: period, lastQuarterlyReviewAt: new Date() }).where(eq(auditRetentionPolicies.id, policyId)); }
+
+export type DurableWaitlistRequestInput = { requestId: string; appointmentId: string; childId: string; requestedAt: Date; status: "pending" | "reviewed" | "declined" | "withdrawn" | "offered" | "responded" | "expired" | "converted"; note?: string; offerDate?: string; offerTime?: string; offeredAt?: Date; offerExpiresAt?: Date; parentResponse?: "accepted" | "declined"; respondedAt?: Date; clinicianAcknowledgedAt?: Date; convertedAt?: Date; convertedBy?: string; assignedStaffId?: string; assignedAt?: Date };
+export type DurableWaitlistEventInput = { eventId: string; requestId: string; eventType: "requested" | "reviewed" | "withdrawn" | "offer-created" | "parent-response" | "expired" | "converted" | "assignment-changed" | "response-acknowledged"; actor: "clinician" | "guardian" | "system"; occurredAt: Date; status: DurableWaitlistRequestInput["status"] };
+
+export async function getDurableWaitlistState(clinicianUserId: number) {
+  const db = await getDb(); if (!db) return { requests: [], capacitySnapshots: [], printAudits: [] };
+  const [requests, capacitySnapshots, printAudits] = await Promise.all([db.select().from(waitlistRequests).where(eq(waitlistRequests.clinicianUserId, clinicianUserId)), db.select().from(staffCapacitySnapshots).where(eq(staffCapacitySnapshots.clinicianUserId, clinicianUserId)), db.select().from(internalFollowUpPrintAudits).where(eq(internalFollowUpPrintAudits.clinicianUserId, clinicianUserId))]);
+  return { requests, capacitySnapshots, printAudits };
+}
+
+export async function saveDurableWaitlistState(clinicianUserId: number, requests: DurableWaitlistRequestInput[], events: DurableWaitlistEventInput[], snapshots: Array<{ snapshotId: string; staffId: string; staffName: string; triageCapacity: number; effectiveAt: Date }>) {
+  const db = await getDb(); if (!db) throw new Error("Database not available for waitlist persistence");
+  for (const request of requests) await db.insert(waitlistRequests).values({ clinicianUserId, ...request, note: request.note ?? null, offerDate: request.offerDate ?? null, offerTime: request.offerTime ?? null, offeredAt: request.offeredAt ?? null, offerExpiresAt: request.offerExpiresAt ?? null, parentResponse: request.parentResponse ?? null, respondedAt: request.respondedAt ?? null, clinicianAcknowledgedAt: request.clinicianAcknowledgedAt ?? null, convertedAt: request.convertedAt ?? null, convertedBy: request.convertedBy ?? null, assignedStaffId: request.assignedStaffId ?? null, assignedAt: request.assignedAt ?? null }).onDuplicateKeyUpdate({ set: { appointmentId: request.appointmentId, childId: request.childId, requestedAt: request.requestedAt, status: request.status, note: request.note ?? null, offerDate: request.offerDate ?? null, offerTime: request.offerTime ?? null, offeredAt: request.offeredAt ?? null, offerExpiresAt: request.offerExpiresAt ?? null, parentResponse: request.parentResponse ?? null, respondedAt: request.respondedAt ?? null, clinicianAcknowledgedAt: request.clinicianAcknowledgedAt ?? null, convertedAt: request.convertedAt ?? null, convertedBy: request.convertedBy ?? null, assignedStaffId: request.assignedStaffId ?? null, assignedAt: request.assignedAt ?? null } });
+  for (const event of events) await db.insert(waitlistEventLog).values({ clinicianUserId, ...event }).onDuplicateKeyUpdate({ set: { eventId: event.eventId } });
+  for (const snapshot of snapshots) await db.insert(staffCapacitySnapshots).values({ clinicianUserId, ...snapshot }).onDuplicateKeyUpdate({ set: { snapshotId: snapshot.snapshotId } });
+  return getDurableWaitlistState(clinicianUserId);
+}
+
+export async function recordInternalFollowUpPrintAudit(clinicianUserId: number, input: { auditId: string; itemCount: number; actorName: string; initiatedAt: Date }) {
+  const db = await getDb(); if (!db) throw new Error("Database not available for print auditing");
+  await db.insert(internalFollowUpPrintAudits).values({ clinicianUserId, ...input, documentScope: "appointment-change-follow-up" }).onDuplicateKeyUpdate({ set: { auditId: input.auditId } });
+  return getDurableWaitlistState(clinicianUserId);
+}

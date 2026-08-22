@@ -32,6 +32,7 @@ import { TriageCapacitySettings } from "@/components/triage-capacity-settings";
 import { BulkAppointmentChangeReminders } from "@/components/bulk-appointment-change-reminders";
 import { WaitlistConversionTrend } from "@/components/waitlist-conversion-trend";
 import { StaffCapacityHistory } from "@/components/staff-capacity-history";
+import { ClinicianOperationalSync } from "@/components/clinician-operational-sync";
 
 const durations = [20, 30, 45, 60];
 const weekdays: ClinicOperatingHour["weekday"][] = ["Mon", "Tue", "Wed", "Thu", "Fri"];
@@ -61,7 +62,7 @@ function Dashboard({ focus }: { focus?: "contacts" | "staff" | "email-shares" })
   const savePrescription = () => { const result = writePrescription({ childId: activeChild.id, appointmentId: selectedAppointment, medication, instructions }); if (!result.ok) { setMessage(result.message); return; } setMedication(""); setInstructions(""); setMessage("Prescription record saved for the selected appointment."); };
   const saveBreak = () => { const result = addClinicBreak(breakDay, breakStart, breakEnd); if (!result.ok) { setMessage(result.message); return; } setMessage("Daily break added to availability rules."); };
   const saveHoliday = () => { const result = addClinicHoliday(holidayDate, holidayLabel); if (!result.ok) { setMessage(result.message); return; } setHolidayDate(""); setHolidayLabel(""); setMessage("Clinic holiday added. Parent booking is blocked for that date."); };
-  return <ScreenContainer className="p-5"><ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+  return <ScreenContainer className="p-5"><ClinicianOperationalSync /><ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
     <Pressable onPress={() => router.back()}><Text style={[styles.back, { color: colors.primary }]}>‹  Back</Text></Pressable><Text style={[styles.eyebrow, { color: colors.primary }]}>RAINBOW CHILD DEVELOPMENT CLINIC</Text><Text style={[styles.title, { color: colors.foreground }]}>Associate Professor Dr. Anil Ojha</Text><Text style={[styles.subtitle, { color: colors.muted }]}>MBBS, MD, FCCH · Developmental Pediatrician · 9765002862</Text>
     <View style={styles.metrics}>{[[String(today.length), "Today’s visits"], [String(appointments.filter((item) => item.status === "needs-intake").length), "Needs intake"], ["1", "Active child"]].map(([value, label]) => <View key={label} style={[styles.metric, { backgroundColor: colors.surface, borderColor: colors.border }]}><Text style={[styles.metricValue, { color: colors.foreground }]}>{value}</Text><Text style={[styles.cardMeta, { color: colors.muted }]}>{label}</Text></View>)}</View>
     <ClinicDayFocus />

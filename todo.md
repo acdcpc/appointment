@@ -241,3 +241,9 @@
 - [x] Add printable clinician-only appointment-change follow-up log
 - [x] Add six-month staff capacity history chart
 - [x] Validate custom reporting, printable follow-up, and capacity history safeguards
+- [x] Update reusable clinic workflow for durable waitlist, capacity, and print-audit events
+- [x] Persist waitlist requests, offers, responses, conversions, and triage assignments across restarts
+- [x] Persist staff capacity-target changes and historical capacity snapshots across restarts
+- [x] Add clinician-selected custom calendar start and end date filters for reporting
+- [x] Record and display clinician-only print-audit events for internal follow-up logs
+- [x] Validate persistent reporting, custom date filters, and print-audit safeguards
