@@ -1,8 +1,7 @@
-import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users } from "../drizzle/schema";
-import { auditArchiveRuns, auditRetentionPolicies, auditRetentionPolicyChanges, capacityAlertVisibilitySettings, capacityTargetChangeAlerts, clinicPublicSettings, guardianContacts, internalFollowUpPrintAudits, patientReportShares, printAuditFilterPresets, referralAuditEvents, referralDeliveryMonitor, referralRetryCounters, staffCapacitySnapshots, waitlistEventLog, waitlistRequests } from "../drizzle/schema";
-import { and, gte, isNull, lt, lte, or, sql } from "drizzle-orm";
+import { auditArchiveRuns, auditRetentionPolicies, auditRetentionPolicyChanges, capacityAlertVisibilitySettings, capacityTargetChangeAlerts, clinicPublicSettings, clinicStaffAccounts, guardianContacts, internalFollowUpPrintAudits, patientReportShares, printAuditFilterPresets, referralAuditEvents, referralDeliveryMonitor, referralRetryCounters, staffCapacitySnapshots, waitlistEventLog, waitlistRequests, weeklyCapacitySummaryExports } from "../drizzle/schema";
+import { and, eq, gte, isNull, lt, lte, or, sql } from "drizzle-orm";
 import { ENV } from "./_core/env";
 
 export const MAX_REFERRAL_EMAIL_RESENDS = 3;
@@ -478,23 +477,33 @@ export async function acknowledgeCapacityTargetChangeAlert(clinicianUserId: numb
   return listCapacityTargetChangeAlerts(clinicianUserId);
 }
 
-export type PrintAuditFilterPresetInput = { presetId: string; name: string; startDate: string; endDate: string; actorName?: string };
+export type PrintAuditFilterPresetInput = { presetId: string; name: string; startDate: string; endDate: string; actorName?: string; displayOrder?: number };
 export const defaultCapacityAlertVisibility = { dailyDashboardSummaryEnabled: true, receptionistVisible: false, nurseVisible: false, clinicianVisible: true };
 
 export async function listPrintAuditFilterPresets(clinicianUserId: number) {
   const db = await getDb(); if (!db) return [];
-  return db.select().from(printAuditFilterPresets).where(eq(printAuditFilterPresets.clinicianUserId, clinicianUserId));
+  return db.select().from(printAuditFilterPresets).where(eq(printAuditFilterPresets.clinicianUserId, clinicianUserId)).orderBy(printAuditFilterPresets.displayOrder, printAuditFilterPresets.updatedAt);
 }
 
 export async function savePrintAuditFilterPreset(clinicianUserId: number, input: PrintAuditFilterPresetInput) {
   const db = await getDb(); if (!db) throw new Error("Database not available for print-audit presets");
-  await db.insert(printAuditFilterPresets).values({ clinicianUserId, ...input, actorName: input.actorName ?? null }).onDuplicateKeyUpdate({ set: { name: input.name, startDate: input.startDate, endDate: input.endDate, actorName: input.actorName ?? null } });
+  const existing = await db.select({ displayOrder: printAuditFilterPresets.displayOrder }).from(printAuditFilterPresets).where(and(eq(printAuditFilterPresets.clinicianUserId, clinicianUserId), eq(printAuditFilterPresets.presetId, input.presetId))).limit(1);
+  const nextOrder = input.displayOrder ?? existing[0]?.displayOrder ?? (await listPrintAuditFilterPresets(clinicianUserId)).length;
+  await db.insert(printAuditFilterPresets).values({ clinicianUserId, ...input, displayOrder: nextOrder, actorName: input.actorName ?? null }).onDuplicateKeyUpdate({ set: { name: input.name, startDate: input.startDate, endDate: input.endDate, actorName: input.actorName ?? null, displayOrder: nextOrder } });
   return listPrintAuditFilterPresets(clinicianUserId);
 }
 
 export async function deletePrintAuditFilterPreset(clinicianUserId: number, presetId: string) {
   const db = await getDb(); if (!db) throw new Error("Database not available for print-audit presets");
   await db.delete(printAuditFilterPresets).where(and(eq(printAuditFilterPresets.clinicianUserId, clinicianUserId), eq(printAuditFilterPresets.presetId, presetId)));
+  return listPrintAuditFilterPresets(clinicianUserId);
+}
+
+export async function reorderPrintAuditFilterPresets(clinicianUserId: number, presetIds: string[]) {
+  const db = await getDb(); if (!db) throw new Error("Database not available for print-audit presets");
+  const existing = await listPrintAuditFilterPresets(clinicianUserId); const ownedIds = new Set(existing.map((preset) => preset.presetId));
+  if (presetIds.length !== ownedIds.size || presetIds.some((presetId) => !ownedIds.has(presetId))) throw new Error("Preset order must include each clinician-owned preset exactly once.");
+  await Promise.all(presetIds.map((presetId, displayOrder) => db.update(printAuditFilterPresets).set({ displayOrder }).where(and(eq(printAuditFilterPresets.clinicianUserId, clinicianUserId), eq(printAuditFilterPresets.presetId, presetId)))));
   return listPrintAuditFilterPresets(clinicianUserId);
 }
 
@@ -508,4 +517,63 @@ export async function saveCapacityAlertVisibilitySettings(clinicianUserId: numbe
   const db = await getDb(); if (!db) throw new Error("Database not available for capacity-alert visibility settings");
   await db.insert(capacityAlertVisibilitySettings).values({ clinicianUserId, ...settings, updatedBy }).onDuplicateKeyUpdate({ set: { ...settings, updatedBy } });
   return getCapacityAlertVisibilitySettings(clinicianUserId);
+}
+
+type ClinicStaffRole = "receptionist" | "nurse" | "clinician";
+const normalizedEmail = (email: string) => email.trim().toLowerCase();
+
+export async function createClinicStaffInvitation(clinicianUserId: number, input: { staffAccountId: string; email: string; staffRole: ClinicStaffRole; invitedBy: string }) {
+  const db = await getDb(); if (!db) throw new Error("Database not available for staff accounts");
+  const invitedEmail = normalizedEmail(input.email);
+  await db.insert(clinicStaffAccounts).values({ clinicianUserId, staffAccountId: input.staffAccountId, invitedEmail, staffRole: input.staffRole, status: "invited", invitedBy: input.invitedBy }).onDuplicateKeyUpdate({ set: { staffRole: input.staffRole, status: "invited", invitedBy: input.invitedBy, staffUserId: null, displayName: null, activatedAt: null, revokedAt: null } });
+  return listClinicStaffAccounts(clinicianUserId);
+}
+
+export async function listClinicStaffAccounts(clinicianUserId: number) {
+  const db = await getDb(); if (!db) return [];
+  return db.select().from(clinicStaffAccounts).where(eq(clinicStaffAccounts.clinicianUserId, clinicianUserId)).orderBy(clinicStaffAccounts.invitedAt);
+}
+
+export async function revokeClinicStaffAccount(clinicianUserId: number, staffAccountId: string) {
+  const db = await getDb(); if (!db) throw new Error("Database not available for staff accounts");
+  await db.update(clinicStaffAccounts).set({ status: "revoked", revokedAt: new Date() }).where(and(eq(clinicStaffAccounts.clinicianUserId, clinicianUserId), eq(clinicStaffAccounts.staffAccountId, staffAccountId)));
+  return listClinicStaffAccounts(clinicianUserId);
+}
+
+export async function getAuthenticatedStaffAccess(user: { id: number; email: string | null; name: string | null; role: "user" | "admin" }) {
+  if (user.role === "admin") return { allowed: true, isOwner: true, clinicianUserId: user.id, staffRole: "clinician" as ClinicStaffRole };
+  const email = user.email ? normalizedEmail(user.email) : "";
+  if (!email) return { allowed: false, reason: "This authenticated account has no verified email to match a clinic invitation." as const };
+  const db = await getDb(); if (!db) return { allowed: false, reason: "Clinic staff access is unavailable while the database is offline." as const };
+  let rows = await db.select().from(clinicStaffAccounts).where(and(eq(clinicStaffAccounts.staffUserId, user.id), eq(clinicStaffAccounts.status, "active"))).limit(1);
+  if (!rows[0]) {
+    const invitation = await db.select().from(clinicStaffAccounts).where(and(eq(clinicStaffAccounts.invitedEmail, email), eq(clinicStaffAccounts.status, "invited"))).limit(1);
+    if (invitation[0]) { await db.update(clinicStaffAccounts).set({ staffUserId: user.id, displayName: user.name ?? email, status: "active", activatedAt: new Date() }).where(eq(clinicStaffAccounts.id, invitation[0].id)); rows = await db.select().from(clinicStaffAccounts).where(eq(clinicStaffAccounts.id, invitation[0].id)).limit(1); }
+  }
+  const account = rows[0];
+  return account ? { allowed: true, isOwner: false, clinicianUserId: account.clinicianUserId, staffRole: account.staffRole as ClinicStaffRole, staffAccountId: account.staffAccountId } : { allowed: false, reason: "This account is not linked to an active clinic staff invitation." as const };
+}
+
+export async function getCapacityAlertAccessForUser(user: { id: number; email: string | null; name: string | null; role: "user" | "admin" }) {
+  const access = await getAuthenticatedStaffAccess(user); if (!access.allowed || typeof access.clinicianUserId !== "number") return access;
+  if (access.isOwner || access.staffRole === "clinician") return access;
+  const settings = await getCapacityAlertVisibilitySettings(access.clinicianUserId); const visible = access.staffRole === "nurse" ? settings.nurseVisible : settings.receptionistVisible;
+  return visible ? access : { allowed: false, reason: "The clinic administrator has not enabled capacity-alert visibility for this staff role." as const };
+}
+
+export async function getWeeklyCapacitySummary(clinicianUserId: number, weekStartDate: string, weekEndDate: string) {
+  const db = await getDb(); if (!db) return { rows: [], unacknowledgedAlertCount: 0 };
+  const endInstant = new Date(`${weekEndDate}T23:59:59.999Z`); const startInstant = new Date(`${weekStartDate}T00:00:00.000Z`);
+  const snapshots = await db.select().from(staffCapacitySnapshots).where(and(eq(staffCapacitySnapshots.clinicianUserId, clinicianUserId), lte(staffCapacitySnapshots.effectiveAt, endInstant)));
+  const latestByStaff = new Map<string, typeof snapshots[number]>(); snapshots.forEach((snapshot) => { const current = latestByStaff.get(snapshot.staffId); if (!current || snapshot.effectiveAt > current.effectiveAt) latestByStaff.set(snapshot.staffId, snapshot); });
+  const requests = await db.select().from(waitlistRequests).where(and(eq(waitlistRequests.clinicianUserId, clinicianUserId), gte(waitlistRequests.assignedAt, startInstant), lte(waitlistRequests.assignedAt, endInstant)));
+  const assignedCounts = new Map<string, number>(); requests.forEach((request) => { if (request.assignedStaffId) assignedCounts.set(request.assignedStaffId, (assignedCounts.get(request.assignedStaffId) ?? 0) + 1); });
+  const alerts = await db.select({ id: capacityTargetChangeAlerts.id }).from(capacityTargetChangeAlerts).where(and(eq(capacityTargetChangeAlerts.clinicianUserId, clinicianUserId), isNull(capacityTargetChangeAlerts.acknowledgedAt)));
+  return { rows: [...latestByStaff.values()].map((snapshot) => ({ staffId: snapshot.staffId, staffName: snapshot.staffName, triageCapacity: snapshot.triageCapacity, assignmentCount: assignedCounts.get(snapshot.staffId) ?? 0, targetEffectiveAt: snapshot.effectiveAt })), unacknowledgedAlertCount: alerts.length };
+}
+
+export async function recordWeeklyCapacitySummaryExport(clinicianUserId: number, input: { exportId: string; weekStartDate: string; weekEndDate: string; reviewedBy: string; reviewedAt: Date }) {
+  const db = await getDb(); if (!db) throw new Error("Database not available for capacity summary export"); const summary = await getWeeklyCapacitySummary(clinicianUserId, input.weekStartDate, input.weekEndDate);
+  await db.insert(weeklyCapacitySummaryExports).values({ clinicianUserId, ...input, staffCount: summary.rows.length, unacknowledgedAlertCount: summary.unacknowledgedAlertCount }).onDuplicateKeyUpdate({ set: { exportId: input.exportId } });
+  return summary;
 }

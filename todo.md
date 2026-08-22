@@ -256,3 +256,8 @@
 - [x] Add free in-dashboard daily summary for unacknowledged capacity alerts
 - [x] Add role-specific capacity-alert visibility settings and protected enforcement
 - [x] Validate saved presets, daily dashboard summary, and role-aware capacity-alert safeguards
+- [x] Update reusable clinic workflow for authenticated staff roles, ordered audit presets, and weekly capacity exports
+- [x] Add authenticated staff-account provisioning and server-enforced capacity-alert role visibility
+- [x] Add editing and ordering for clinician-owned print-audit filter presets
+- [x] Add clinician-reviewed weekly capacity summary export
+- [x] Validate staff authentication, role visibility, preset organization, and capacity export safeguards

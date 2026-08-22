@@ -1,7 +1,7 @@
 import { COOKIE_NAME } from "../shared/const.js";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { adminProcedure, publicProcedure, router } from "./_core/trpc";
+import { adminProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { invokeLLM } from "./_core/llm";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
@@ -11,6 +11,7 @@ import * as referralDb from "./db";
 
 function parseUtcDeliveryTime(value: string) { const match = /^(\d{2}):(\d{2})$/.exec(value); if (!match) throw new TRPCError({ code: "BAD_REQUEST", message: "Enter the delivery time as HH:MM in UTC." }); const hours = Number(match[1]); const minutes = Number(match[2]); if (hours > 23 || minutes > 59) throw new TRPCError({ code: "BAD_REQUEST", message: "Enter a valid UTC delivery time." }); return { minuteOfDay: hours * 60 + minutes, cron: `0 ${minutes} ${hours} 1 * *` }; }
 function formatUtcDeliveryTime(minuteOfDay: number) { return `${String(Math.floor(minuteOfDay / 60)).padStart(2, "0")}:${String(minuteOfDay % 60).padStart(2, "0")}`; }
+function requireWeeklyCapacityRange(weekStartDate: string, weekEndDate: string) { const start = new Date(`${weekStartDate}T00:00:00.000Z`); const end = new Date(`${weekEndDate}T00:00:00.000Z`); if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || end < start || end.getTime() - start.getTime() > 6 * 86400000) throw new TRPCError({ code: "BAD_REQUEST", message: "A weekly capacity summary must use one inclusive seven-day period." }); }
 
 export const appRouter = router({
   // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -43,10 +44,10 @@ export const appRouter = router({
     }),
   }),
   clinician: router({
-    access: adminProcedure.query(({ ctx }) => ({
-      allowed: true,
-      clinicianName: ctx.user.name ?? "Associate Professor Dr. Anil Ojha",
-    })),
+    access: protectedProcedure.query(async ({ ctx }) => {
+      const access = await referralDb.getAuthenticatedStaffAccess(ctx.user);
+      return access.allowed ? { allowed: true, clinicianName: ctx.user.name ?? "Associate Professor Dr. Anil Ojha", staffRole: access.staffRole, isOwner: access.isOwner } : { allowed: false, reason: access.reason };
+    }),
     clinicPublicSettings: adminProcedure.query(async () => {
       const settings = await referralDb.getClinicPublicSettings();
       return { clinicName: settings.clinicName, address: settings.address, mapUrl: settings.mapUrl, whatsappNumber: settings.whatsappNumber, whatsappResponseNotice: settings.whatsappResponseNotice, isProvisional: settings.isProvisional };
@@ -113,7 +114,7 @@ export const appRouter = router({
       const presets = await referralDb.listPrintAuditFilterPresets(ctx.user.id);
       return presets.map((preset) => ({ ...preset, createdAt: preset.createdAt.toISOString(), updatedAt: preset.updatedAt.toISOString() }));
     }),
-    savePrintAuditFilterPreset: adminProcedure.input(z.object({ presetId: z.string().min(1).max(120), name: z.string().trim().min(1).max(80), startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), actorName: z.string().trim().min(1).max(255).optional() })).mutation(async ({ ctx, input }) => {
+    savePrintAuditFilterPreset: adminProcedure.input(z.object({ presetId: z.string().min(1).max(120), name: z.string().trim().min(1).max(80), startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), actorName: z.string().trim().min(1).max(255).optional(), displayOrder: z.number().int().min(0).max(99).optional() })).mutation(async ({ ctx, input }) => {
       if (input.startDate > input.endDate) throw new TRPCError({ code: "BAD_REQUEST", message: "A saved preset must start on or before its end date." });
       await referralDb.savePrintAuditFilterPreset(ctx.user.id, input);
       return { saved: true };
@@ -121,6 +122,10 @@ export const appRouter = router({
     deletePrintAuditFilterPreset: adminProcedure.input(z.object({ presetId: z.string().min(1).max(120) })).mutation(async ({ ctx, input }) => {
       await referralDb.deletePrintAuditFilterPreset(ctx.user.id, input.presetId);
       return { deleted: true };
+    }),
+    reorderPrintAuditFilterPresets: adminProcedure.input(z.object({ presetIds: z.array(z.string().min(1).max(120)).min(1).max(20) })).mutation(async ({ ctx, input }) => {
+      await referralDb.reorderPrintAuditFilterPresets(ctx.user.id, input.presetIds);
+      return { reordered: true };
     }),
     getCapacityAlertVisibilitySettings: adminProcedure.query(async ({ ctx }) => {
       const settings = await referralDb.getCapacityAlertVisibilitySettings(ctx.user.id);
@@ -132,18 +137,42 @@ export const appRouter = router({
       await referralDb.saveCapacityAlertVisibilitySettings(ctx.user.id, input, ctx.user.name ?? "Associate Professor Dr. Anil Ojha");
       return { saved: true };
     }),
+    listClinicStaffAccounts: adminProcedure.query(async ({ ctx }) => {
+      const accounts = await referralDb.listClinicStaffAccounts(ctx.user.id);
+      return accounts.map((account) => ({ ...account, invitedAt: account.invitedAt.toISOString(), activatedAt: account.activatedAt?.toISOString() ?? null, revokedAt: account.revokedAt?.toISOString() ?? null, updatedAt: account.updatedAt.toISOString() }));
+    }),
+    createClinicStaffInvitation: adminProcedure.input(z.object({ staffAccountId: z.string().min(1).max(120), email: z.string().email().max(320), staffRole: z.enum(["receptionist", "nurse", "clinician"]) })).mutation(async ({ ctx, input }) => {
+      await referralDb.createClinicStaffInvitation(ctx.user.id, { ...input, invitedBy: ctx.user.name ?? "Associate Professor Dr. Anil Ojha" });
+      return { invited: true };
+    }),
+    revokeClinicStaffAccount: adminProcedure.input(z.object({ staffAccountId: z.string().min(1).max(120) })).mutation(async ({ ctx, input }) => {
+      await referralDb.revokeClinicStaffAccount(ctx.user.id, input.staffAccountId);
+      return { revoked: true };
+    }),
     recordCapacityTargetChangeAlert: adminProcedure.input(z.object({ alertId: z.string().min(1).max(120), staffId: z.string().min(1).max(120), staffName: z.string().trim().min(1).max(255), previousTarget: z.number().int().min(1).max(30), newTarget: z.number().int().min(1).max(30), changedAt: z.date() })).mutation(async ({ ctx, input }) => {
       if (input.previousTarget === input.newTarget) throw new TRPCError({ code: "BAD_REQUEST", message: "A capacity alert requires a changed target." });
       await referralDb.recordCapacityTargetChangeAlert(ctx.user.id, { ...input, changedBy: ctx.user.name ?? "Associate Professor Dr. Anil Ojha" });
       return { recorded: true };
     }),
-    listCapacityTargetChangeAlerts: adminProcedure.query(async ({ ctx }) => {
-      const alerts = await referralDb.listCapacityTargetChangeAlerts(ctx.user.id);
+    listCapacityTargetChangeAlerts: protectedProcedure.query(async ({ ctx }) => {
+      const access = await referralDb.getCapacityAlertAccessForUser(ctx.user); const clinicianUserId = "clinicianUserId" in access ? access.clinicianUserId : undefined; const reason = "reason" in access ? access.reason : undefined;
+      if (!access.allowed || typeof clinicianUserId !== "number") throw new TRPCError({ code: "FORBIDDEN", message: reason ?? "Capacity-alert access is not available for this staff account." });
+      const alerts = await referralDb.listCapacityTargetChangeAlerts(clinicianUserId);
       return alerts.map((item) => ({ ...item, changedAt: item.changedAt.toISOString(), acknowledgedAt: item.acknowledgedAt?.toISOString() ?? null }));
     }),
     acknowledgeCapacityTargetChangeAlert: adminProcedure.input(z.object({ alertId: z.string().min(1).max(120) })).mutation(async ({ ctx, input }) => {
       await referralDb.acknowledgeCapacityTargetChangeAlert(ctx.user.id, input.alertId, ctx.user.name ?? "Associate Professor Dr. Anil Ojha");
       return { acknowledged: true };
+    }),
+    getWeeklyCapacitySummary: adminProcedure.input(z.object({ weekStartDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), weekEndDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) })).query(async ({ ctx, input }) => {
+      requireWeeklyCapacityRange(input.weekStartDate, input.weekEndDate);
+      const summary = await referralDb.getWeeklyCapacitySummary(ctx.user.id, input.weekStartDate, input.weekEndDate);
+      return { rows: summary.rows.map((row) => ({ ...row, targetEffectiveAt: row.targetEffectiveAt.toISOString() })), unacknowledgedAlertCount: summary.unacknowledgedAlertCount };
+    }),
+    recordWeeklyCapacitySummaryExport: adminProcedure.input(z.object({ exportId: z.string().min(1).max(120), weekStartDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), weekEndDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), reviewedAt: z.date() })).mutation(async ({ ctx, input }) => {
+      requireWeeklyCapacityRange(input.weekStartDate, input.weekEndDate);
+      await referralDb.recordWeeklyCapacitySummaryExport(ctx.user.id, { ...input, reviewedBy: ctx.user.name ?? "Associate Professor Dr. Anil Ojha" });
+      return { recorded: true };
     }),
     getAuditRetentionPolicy: adminProcedure.query(async ({ ctx }) => {
       const policy = await referralDb.getAuditRetentionPolicy(ctx.user.id);
