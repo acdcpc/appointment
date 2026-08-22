@@ -207,3 +207,8 @@
 - [x] Add clinician waitlist activity trail for offers and parent decisions
 - [x] Add clinician dashboard alert for parent offer responses
 - [x] Validate expiring offer, response, activity-trail, and alert safeguards
+- [x] Update reusable clinic workflow skill for accepted-offer conversion, configurable expiry, and schedule response alerts
+- [x] Add clinician-only conversion of accepted earlier-slot offers into rescheduled appointments
+- [x] Add clinician setting for earlier-slot offer expiration duration
+- [x] Add waitlist response notifications to the clinician daily schedule view
+- [x] Validate offer conversion, expiry setting, and daily schedule notification safeguards
