@@ -23,6 +23,7 @@ import { GuardianFollowUp } from "@/components/guardian-follow-up";
 import { ClinicDayFocus } from "@/components/clinic-day-focus";
 import { ServicePreparationSettings } from "@/components/service-preparation-settings";
 import { EarlierSlotRequests } from "@/components/earlier-slot-requests";
+import { WaitlistActivity } from "@/components/waitlist-activity";
 
 const durations = [20, 30, 45, 60];
 const weekdays: ClinicOperatingHour["weekday"][] = ["Mon", "Tue", "Wed", "Thu", "Fri"];
@@ -67,6 +68,7 @@ function Dashboard({ focus }: { focus?: "contacts" | "staff" | "email-shares" })
     <GuardianFollowUp />
     <ServicePreparationSettings />
     <EarlierSlotRequests />
+    <WaitlistActivity />
     <ActiveGrowthReference />
     {!focus ? <ReferralTemplateBuilder /> : null}
     <ClinicianAuditLog forcedFilter={focus === "email-shares" ? "email-share" : undefined} />

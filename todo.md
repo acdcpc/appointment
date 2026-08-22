@@ -201,3 +201,9 @@
 - [x] Add clinician-approved specific earlier-slot offer workflow
 - [x] Add clinician dashboard indicators for guardian-confirmed upcoming appointments
 - [x] Validate offer, withdrawal, and attendance indicator safeguards
+- [x] Update reusable clinic workflow skill for expiring offers, parent responses, and clinician waitlist alerts
+- [x] Add parent accept and decline actions for active earlier-slot offers
+- [x] Add automatic expiration state and countdown for earlier-slot offers
+- [x] Add clinician waitlist activity trail for offers and parent decisions
+- [x] Add clinician dashboard alert for parent offer responses
+- [x] Validate expiring offer, response, activity-trail, and alert safeguards
