@@ -139,15 +139,31 @@ export const appRouter = router({
     }),
     listClinicStaffAccounts: adminProcedure.query(async ({ ctx }) => {
       const accounts = await referralDb.listClinicStaffAccounts(ctx.user.id);
-      return accounts.map((account) => ({ ...account, invitedAt: account.invitedAt.toISOString(), activatedAt: account.activatedAt?.toISOString() ?? null, revokedAt: account.revokedAt?.toISOString() ?? null, updatedAt: account.updatedAt.toISOString() }));
+      return accounts.map((account) => ({ ...account, invitedAt: account.invitedAt.toISOString(), expiresAt: account.expiresAt?.toISOString() ?? null, resendPreparedAt: account.resendPreparedAt?.toISOString() ?? null, activatedAt: account.activatedAt?.toISOString() ?? null, revokedAt: account.revokedAt?.toISOString() ?? null, updatedAt: account.updatedAt.toISOString() }));
     }),
     createClinicStaffInvitation: adminProcedure.input(z.object({ staffAccountId: z.string().min(1).max(120), email: z.string().email().max(320), staffRole: z.enum(["receptionist", "nurse", "clinician"]) })).mutation(async ({ ctx, input }) => {
       await referralDb.createClinicStaffInvitation(ctx.user.id, { ...input, invitedBy: ctx.user.name ?? "Associate Professor Dr. Anil Ojha" });
       return { invited: true };
     }),
     revokeClinicStaffAccount: adminProcedure.input(z.object({ staffAccountId: z.string().min(1).max(120) })).mutation(async ({ ctx, input }) => {
-      await referralDb.revokeClinicStaffAccount(ctx.user.id, input.staffAccountId);
+      await referralDb.revokeClinicStaffAccount(ctx.user.id, input.staffAccountId, ctx.user.name ?? "Associate Professor Dr. Anil Ojha");
       return { revoked: true };
+    }),
+    getStaffInvitationSettings: adminProcedure.query(async ({ ctx }) => {
+      const settings = await referralDb.getStaffInvitationSettings(ctx.user.id);
+      return { expiryDays: settings.expiryDays, updatedBy: settings.updatedBy, updatedAt: settings.updatedAt instanceof Date ? settings.updatedAt.toISOString() : null, resendPreparationLimit: referralDb.MAX_STAFF_INVITATION_RESENDS };
+    }),
+    saveStaffInvitationSettings: adminProcedure.input(z.object({ expiryDays: z.number().int().min(1).max(30) })).mutation(async ({ ctx, input }) => {
+      await referralDb.saveStaffInvitationSettings(ctx.user.id, input.expiryDays, ctx.user.name ?? "Associate Professor Dr. Anil Ojha");
+      return { saved: true };
+    }),
+    prepareStaffInvitationResend: adminProcedure.input(z.object({ staffAccountId: z.string().min(1).max(120) })).mutation(async ({ ctx, input }) => {
+      await referralDb.prepareStaffInvitationResend(ctx.user.id, input.staffAccountId, ctx.user.name ?? "Associate Professor Dr. Anil Ojha");
+      return { prepared: true, meaning: "Invitation refresh prepared; no email was sent automatically." };
+    }),
+    listStaffAccountActivity: adminProcedure.query(async ({ ctx }) => {
+      const activity = await referralDb.listStaffAccountActivity(ctx.user.id);
+      return activity.map((item) => ({ ...item, occurredAt: item.occurredAt.toISOString(), createdAt: item.createdAt.toISOString() }));
     }),
     recordCapacityTargetChangeAlert: adminProcedure.input(z.object({ alertId: z.string().min(1).max(120), staffId: z.string().min(1).max(120), staffName: z.string().trim().min(1).max(255), previousTarget: z.number().int().min(1).max(30), newTarget: z.number().int().min(1).max(30), changedAt: z.date() })).mutation(async ({ ctx, input }) => {
       if (input.previousTarget === input.newTarget) throw new TRPCError({ code: "BAD_REQUEST", message: "A capacity alert requires a changed target." });
@@ -169,7 +185,7 @@ export const appRouter = router({
       const summary = await referralDb.getWeeklyCapacitySummary(ctx.user.id, input.weekStartDate, input.weekEndDate);
       return { rows: summary.rows.map((row) => ({ ...row, targetEffectiveAt: row.targetEffectiveAt.toISOString() })), unacknowledgedAlertCount: summary.unacknowledgedAlertCount };
     }),
-    recordWeeklyCapacitySummaryExport: adminProcedure.input(z.object({ exportId: z.string().min(1).max(120), weekStartDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), weekEndDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), reviewedAt: z.date() })).mutation(async ({ ctx, input }) => {
+    recordWeeklyCapacitySummaryExport: adminProcedure.input(z.object({ exportId: z.string().min(1).max(120), exportFormat: z.enum(["csv", "pdf"]), weekStartDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), weekEndDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), reviewedAt: z.date() })).mutation(async ({ ctx, input }) => {
       requireWeeklyCapacityRange(input.weekStartDate, input.weekEndDate);
       await referralDb.recordWeeklyCapacitySummaryExport(ctx.user.id, { ...input, reviewedBy: ctx.user.name ?? "Associate Professor Dr. Anil Ojha" });
       return { recorded: true };

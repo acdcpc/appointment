@@ -261,3 +261,8 @@
 - [x] Add editing and ordering for clinician-owned print-audit filter presets
 - [x] Add clinician-reviewed weekly capacity summary export
 - [x] Validate staff authentication, role visibility, preset organization, and capacity export safeguards
+- [x] Update reusable clinic workflow for invitation expiry, staff activity logs, and capacity-summary PDF exports
+- [x] Add configurable invitation expiry and clinician-reviewed resend controls for pending staff accounts
+- [x] Add clinician-only durable staff-account activity history
+- [x] Add clinician-reviewed weekly capacity summary PDF export alongside CSV
+- [x] Validate invitation lifecycle, staff activity history, and PDF export safeguards

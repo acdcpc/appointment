@@ -1,10 +1,11 @@
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users } from "../drizzle/schema";
-import { auditArchiveRuns, auditRetentionPolicies, auditRetentionPolicyChanges, capacityAlertVisibilitySettings, capacityTargetChangeAlerts, clinicPublicSettings, clinicStaffAccounts, guardianContacts, internalFollowUpPrintAudits, patientReportShares, printAuditFilterPresets, referralAuditEvents, referralDeliveryMonitor, referralRetryCounters, staffCapacitySnapshots, waitlistEventLog, waitlistRequests, weeklyCapacitySummaryExports } from "../drizzle/schema";
+import { auditArchiveRuns, auditRetentionPolicies, auditRetentionPolicyChanges, capacityAlertVisibilitySettings, capacityTargetChangeAlerts, clinicPublicSettings, clinicStaffAccounts, guardianContacts, internalFollowUpPrintAudits, patientReportShares, printAuditFilterPresets, referralAuditEvents, referralDeliveryMonitor, referralRetryCounters, staffAccountActivity, staffCapacitySnapshots, staffInvitationSettings, waitlistEventLog, waitlistRequests, weeklyCapacitySummaryExports } from "../drizzle/schema";
 import { and, eq, gte, isNull, lt, lte, or, sql } from "drizzle-orm";
 import { ENV } from "./_core/env";
 
 export const MAX_REFERRAL_EMAIL_RESENDS = 3;
+export const MAX_STAFF_INVITATION_RESENDS = 3;
 export const UNRESOLVED_REFERRAL_ALERT_HOURS = 24;
 export const MAX_AUDIT_RETENTION_DAYS = 36500;
 const defaultClinicPublicSettings = { clinicName: "Rainbow Child Development Clinic", address: "Patan Hospital, Lagankhel, Lalitpur", mapUrl: "https://www.google.com/maps/search/?api=1&query=Patan%20Hospital%2C%20Lagankhel%2C%20Lalitpur", whatsappNumber: "9779765002862", whatsappResponseNotice: "Messages are reviewed during clinic hours; please allow a response on the next working day.", guardianReverificationDays: 180, isProvisional: true, updatedBy: "Initial clinic setup" };
@@ -522,22 +523,63 @@ export async function saveCapacityAlertVisibilitySettings(clinicianUserId: numbe
 type ClinicStaffRole = "receptionist" | "nurse" | "clinician";
 const normalizedEmail = (email: string) => email.trim().toLowerCase();
 
+export async function getStaffInvitationSettings(clinicianUserId: number) {
+  const db = await getDb(); if (!db) return { expiryDays: 7, updatedBy: null, updatedAt: null };
+  const rows = await db.select().from(staffInvitationSettings).where(eq(staffInvitationSettings.clinicianUserId, clinicianUserId)).limit(1);
+  return rows[0] ?? { expiryDays: 7, updatedBy: null, updatedAt: null };
+}
+
+export async function saveStaffInvitationSettings(clinicianUserId: number, expiryDays: number, updatedBy: string) {
+  const db = await getDb(); if (!db) throw new Error("Database not available for staff invitation settings");
+  await db.insert(staffInvitationSettings).values({ clinicianUserId, expiryDays, updatedBy }).onDuplicateKeyUpdate({ set: { expiryDays, updatedBy } });
+  return getStaffInvitationSettings(clinicianUserId);
+}
+
+async function recordStaffAccountActivity(clinicianUserId: number, input: { staffAccountId: string; eventType: "invitation-created" | "resend-prepared" | "activated" | "expired" | "role-changed" | "revoked"; actorName: string; summary: string; occurredAt?: Date }) {
+  const db = await getDb(); if (!db) throw new Error("Database not available for staff activity auditing"); const occurredAt = input.occurredAt ?? new Date();
+  await db.insert(staffAccountActivity).values({ clinicianUserId, activityId: `staff-activity-${input.staffAccountId}-${occurredAt.getTime()}-${input.eventType}`, ...input, occurredAt });
+}
+
+async function expireDueStaffInvitations(clinicianUserId: number) {
+  const db = await getDb(); if (!db) return; const now = new Date();
+  const due = await db.select().from(clinicStaffAccounts).where(and(eq(clinicStaffAccounts.clinicianUserId, clinicianUserId), eq(clinicStaffAccounts.status, "invited"), or(isNull(clinicStaffAccounts.expiresAt), lt(clinicStaffAccounts.expiresAt, now))));
+  for (const account of due) { await db.update(clinicStaffAccounts).set({ status: "expired" }).where(eq(clinicStaffAccounts.id, account.id)); await recordStaffAccountActivity(clinicianUserId, { staffAccountId: account.staffAccountId, eventType: "expired", actorName: "System", summary: "Pending staff invitation expired before authenticated activation.", occurredAt: now }); }
+}
+
 export async function createClinicStaffInvitation(clinicianUserId: number, input: { staffAccountId: string; email: string; staffRole: ClinicStaffRole; invitedBy: string }) {
   const db = await getDb(); if (!db) throw new Error("Database not available for staff accounts");
-  const invitedEmail = normalizedEmail(input.email);
-  await db.insert(clinicStaffAccounts).values({ clinicianUserId, staffAccountId: input.staffAccountId, invitedEmail, staffRole: input.staffRole, status: "invited", invitedBy: input.invitedBy }).onDuplicateKeyUpdate({ set: { staffRole: input.staffRole, status: "invited", invitedBy: input.invitedBy, staffUserId: null, displayName: null, activatedAt: null, revokedAt: null } });
+  const invitedEmail = normalizedEmail(input.email); const settings = await getStaffInvitationSettings(clinicianUserId); const expiresAt = new Date(Date.now() + settings.expiryDays * 86400000);
+  await db.insert(clinicStaffAccounts).values({ clinicianUserId, staffAccountId: input.staffAccountId, invitedEmail, staffRole: input.staffRole, status: "invited", invitedBy: input.invitedBy, expiresAt }).onDuplicateKeyUpdate({ set: { staffRole: input.staffRole, status: "invited", invitedBy: input.invitedBy, staffUserId: null, displayName: null, expiresAt, resendPreparedAt: null, resendCount: 0, activatedAt: null, revokedAt: null } });
+  await recordStaffAccountActivity(clinicianUserId, { staffAccountId: input.staffAccountId, eventType: "invitation-created", actorName: input.invitedBy, summary: `Staff invitation prepared with a ${settings.expiryDays}-day activation window.` });
   return listClinicStaffAccounts(clinicianUserId);
 }
 
 export async function listClinicStaffAccounts(clinicianUserId: number) {
-  const db = await getDb(); if (!db) return [];
+  await expireDueStaffInvitations(clinicianUserId); const db = await getDb(); if (!db) return [];
   return db.select().from(clinicStaffAccounts).where(eq(clinicStaffAccounts.clinicianUserId, clinicianUserId)).orderBy(clinicStaffAccounts.invitedAt);
 }
 
-export async function revokeClinicStaffAccount(clinicianUserId: number, staffAccountId: string) {
+export async function revokeClinicStaffAccount(clinicianUserId: number, staffAccountId: string, actorName: string) {
   const db = await getDb(); if (!db) throw new Error("Database not available for staff accounts");
   await db.update(clinicStaffAccounts).set({ status: "revoked", revokedAt: new Date() }).where(and(eq(clinicStaffAccounts.clinicianUserId, clinicianUserId), eq(clinicStaffAccounts.staffAccountId, staffAccountId)));
+  await recordStaffAccountActivity(clinicianUserId, { staffAccountId, eventType: "revoked", actorName, summary: "Clinician revoked this staff account’s clinic access." });
   return listClinicStaffAccounts(clinicianUserId);
+}
+
+export async function prepareStaffInvitationResend(clinicianUserId: number, staffAccountId: string, actorName: string) {
+  await expireDueStaffInvitations(clinicianUserId); const db = await getDb(); if (!db) throw new Error("Database not available for staff accounts");
+  const accounts = await db.select().from(clinicStaffAccounts).where(and(eq(clinicStaffAccounts.clinicianUserId, clinicianUserId), eq(clinicStaffAccounts.staffAccountId, staffAccountId))).limit(1); const account = accounts[0];
+  if (!account || !["invited", "expired"].includes(account.status)) throw new Error("Only pending or expired staff invitations can be prepared again.");
+  if (account.resendCount >= MAX_STAFF_INVITATION_RESENDS) throw new Error(`This invitation has reached the ${MAX_STAFF_INVITATION_RESENDS}-preparation limit.`);
+  const settings = await getStaffInvitationSettings(clinicianUserId); const now = new Date(); const expiresAt = new Date(now.getTime() + settings.expiryDays * 86400000);
+  await db.update(clinicStaffAccounts).set({ status: "invited", expiresAt, resendPreparedAt: now, resendCount: account.resendCount + 1 }).where(eq(clinicStaffAccounts.id, account.id));
+  await recordStaffAccountActivity(clinicianUserId, { staffAccountId, eventType: "resend-prepared", actorName, summary: `Clinician prepared a refreshed ${settings.expiryDays}-day invitation window; no email was sent automatically.`, occurredAt: now });
+  return listClinicStaffAccounts(clinicianUserId);
+}
+
+export async function listStaffAccountActivity(clinicianUserId: number) {
+  const db = await getDb(); if (!db) return [];
+  return db.select().from(staffAccountActivity).where(eq(staffAccountActivity.clinicianUserId, clinicianUserId)).orderBy(sql`${staffAccountActivity.occurredAt} desc`);
 }
 
 export async function getAuthenticatedStaffAccess(user: { id: number; email: string | null; name: string | null; role: "user" | "admin" }) {
@@ -545,10 +587,11 @@ export async function getAuthenticatedStaffAccess(user: { id: number; email: str
   const email = user.email ? normalizedEmail(user.email) : "";
   if (!email) return { allowed: false, reason: "This authenticated account has no verified email to match a clinic invitation." as const };
   const db = await getDb(); if (!db) return { allowed: false, reason: "Clinic staff access is unavailable while the database is offline." as const };
+  const pending = await db.select().from(clinicStaffAccounts).where(and(eq(clinicStaffAccounts.invitedEmail, email), eq(clinicStaffAccounts.status, "invited"))).limit(1); if (pending[0] && (!pending[0].expiresAt || pending[0].expiresAt < new Date())) { await db.update(clinicStaffAccounts).set({ status: "expired" }).where(eq(clinicStaffAccounts.id, pending[0].id)); await recordStaffAccountActivity(pending[0].clinicianUserId, { staffAccountId: pending[0].staffAccountId, eventType: "expired", actorName: "System", summary: "Pending staff invitation expired before authenticated activation." }); }
   let rows = await db.select().from(clinicStaffAccounts).where(and(eq(clinicStaffAccounts.staffUserId, user.id), eq(clinicStaffAccounts.status, "active"))).limit(1);
   if (!rows[0]) {
     const invitation = await db.select().from(clinicStaffAccounts).where(and(eq(clinicStaffAccounts.invitedEmail, email), eq(clinicStaffAccounts.status, "invited"))).limit(1);
-    if (invitation[0]) { await db.update(clinicStaffAccounts).set({ staffUserId: user.id, displayName: user.name ?? email, status: "active", activatedAt: new Date() }).where(eq(clinicStaffAccounts.id, invitation[0].id)); rows = await db.select().from(clinicStaffAccounts).where(eq(clinicStaffAccounts.id, invitation[0].id)).limit(1); }
+    if (invitation[0]) { const activatedAt = new Date(); await db.update(clinicStaffAccounts).set({ staffUserId: user.id, displayName: user.name ?? email, status: "active", activatedAt }).where(eq(clinicStaffAccounts.id, invitation[0].id)); await recordStaffAccountActivity(invitation[0].clinicianUserId, { staffAccountId: invitation[0].staffAccountId, eventType: "activated", actorName: user.name ?? email, summary: "Authenticated staff account linked to the clinician-approved invitation.", occurredAt: activatedAt }); rows = await db.select().from(clinicStaffAccounts).where(eq(clinicStaffAccounts.id, invitation[0].id)).limit(1); }
   }
   const account = rows[0];
   return account ? { allowed: true, isOwner: false, clinicianUserId: account.clinicianUserId, staffRole: account.staffRole as ClinicStaffRole, staffAccountId: account.staffAccountId } : { allowed: false, reason: "This account is not linked to an active clinic staff invitation." as const };
@@ -572,7 +615,7 @@ export async function getWeeklyCapacitySummary(clinicianUserId: number, weekStar
   return { rows: [...latestByStaff.values()].map((snapshot) => ({ staffId: snapshot.staffId, staffName: snapshot.staffName, triageCapacity: snapshot.triageCapacity, assignmentCount: assignedCounts.get(snapshot.staffId) ?? 0, targetEffectiveAt: snapshot.effectiveAt })), unacknowledgedAlertCount: alerts.length };
 }
 
-export async function recordWeeklyCapacitySummaryExport(clinicianUserId: number, input: { exportId: string; weekStartDate: string; weekEndDate: string; reviewedBy: string; reviewedAt: Date }) {
+export async function recordWeeklyCapacitySummaryExport(clinicianUserId: number, input: { exportId: string; exportFormat: "csv" | "pdf"; weekStartDate: string; weekEndDate: string; reviewedBy: string; reviewedAt: Date }) {
   const db = await getDb(); if (!db) throw new Error("Database not available for capacity summary export"); const summary = await getWeeklyCapacitySummary(clinicianUserId, input.weekStartDate, input.weekEndDate);
   await db.insert(weeklyCapacitySummaryExports).values({ clinicianUserId, ...input, staffCount: summary.rows.length, unacknowledgedAlertCount: summary.unacknowledgedAlertCount }).onDuplicateKeyUpdate({ set: { exportId: input.exportId } });
   return summary;
