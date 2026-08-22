@@ -26,6 +26,8 @@ import { EarlierSlotRequests } from "@/components/earlier-slot-requests";
 import { WaitlistActivity } from "@/components/waitlist-activity";
 import { DailyWaitlistTriage } from "@/components/daily-waitlist-triage";
 import { WeeklyWaitlistSummary } from "@/components/weekly-waitlist-summary";
+import { MonthlyWaitlistConversionReport } from "@/components/monthly-waitlist-conversion-report";
+import { AppointmentChangeFollowUp } from "@/components/appointment-change-follow-up";
 
 const durations = [20, 30, 45, 60];
 const weekdays: ClinicOperatingHour["weekday"][] = ["Mon", "Tue", "Wed", "Thu", "Fri"];
@@ -61,6 +63,8 @@ function Dashboard({ focus }: { focus?: "contacts" | "staff" | "email-shares" })
     <ClinicDayFocus />
     <DailyWaitlistTriage />
     <WeeklyWaitlistSummary />
+    <MonthlyWaitlistConversionReport />
+    <AppointmentChangeFollowUp />
     <DashboardNotifications onOpenContacts={() => router.push({ pathname: "/clinician", params: { focus: "contacts" } })} onOpenStaff={() => router.push({ pathname: "/clinician", params: { focus: "staff" } })} onOpenEmailShares={() => router.push({ pathname: "/clinician", params: { focus: "email-shares" } })} />
     <ApprovalActivityFeed />
     <ReferralDeliveryMonitor />

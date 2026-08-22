@@ -1,0 +1,11 @@
+import { Pressable, StyleSheet, Text, View } from "react-native";
+
+import { useColors } from "@/hooks/use-colors";
+import { usePediatricCare } from "@/lib/pediatric-care";
+
+export function AppointmentChangeFollowUp() {
+  const colors = useColors(); const { appointments, children, recordAppointmentChangeReminderDraft } = usePediatricCare(); const threshold = 24 * 60 * 60 * 1000; const overdue = appointments.filter((item) => item.changeMessage && item.rescheduledAt && !item.rescheduleAcknowledgedAt && !item.appointmentChangeReminderDraftedAt && Date.now() - Date.parse(item.rescheduledAt) >= threshold && item.status !== "cancelled");
+  return <View style={[styles.card, { backgroundColor: colors.surface, borderColor: overdue.length ? colors.warning : colors.border }]}><Text style={[styles.title, { color: colors.foreground }]}>Appointment-change follow-up</Text><Text style={[styles.note, { color: colors.muted }]}>Updated visits without parent acknowledgement after 24 hours. Any follow-up remains clinician-reviewed and is never sent automatically.</Text>{overdue.length ? overdue.map((appointment) => { const child = children.find((item) => item.id === appointment.childId); return <View key={appointment.id} style={[styles.item, { borderColor: colors.border }]}><View style={{ flex: 1 }}><Text style={[styles.itemTitle, { color: colors.foreground }]}>{child?.name ?? "Child"} · {appointment.date} · {appointment.time}</Text><Text style={[styles.note, { color: colors.muted }]}>No acknowledgement recorded after 24 hours.</Text></View><Pressable onPress={() => recordAppointmentChangeReminderDraft(appointment.id)} style={[styles.button, { borderColor: colors.warning }]}><Text style={{ color: colors.warning, fontWeight: "800", fontSize: 11 }}>Prepare draft</Text></Pressable></View>; }) : <Text style={[styles.note, { color: colors.success }]}>No appointment-change follow-up drafts are due.</Text>}</View>;
+}
+
+const styles = StyleSheet.create({ card: { borderWidth: 1, borderRadius: 16, padding: 14, gap: 10, marginTop: 16 }, title: { fontSize: 18, fontWeight: "800" }, note: { fontSize: 12, lineHeight: 18 }, item: { borderTopWidth: 1, paddingTop: 10, flexDirection: "row", alignItems: "center", gap: 10 }, itemTitle: { fontSize: 13, fontWeight: "800" }, button: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 9, paddingVertical: 8 } });

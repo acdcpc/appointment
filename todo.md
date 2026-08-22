@@ -222,3 +222,8 @@
 - [x] Add clinician triage ownership assignment for open waitlist items
 - [x] Add weekly dashboard summary chart for offered, accepted, and expired waitlist slots
 - [x] Validate appointment acknowledgement, triage ownership, and weekly summary safeguards
+- [x] Update reusable clinic workflow skill for workload visibility, appointment-change follow-up, and monthly conversion reporting
+- [x] Add staff workload counts beside triage ownership controls
+- [x] Add a clinician-reviewed 24-hour reminder draft for unacknowledged appointment changes
+- [x] Add monthly waitlist conversion report on the clinician dashboard
+- [x] Validate workload counts, monthly conversion reporting, and follow-up safeguards
