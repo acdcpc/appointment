@@ -212,3 +212,8 @@
 - [x] Add clinician setting for earlier-slot offer expiration duration
 - [x] Add waitlist response notifications to the clinician daily schedule view
 - [x] Validate offer conversion, expiry setting, and daily schedule notification safeguards
+- [x] Update reusable clinic workflow skill for reschedule-confirmation PDFs, service duration presets, and daily waitlist triage
+- [x] Add parent-downloadable reschedule-confirmation PDF after appointment update
+- [x] Add clinician-managed service-specific waitlist offer-duration presets
+- [x] Add dedicated clinician daily waitlist triage filter
+- [x] Validate confirmation PDF, duration presets, and daily triage safeguards

@@ -24,6 +24,7 @@ import { ClinicDayFocus } from "@/components/clinic-day-focus";
 import { ServicePreparationSettings } from "@/components/service-preparation-settings";
 import { EarlierSlotRequests } from "@/components/earlier-slot-requests";
 import { WaitlistActivity } from "@/components/waitlist-activity";
+import { DailyWaitlistTriage } from "@/components/daily-waitlist-triage";
 
 const durations = [20, 30, 45, 60];
 const weekdays: ClinicOperatingHour["weekday"][] = ["Mon", "Tue", "Wed", "Thu", "Fri"];
@@ -57,6 +58,7 @@ function Dashboard({ focus }: { focus?: "contacts" | "staff" | "email-shares" })
     <Pressable onPress={() => router.back()}><Text style={[styles.back, { color: colors.primary }]}>‹  Back</Text></Pressable><Text style={[styles.eyebrow, { color: colors.primary }]}>RAINBOW CHILD DEVELOPMENT CLINIC</Text><Text style={[styles.title, { color: colors.foreground }]}>Associate Professor Dr. Anil Ojha</Text><Text style={[styles.subtitle, { color: colors.muted }]}>MBBS, MD, FCCH · Developmental Pediatrician · 9765002862</Text>
     <View style={styles.metrics}>{[[String(today.length), "Today’s visits"], [String(appointments.filter((item) => item.status === "needs-intake").length), "Needs intake"], ["1", "Active child"]].map(([value, label]) => <View key={label} style={[styles.metric, { backgroundColor: colors.surface, borderColor: colors.border }]}><Text style={[styles.metricValue, { color: colors.foreground }]}>{value}</Text><Text style={[styles.cardMeta, { color: colors.muted }]}>{label}</Text></View>)}</View>
     <ClinicDayFocus />
+    <DailyWaitlistTriage />
     <DashboardNotifications onOpenContacts={() => router.push({ pathname: "/clinician", params: { focus: "contacts" } })} onOpenStaff={() => router.push({ pathname: "/clinician", params: { focus: "staff" } })} onOpenEmailShares={() => router.push({ pathname: "/clinician", params: { focus: "email-shares" } })} />
     <ApprovalActivityFeed />
     <ReferralDeliveryMonitor />
