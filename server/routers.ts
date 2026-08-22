@@ -161,6 +161,9 @@ export const appRouter = router({
       await referralDb.prepareStaffInvitationResend(ctx.user.id, input.staffAccountId, ctx.user.name ?? "Associate Professor Dr. Anil Ojha");
       return { prepared: true, meaning: "Invitation refresh prepared; no email was sent automatically." };
     }),
+    listInvitationSearchPresets: adminProcedure.query(async ({ ctx }) => (await referralDb.listInvitationSearchPresets(ctx.user.id)).map((preset) => ({ ...preset, createdAt: preset.createdAt.toISOString(), updatedAt: preset.updatedAt.toISOString() }))),
+    saveInvitationSearchPreset: adminProcedure.input(z.object({ presetId: z.string().min(1).max(120), name: z.string().trim().min(1).max(80), searchText: z.string().trim().max(160), statusFilter: z.enum(["all", "invited", "active", "expired", "revoked"]) })).mutation(async ({ ctx, input }) => { await referralDb.saveInvitationSearchPreset(ctx.user.id, input); return { saved: true }; }),
+    deleteInvitationSearchPreset: adminProcedure.input(z.object({ presetId: z.string().min(1).max(120) })).mutation(async ({ ctx, input }) => { await referralDb.deleteInvitationSearchPreset(ctx.user.id, input.presetId); return { deleted: true }; }),
     listStaffAccountActivity: adminProcedure.input(z.object({ startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(), endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional() }).optional()).query(async ({ ctx, input }) => {
       if (input?.startDate && input?.endDate) { const start = new Date(`${input.startDate}T00:00:00.000Z`); const end = new Date(`${input.endDate}T23:59:59.999Z`); if (start > end || end.getTime() - start.getTime() > 366 * 86400000) throw new TRPCError({ code: "BAD_REQUEST", message: "Choose an inclusive staff activity range of up to 366 days." }); }
       const activity = await referralDb.listStaffAccountActivity(ctx.user.id, input);
@@ -187,6 +190,8 @@ export const appRouter = router({
       const summary = await referralDb.getWeeklyCapacitySummary(ctx.user.id, input.weekStartDate, input.weekEndDate);
       return { rows: summary.rows.map((row) => ({ ...row, targetEffectiveAt: row.targetEffectiveAt.toISOString() })), unacknowledgedAlertCount: summary.unacknowledgedAlertCount };
     }),
+    getWeeklyCapacityReportReferenceSettings: adminProcedure.query(async ({ ctx }) => { const settings = await referralDb.getWeeklyCapacityReportReferenceSettings(ctx.user.id); return { expiryDays: settings.expiryDays, updatedBy: settings.updatedBy, updatedAt: settings.updatedAt instanceof Date ? settings.updatedAt.toISOString() : null }; }),
+    saveWeeklyCapacityReportReferenceSettings: adminProcedure.input(z.object({ expiryDays: z.number().int().min(1).max(90) })).mutation(async ({ ctx, input }) => { const settings = await referralDb.saveWeeklyCapacityReportReferenceSettings(ctx.user.id, input.expiryDays, ctx.user.name ?? "Associate Professor Dr. Anil Ojha"); return { expiryDays: settings.expiryDays }; }),
     recordWeeklyCapacitySummaryExport: adminProcedure.input(z.object({ exportId: z.string().min(1).max(120), internalReportId: z.string().min(1).max(120).optional(), exportFormat: z.enum(["csv", "pdf"]), weekStartDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), weekEndDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), reviewedAt: z.date() })).mutation(async ({ ctx, input }) => {
       requireWeeklyCapacityRange(input.weekStartDate, input.weekEndDate);
       await referralDb.recordWeeklyCapacitySummaryExport(ctx.user.id, { ...input, reviewedBy: ctx.user.name ?? "Associate Professor Dr. Anil Ojha" });

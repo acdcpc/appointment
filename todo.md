@@ -276,3 +276,8 @@
 - [x] Add clinician-only monthly staff-access activity summary view
 - [x] Add protected QR references to reviewed weekly capacity summary PDFs
 - [x] Validate invitation search, activity summaries, and QR reference safeguards
+- [x] Update reusable clinic workflow for invitation-search presets, monthly access exports, and QR reference expiry
+- [x] Add clinician-owned saved invitation-search presets
+- [x] Add clinician-only monthly staff-access activity CSV export
+- [x] Add clinician-configured server-enforced QR report-reference expiry controls
+- [x] Validate invitation presets, monthly export, and QR expiry safeguards

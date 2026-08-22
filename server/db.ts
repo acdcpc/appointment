@@ -1,6 +1,6 @@
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users } from "../drizzle/schema";
-import { auditArchiveRuns, auditRetentionPolicies, auditRetentionPolicyChanges, capacityAlertVisibilitySettings, capacityTargetChangeAlerts, clinicPublicSettings, clinicStaffAccounts, guardianContacts, internalFollowUpPrintAudits, patientReportShares, printAuditFilterPresets, referralAuditEvents, referralDeliveryMonitor, referralRetryCounters, staffAccountActivity, staffCapacitySnapshots, staffInvitationSettings, waitlistEventLog, waitlistRequests, weeklyCapacitySummaryExports } from "../drizzle/schema";
+import { auditArchiveRuns, auditRetentionPolicies, auditRetentionPolicyChanges, capacityAlertVisibilitySettings, capacityTargetChangeAlerts, clinicPublicSettings, clinicStaffAccounts, guardianContacts, internalFollowUpPrintAudits, invitationSearchPresets, patientReportShares, printAuditFilterPresets, referralAuditEvents, referralDeliveryMonitor, referralRetryCounters, staffAccountActivity, staffCapacitySnapshots, staffInvitationSettings, waitlistEventLog, waitlistRequests, weeklyCapacityReportReferenceSettings, weeklyCapacitySummaryExports } from "../drizzle/schema";
 import { and, eq, gte, isNull, lt, lte, or, sql } from "drizzle-orm";
 import { ENV } from "./_core/env";
 
@@ -521,7 +521,28 @@ export async function saveCapacityAlertVisibilitySettings(clinicianUserId: numbe
 }
 
 type ClinicStaffRole = "receptionist" | "nurse" | "clinician";
+type InvitationSearchStatus = "all" | "invited" | "active" | "expired" | "revoked";
 const normalizedEmail = (email: string) => email.trim().toLowerCase();
+
+export async function listInvitationSearchPresets(clinicianUserId: number) {
+  const db = await getDb(); if (!db) return []; return db.select().from(invitationSearchPresets).where(eq(invitationSearchPresets.clinicianUserId, clinicianUserId)).orderBy(invitationSearchPresets.updatedAt);
+}
+
+export async function saveInvitationSearchPreset(clinicianUserId: number, input: { presetId: string; name: string; searchText: string; statusFilter: InvitationSearchStatus }) {
+  const db = await getDb(); if (!db) throw new Error("Database not available for invitation search presets"); await db.insert(invitationSearchPresets).values({ clinicianUserId, ...input }).onDuplicateKeyUpdate({ set: { name: input.name, searchText: input.searchText, statusFilter: input.statusFilter } }); return listInvitationSearchPresets(clinicianUserId);
+}
+
+export async function deleteInvitationSearchPreset(clinicianUserId: number, presetId: string) {
+  const db = await getDb(); if (!db) throw new Error("Database not available for invitation search presets"); await db.delete(invitationSearchPresets).where(and(eq(invitationSearchPresets.clinicianUserId, clinicianUserId), eq(invitationSearchPresets.presetId, presetId))); return listInvitationSearchPresets(clinicianUserId);
+}
+
+export async function getWeeklyCapacityReportReferenceSettings(clinicianUserId: number) {
+  const db = await getDb(); if (!db) return { expiryDays: 30, updatedBy: null, updatedAt: null }; const rows = await db.select().from(weeklyCapacityReportReferenceSettings).where(eq(weeklyCapacityReportReferenceSettings.clinicianUserId, clinicianUserId)).limit(1); return rows[0] ?? { expiryDays: 30, updatedBy: null, updatedAt: null };
+}
+
+export async function saveWeeklyCapacityReportReferenceSettings(clinicianUserId: number, expiryDays: number, updatedBy: string) {
+  const db = await getDb(); if (!db) throw new Error("Database not available for report-reference settings"); await db.insert(weeklyCapacityReportReferenceSettings).values({ clinicianUserId, expiryDays, updatedBy }).onDuplicateKeyUpdate({ set: { expiryDays, updatedBy } }); return getWeeklyCapacityReportReferenceSettings(clinicianUserId);
+}
 
 export async function getStaffInvitationSettings(clinicianUserId: number) {
   const db = await getDb(); if (!db) return { expiryDays: 7, updatedBy: null, updatedAt: null };
@@ -624,11 +645,11 @@ export async function getWeeklyCapacitySummary(clinicianUserId: number, weekStar
 }
 
 export async function recordWeeklyCapacitySummaryExport(clinicianUserId: number, input: { exportId: string; internalReportId?: string; exportFormat: "csv" | "pdf"; weekStartDate: string; weekEndDate: string; reviewedBy: string; reviewedAt: Date }) {
-  const db = await getDb(); if (!db) throw new Error("Database not available for capacity summary export"); const summary = await getWeeklyCapacitySummary(clinicianUserId, input.weekStartDate, input.weekEndDate);
-  await db.insert(weeklyCapacitySummaryExports).values({ clinicianUserId, ...input, staffCount: summary.rows.length, unacknowledgedAlertCount: summary.unacknowledgedAlertCount }).onDuplicateKeyUpdate({ set: { exportId: input.exportId } });
+  const db = await getDb(); if (!db) throw new Error("Database not available for capacity summary export"); const summary = await getWeeklyCapacitySummary(clinicianUserId, input.weekStartDate, input.weekEndDate); const settings = await getWeeklyCapacityReportReferenceSettings(clinicianUserId); const referenceExpiresAt = input.exportFormat === "pdf" && input.internalReportId ? new Date(input.reviewedAt.getTime() + settings.expiryDays * 86400000) : null;
+  await db.insert(weeklyCapacitySummaryExports).values({ clinicianUserId, ...input, referenceExpiresAt, staffCount: summary.rows.length, unacknowledgedAlertCount: summary.unacknowledgedAlertCount }).onDuplicateKeyUpdate({ set: { exportId: input.exportId } });
   return summary;
 }
 
 export async function getWeeklyCapacitySummaryReportReference(clinicianUserId: number, internalReportId: string) {
-  const db = await getDb(); if (!db) return null; const rows = await db.select().from(weeklyCapacitySummaryExports).where(and(eq(weeklyCapacitySummaryExports.clinicianUserId, clinicianUserId), eq(weeklyCapacitySummaryExports.internalReportId, internalReportId))).limit(1); return rows[0] ?? null;
+  const db = await getDb(); if (!db) return null; const rows = await db.select().from(weeklyCapacitySummaryExports).where(and(eq(weeklyCapacitySummaryExports.clinicianUserId, clinicianUserId), eq(weeklyCapacitySummaryExports.internalReportId, internalReportId))).limit(1); const report = rows[0]; return !report || !report.referenceExpiresAt || report.referenceExpiresAt <= new Date() ? null : report;
 }

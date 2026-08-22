@@ -43,6 +43,7 @@ import { StaffInvitationExpiryReminders } from "@/components/staff-invitation-ex
 import { StaffAccountActivityAudit } from "@/components/staff-account-activity-audit";
 import { MonthlyStaffAccessSummary } from "@/components/monthly-staff-access-summary";
 import { WeeklyCapacityReportReference } from "@/components/weekly-capacity-report-reference";
+import { WeeklyCapacityReportReferenceSettings } from "@/components/weekly-capacity-report-reference-settings";
 
 const durations = [20, 30, 45, 60];
 const weekdays: ClinicOperatingHour["weekday"][] = ["Mon", "Tue", "Wed", "Thu", "Fri"];
@@ -91,6 +92,7 @@ function Dashboard({ focus, reportId }: { focus?: "contacts" | "staff" | "email-
     <PrintAccessAuditExport />
     <AuditPresetManager />
     <WeeklyCapacitySummaryExport />
+    <WeeklyCapacityReportReferenceSettings />
     <StaffAccountActivityAudit />
     <MonthlyStaffAccessSummary />
     <BulkAppointmentChangeReminders />

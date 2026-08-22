@@ -134,6 +134,13 @@
       "when": 1787407940151,
       "tag": "0018_slim_hitman",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "5",
+      "when": 1787409345619,
+      "tag": "0019_normal_junta",
+      "breakpoints": true
     }
   ]
 }
