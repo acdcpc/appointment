@@ -1,0 +1,1 @@
+ALTER TABLE `clinic_public_settings` ADD `clinicEmail` varchar(320) DEFAULT 'rainbowclinic25@gmail.com' NOT NULL;

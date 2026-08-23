@@ -302,3 +302,7 @@
 - [x] Add clinician-issued guardian verification before durable record access
 - [x] Add structured large-text accessibility checks for supported device font scales
 - [x] Validate appointment authorization, guardian verification, and accessibility safeguards
+- [x] Review official clinic hours, email, and location display and scheduling dependencies
+- [x] Update recurring clinic hours for Wednesday, Saturday, and the remaining days
+- [x] Add clinic email and update the official clinic location link
+- [x] Validate public clinic details and appointment availability against the updated hours

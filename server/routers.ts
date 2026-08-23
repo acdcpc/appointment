@@ -29,7 +29,7 @@ export const appRouter = router({
   clinicPublic: router({
     settings: publicProcedure.query(async () => {
       const settings = await referralDb.getClinicPublicSettings();
-      return { clinicName: settings.clinicName, address: settings.address, mapUrl: settings.mapUrl, whatsappNumber: settings.whatsappNumber, whatsappResponseNotice: settings.whatsappResponseNotice, isProvisional: settings.isProvisional, updatedAt: settings.updatedAt.toISOString() };
+      return { clinicName: settings.clinicName, address: settings.address, mapUrl: settings.mapUrl, clinicEmail: settings.clinicEmail, whatsappNumber: settings.whatsappNumber, whatsappResponseNotice: settings.whatsappResponseNotice, isProvisional: settings.isProvisional, updatedAt: settings.updatedAt.toISOString() };
     }),
   }),
   reportAcknowledgement: router({
@@ -62,11 +62,11 @@ export const appRouter = router({
     }),
     clinicPublicSettings: adminProcedure.query(async () => {
       const settings = await referralDb.getClinicPublicSettings();
-      return { clinicName: settings.clinicName, address: settings.address, mapUrl: settings.mapUrl, whatsappNumber: settings.whatsappNumber, whatsappResponseNotice: settings.whatsappResponseNotice, isProvisional: settings.isProvisional };
+      return { clinicName: settings.clinicName, address: settings.address, mapUrl: settings.mapUrl, clinicEmail: settings.clinicEmail, whatsappNumber: settings.whatsappNumber, whatsappResponseNotice: settings.whatsappResponseNotice, isProvisional: settings.isProvisional };
     }),
-    saveClinicPublicSettings: adminProcedure.input(z.object({ address: z.string().trim().min(5).max(1000), mapUrl: z.string().url().max(2048), whatsappNumber: z.string().regex(/^\d{10,15}$/, "Enter the WhatsApp number with country code and digits only."), whatsappResponseNotice: z.string().trim().min(12).max(500) })).mutation(async ({ ctx, input }) => {
+    saveClinicPublicSettings: adminProcedure.input(z.object({ address: z.string().trim().min(5).max(1000), mapUrl: z.string().url().max(2048), clinicEmail: z.string().trim().email().max(320), whatsappNumber: z.string().regex(/^\d{10,15}$/, "Enter the WhatsApp number with country code and digits only."), whatsappResponseNotice: z.string().trim().min(12).max(500) })).mutation(async ({ ctx, input }) => {
       const settings = await referralDb.saveClinicPublicSettings({ ...input, updatedBy: ctx.user.name ?? "Associate Professor Dr. Anil Ojha" });
-      return { address: settings.address, mapUrl: settings.mapUrl, whatsappNumber: settings.whatsappNumber, whatsappResponseNotice: settings.whatsappResponseNotice, isProvisional: settings.isProvisional };
+      return { address: settings.address, mapUrl: settings.mapUrl, clinicEmail: settings.clinicEmail, whatsappNumber: settings.whatsappNumber, whatsappResponseNotice: settings.whatsappResponseNotice, isProvisional: settings.isProvisional };
     }),
     guardianVerificationSettings: adminProcedure.query(async () => {
       const settings = await referralDb.getClinicPublicSettings();

@@ -12,7 +12,7 @@ export const MAX_AUDIT_RETENTION_DAYS = 36500;
 export const GUARDIAN_RECORD_ACCESS_ATTEMPT_LIMIT = 5;
 export const GUARDIAN_RECORD_ACCESS_CHALLENGE_HOURS = 24;
 export const GUARDIAN_RECORD_ACCESS_SESSION_HOURS = 8;
-const defaultClinicPublicSettings = { clinicName: "Rainbow Child Development Clinic", address: "Patan Hospital, Lagankhel, Lalitpur", mapUrl: "https://www.google.com/maps/search/?api=1&query=Patan%20Hospital%2C%20Lagankhel%2C%20Lalitpur", whatsappNumber: "9779765002862", whatsappResponseNotice: "Messages are reviewed during clinic hours; please allow a response on the next working day.", guardianReverificationDays: 180, isProvisional: true, updatedBy: "Initial clinic setup" };
+const defaultClinicPublicSettings = { clinicName: "Rainbow Child Development Clinic", address: "Gokul Awas Rd, Karyabinayak 44700", mapUrl: "https://www.google.com.au/search?client=safari&hs=ORpV&sca_esv=79a7fd24df7232ff&hl=en-au&kgmid=/g/11zhz76ycx&q=Rainbow+Child+Development+Clinic&shem=epsd1,ltae,rimspwouoe&shndl=30&source=sh/x/loc/act/m1/3&kgs=21ca31c1d4d885a7&utm_source=epsd1,ltae,rimspwouoe,sh/x/loc/act/m1/3", clinicEmail: "rainbowclinic25@gmail.com", whatsappNumber: "9779765002862", whatsappResponseNotice: "Messages are reviewed during clinic hours; please allow a response on the next working day.", guardianReverificationDays: 180, isProvisional: false, updatedBy: "Initial clinic setup" };
 type ReferralAuditInput = {
   clientEventId: string; childId: string; type: "appointment-change" | "referral-letter" | "email-share" | "patient-communication"; occurredAt: Date; actorName: string; summary: string; message?: string; deliveryStatus?: "draft-opened" | "sent" | "saved" | "cancelled" | "unavailable"; isResend?: boolean; retryLimit?: number; retryAttempts?: number;
 };
@@ -110,7 +110,7 @@ export async function getClinicPublicSettings() {
   return rows[0] ?? { ...defaultClinicPublicSettings, id: 0, updatedAt: new Date() };
 }
 
-export async function saveClinicPublicSettings(input: { address: string; mapUrl: string; whatsappNumber: string; whatsappResponseNotice: string; updatedBy: string }) {
+export async function saveClinicPublicSettings(input: { address: string; mapUrl: string; clinicEmail: string; whatsappNumber: string; whatsappResponseNotice: string; updatedBy: string }) {
   const db = await getDb();
   if (!db) throw new Error("Database not available for clinic public settings");
   const existing = await db.select().from(clinicPublicSettings).orderBy(sql`${clinicPublicSettings.id} asc`).limit(1);

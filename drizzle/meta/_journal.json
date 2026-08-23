@@ -162,6 +162,13 @@
       "when": 1787469477665,
       "tag": "0022_warm_morlocks",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "5",
+      "when": 1787501399370,
+      "tag": "0023_lucky_firelord",
+      "breakpoints": true
     }
   ]
 }
