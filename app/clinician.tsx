@@ -44,6 +44,7 @@ import { StaffAccountActivityAudit } from "@/components/staff-account-activity-a
 import { MonthlyStaffAccessSummary } from "@/components/monthly-staff-access-summary";
 import { WeeklyCapacityReportReference } from "@/components/weekly-capacity-report-reference";
 import { WeeklyCapacityReportReferenceSettings } from "@/components/weekly-capacity-report-reference-settings";
+import { WeeklyCapacityReportExpiryReminders } from "@/components/weekly-capacity-report-expiry-reminders";
 
 const durations = [20, 30, 45, 60];
 const weekdays: ClinicOperatingHour["weekday"][] = ["Mon", "Tue", "Wed", "Thu", "Fri"];
@@ -79,6 +80,7 @@ function Dashboard({ focus, reportId }: { focus?: "contacts" | "staff" | "email-
     <View style={styles.metrics}>{[[String(today.length), "Today’s visits"], [String(appointments.filter((item) => item.status === "needs-intake").length), "Needs intake"], ["1", "Active child"]].map(([value, label]) => <View key={label} style={[styles.metric, { backgroundColor: colors.surface, borderColor: colors.border }]}><Text style={[styles.metricValue, { color: colors.foreground }]}>{value}</Text><Text style={[styles.cardMeta, { color: colors.muted }]}>{label}</Text></View>)}</View>
     <ClinicDayFocus />
     <StaffInvitationExpiryReminders onOpenStaff={() => router.push({ pathname: "/clinician", params: { focus: "staff" } })} />
+    <WeeklyCapacityReportExpiryReminders />
     {reportId ? <WeeklyCapacityReportReference internalReportId={reportId} /> : null}
     <DailyWaitlistTriage />
     <TriageCapacitySettings />

@@ -1,0 +1,1 @@
+ALTER TABLE `invitation_search_presets` ADD `displayOrder` int DEFAULT 0 NOT NULL;

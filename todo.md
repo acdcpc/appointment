@@ -281,3 +281,8 @@
 - [x] Add clinician-only monthly staff-access activity CSV export
 - [x] Add clinician-configured server-enforced QR report-reference expiry controls
 - [x] Validate invitation presets, monthly export, and QR expiry safeguards
+- [x] Update reusable clinic workflow for editable invitation presets, monthly PDF summaries, and QR expiry reminders
+- [x] Add clinician-owned editing and ordering for invitation-search presets
+- [x] Add clinician-reviewed monthly staff-access summary PDF export
+- [x] Add clinician dashboard reminders for QR report references nearing expiry
+- [x] Validate invitation preset, monthly PDF, and QR expiry reminder safeguards

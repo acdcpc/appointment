@@ -1,7 +1,7 @@
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users } from "../drizzle/schema";
 import { auditArchiveRuns, auditRetentionPolicies, auditRetentionPolicyChanges, capacityAlertVisibilitySettings, capacityTargetChangeAlerts, clinicPublicSettings, clinicStaffAccounts, guardianContacts, internalFollowUpPrintAudits, invitationSearchPresets, patientReportShares, printAuditFilterPresets, referralAuditEvents, referralDeliveryMonitor, referralRetryCounters, staffAccountActivity, staffCapacitySnapshots, staffInvitationSettings, waitlistEventLog, waitlistRequests, weeklyCapacityReportReferenceSettings, weeklyCapacitySummaryExports } from "../drizzle/schema";
-import { and, eq, gte, isNull, lt, lte, or, sql } from "drizzle-orm";
+import { and, asc, eq, gte, isNull, lt, lte, or, sql } from "drizzle-orm";
 import { ENV } from "./_core/env";
 
 export const MAX_REFERRAL_EMAIL_RESENDS = 3;
@@ -525,15 +525,19 @@ type InvitationSearchStatus = "all" | "invited" | "active" | "expired" | "revoke
 const normalizedEmail = (email: string) => email.trim().toLowerCase();
 
 export async function listInvitationSearchPresets(clinicianUserId: number) {
-  const db = await getDb(); if (!db) return []; return db.select().from(invitationSearchPresets).where(eq(invitationSearchPresets.clinicianUserId, clinicianUserId)).orderBy(invitationSearchPresets.updatedAt);
+  const db = await getDb(); if (!db) return []; return db.select().from(invitationSearchPresets).where(eq(invitationSearchPresets.clinicianUserId, clinicianUserId)).orderBy(asc(invitationSearchPresets.displayOrder), asc(invitationSearchPresets.updatedAt));
 }
 
-export async function saveInvitationSearchPreset(clinicianUserId: number, input: { presetId: string; name: string; searchText: string; statusFilter: InvitationSearchStatus }) {
-  const db = await getDb(); if (!db) throw new Error("Database not available for invitation search presets"); await db.insert(invitationSearchPresets).values({ clinicianUserId, ...input }).onDuplicateKeyUpdate({ set: { name: input.name, searchText: input.searchText, statusFilter: input.statusFilter } }); return listInvitationSearchPresets(clinicianUserId);
+export async function saveInvitationSearchPreset(clinicianUserId: number, input: { presetId: string; name: string; searchText: string; statusFilter: InvitationSearchStatus; displayOrder?: number }) {
+  const db = await getDb(); if (!db) throw new Error("Database not available for invitation search presets"); const existing = await listInvitationSearchPresets(clinicianUserId); const saved = existing.find((preset) => preset.presetId === input.presetId); const displayOrder = input.displayOrder ?? saved?.displayOrder ?? (existing.length ? Math.max(...existing.map((preset) => preset.displayOrder)) + 1 : 0); await db.insert(invitationSearchPresets).values({ clinicianUserId, ...input, displayOrder }).onDuplicateKeyUpdate({ set: { name: input.name, searchText: input.searchText, statusFilter: input.statusFilter, displayOrder } }); return listInvitationSearchPresets(clinicianUserId);
 }
 
 export async function deleteInvitationSearchPreset(clinicianUserId: number, presetId: string) {
   const db = await getDb(); if (!db) throw new Error("Database not available for invitation search presets"); await db.delete(invitationSearchPresets).where(and(eq(invitationSearchPresets.clinicianUserId, clinicianUserId), eq(invitationSearchPresets.presetId, presetId))); return listInvitationSearchPresets(clinicianUserId);
+}
+
+export async function reorderInvitationSearchPresets(clinicianUserId: number, presetIds: string[]) {
+  const db = await getDb(); if (!db) throw new Error("Database not available for invitation search presets"); const current = await listInvitationSearchPresets(clinicianUserId); if (new Set(presetIds).size !== presetIds.length || presetIds.length !== current.length || presetIds.some((presetId) => !current.some((preset) => preset.presetId === presetId))) throw new Error("Invitation preset order must contain every clinician-owned preset once."); await Promise.all(presetIds.map((presetId, displayOrder) => db.update(invitationSearchPresets).set({ displayOrder }).where(and(eq(invitationSearchPresets.clinicianUserId, clinicianUserId), eq(invitationSearchPresets.presetId, presetId))))); return listInvitationSearchPresets(clinicianUserId);
 }
 
 export async function getWeeklyCapacityReportReferenceSettings(clinicianUserId: number) {
@@ -652,4 +656,8 @@ export async function recordWeeklyCapacitySummaryExport(clinicianUserId: number,
 
 export async function getWeeklyCapacitySummaryReportReference(clinicianUserId: number, internalReportId: string) {
   const db = await getDb(); if (!db) return null; const rows = await db.select().from(weeklyCapacitySummaryExports).where(and(eq(weeklyCapacitySummaryExports.clinicianUserId, clinicianUserId), eq(weeklyCapacitySummaryExports.internalReportId, internalReportId))).limit(1); const report = rows[0]; return !report || !report.referenceExpiresAt || report.referenceExpiresAt <= new Date() ? null : report;
+}
+
+export async function listWeeklyCapacityReportReferenceExpiryReminders(clinicianUserId: number, daysAhead = 7) {
+  const db = await getDb(); if (!db) return []; const now = new Date(); const cutoff = new Date(now.getTime() + daysAhead * 86400000); return db.select({ internalReportId: weeklyCapacitySummaryExports.internalReportId, weekStartDate: weeklyCapacitySummaryExports.weekStartDate, weekEndDate: weeklyCapacitySummaryExports.weekEndDate, referenceExpiresAt: weeklyCapacitySummaryExports.referenceExpiresAt }).from(weeklyCapacitySummaryExports).where(and(eq(weeklyCapacitySummaryExports.clinicianUserId, clinicianUserId), eq(weeklyCapacitySummaryExports.exportFormat, "pdf"), gte(weeklyCapacitySummaryExports.referenceExpiresAt, now), lte(weeklyCapacitySummaryExports.referenceExpiresAt, cutoff))).orderBy(asc(weeklyCapacitySummaryExports.referenceExpiresAt));
 }
