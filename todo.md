@@ -286,3 +286,9 @@
 - [x] Add clinician-reviewed monthly staff-access summary PDF export
 - [x] Add clinician dashboard reminders for QR report references nearing expiry
 - [x] Validate invitation preset, monthly PDF, and QR expiry reminder safeguards
+- [x] Update reusable clinic workflow with findings from the operational improvement review
+- [x] Review parent, clinician, staff, reporting, and security flows for safe improvement opportunities
+- [x] Implement prioritized safe clinic workflow refinements from the review
+- [x] Validate the improvement review refinements and reusable workflow safeguards
+- [x] Replace hard-coded parent and clinician date or identity copy with factual contextual status labels
+- [x] Clarify clinician-versus-activated-staff sign-in and access wording without changing authorization
