@@ -1,6 +1,7 @@
 import { drizzle } from "drizzle-orm/mysql2";
+import { createHash, randomBytes, randomInt } from "node:crypto";
 import { InsertUser, users } from "../drizzle/schema";
-import { auditArchiveRuns, auditRetentionPolicies, auditRetentionPolicyChanges, capacityAlertVisibilitySettings, capacityTargetChangeAlerts, clinicAppointments, clinicPublicSettings, clinicStaffAccounts, guardianContacts, internalFollowUpPrintAudits, invitationSearchPresets, patientReportShares, printAuditFilterPresets, referralAuditEvents, referralDeliveryMonitor, referralRetryCounters, staffAccountActivity, staffCapacitySnapshots, staffInvitationSettings, waitlistEventLog, waitlistRequests, weeklyCapacityReportReferenceSettings, weeklyCapacitySummaryExports } from "../drizzle/schema";
+import { auditArchiveRuns, auditRetentionPolicies, auditRetentionPolicyChanges, capacityAlertVisibilitySettings, capacityTargetChangeAlerts, clinicAppointments, clinicPublicSettings, clinicStaffAccounts, guardianContacts, guardianRecordAccessChallenges, internalFollowUpPrintAudits, invitationSearchPresets, patientReportShares, printAuditFilterPresets, referralAuditEvents, referralDeliveryMonitor, referralRetryCounters, staffAccountActivity, staffCapacitySnapshots, staffInvitationSettings, waitlistEventLog, waitlistRequests, weeklyCapacityReportReferenceSettings, weeklyCapacitySummaryExports } from "../drizzle/schema";
 import { and, asc, eq, gte, isNull, lt, lte, or, sql } from "drizzle-orm";
 import { ENV } from "./_core/env";
 
@@ -8,6 +9,9 @@ export const MAX_REFERRAL_EMAIL_RESENDS = 3;
 export const MAX_STAFF_INVITATION_RESENDS = 3;
 export const UNRESOLVED_REFERRAL_ALERT_HOURS = 24;
 export const MAX_AUDIT_RETENTION_DAYS = 36500;
+export const GUARDIAN_RECORD_ACCESS_ATTEMPT_LIMIT = 5;
+export const GUARDIAN_RECORD_ACCESS_CHALLENGE_HOURS = 24;
+export const GUARDIAN_RECORD_ACCESS_SESSION_HOURS = 8;
 const defaultClinicPublicSettings = { clinicName: "Rainbow Child Development Clinic", address: "Patan Hospital, Lagankhel, Lalitpur", mapUrl: "https://www.google.com/maps/search/?api=1&query=Patan%20Hospital%2C%20Lagankhel%2C%20Lalitpur", whatsappNumber: "9779765002862", whatsappResponseNotice: "Messages are reviewed during clinic hours; please allow a response on the next working day.", guardianReverificationDays: 180, isProvisional: true, updatedBy: "Initial clinic setup" };
 type ReferralAuditInput = {
   clientEventId: string; childId: string; type: "appointment-change" | "referral-letter" | "email-share" | "patient-communication"; occurredAt: Date; actorName: string; summary: string; message?: string; deliveryStatus?: "draft-opened" | "sent" | "saved" | "cancelled" | "unavailable"; isResend?: boolean; retryLimit?: number; retryAttempts?: number;
@@ -694,4 +698,40 @@ export async function saveClinicAppointments(clinicianUserId: number, appointmen
     });
   }
   return listClinicAppointments(clinicianUserId);
+}
+
+const hashRecordAccessSecret = (value: string) => createHash("sha256").update(value).digest("hex");
+
+export async function issueGuardianRecordAccessChallenge(clinicianUserId: number, input: { childId: string; issuedBy: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available for guardian record access");
+  const reference = randomBytes(6).toString("hex").toUpperCase();
+  const verificationCode = String(randomInt(0, 1_000_000)).padStart(6, "0");
+  const now = new Date(); const expiresAt = new Date(now.getTime() + GUARDIAN_RECORD_ACCESS_CHALLENGE_HOURS * 3600000);
+  await db.insert(guardianRecordAccessChallenges).values({ clinicianUserId, challengeId: `guardian-record-${now.getTime()}-${reference}`, childId: input.childId, referenceHash: hashRecordAccessSecret(reference), verificationCodeHash: hashRecordAccessSecret(verificationCode), issuedBy: input.issuedBy, issuedAt: now, expiresAt });
+  return { reference, verificationCode, expiresAt };
+}
+
+export async function verifyGuardianRecordAccess(input: { reference: string; verificationCode: string }) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(guardianRecordAccessChallenges).where(eq(guardianRecordAccessChallenges.referenceHash, hashRecordAccessSecret(input.reference.trim().toUpperCase()))).limit(1);
+  const challenge = rows[0]; const now = new Date();
+  if (!challenge || challenge.revokedAt || challenge.verifiedAt || challenge.expiresAt <= now || challenge.attemptCount >= GUARDIAN_RECORD_ACCESS_ATTEMPT_LIMIT) return null;
+  if (challenge.verificationCodeHash !== hashRecordAccessSecret(input.verificationCode.trim())) {
+    const attempts = challenge.attemptCount + 1;
+    await db.update(guardianRecordAccessChallenges).set({ attemptCount: attempts, revokedAt: attempts >= GUARDIAN_RECORD_ACCESS_ATTEMPT_LIMIT ? now : null }).where(eq(guardianRecordAccessChallenges.id, challenge.id));
+    return null;
+  }
+  const accessToken = randomBytes(32).toString("base64url"); const accessExpiresAt = new Date(now.getTime() + GUARDIAN_RECORD_ACCESS_SESSION_HOURS * 3600000);
+  await db.update(guardianRecordAccessChallenges).set({ verifiedAt: now, accessTokenHash: hashRecordAccessSecret(accessToken), accessExpiresAt }).where(eq(guardianRecordAccessChallenges.id, challenge.id));
+  return { accessToken, childId: challenge.childId, accessExpiresAt };
+}
+
+export async function validateGuardianRecordAccess(accessToken: string) {
+  const db = await getDb();
+  if (!db || !accessToken) return null;
+  const rows = await db.select().from(guardianRecordAccessChallenges).where(eq(guardianRecordAccessChallenges.accessTokenHash, hashRecordAccessSecret(accessToken))).limit(1);
+  const challenge = rows[0];
+  return challenge && challenge.verifiedAt && !challenge.revokedAt && challenge.accessExpiresAt && challenge.accessExpiresAt > new Date() ? { childId: challenge.childId, accessExpiresAt: challenge.accessExpiresAt } : null;
 }

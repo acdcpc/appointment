@@ -297,3 +297,8 @@
 - [x] Replace remaining sample appointment records with durable clinic-scoped appointment storage
 - [x] Add application-wide large-text scaling safeguards and accessible text layout checks
 - [x] Validate dashboard navigation, appointment persistence, and large-text accessibility safeguards
+- [x] Review secure guardian verification and clinician appointment-creation requirements
+- [x] Add clinician-authorized appointment creation with durable schedule validation
+- [x] Add clinician-issued guardian verification before durable record access
+- [x] Add structured large-text accessibility checks for supported device font scales
+- [x] Validate appointment authorization, guardian verification, and accessibility safeguards

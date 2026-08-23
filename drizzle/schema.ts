@@ -245,5 +245,27 @@ export const clinicAppointments = mysqlTable("clinic_appointments", {
   index("clinic_appointments_scope_child_idx").on(table.clinicianUserId, table.childId),
 ]);
 
+export const guardianRecordAccessChallenges = mysqlTable("guardian_record_access_challenges", {
+  id: int("id").autoincrement().primaryKey(),
+  clinicianUserId: int("clinicianUserId").notNull(),
+  challengeId: varchar("challengeId", { length: 120 }).notNull(),
+  childId: varchar("childId", { length: 120 }).notNull(),
+  referenceHash: varchar("referenceHash", { length: 64 }).notNull(),
+  verificationCodeHash: varchar("verificationCodeHash", { length: 64 }).notNull(),
+  attemptCount: int("attemptCount").notNull().default(0),
+  issuedBy: varchar("issuedBy", { length: 255 }).notNull(),
+  issuedAt: timestamp("issuedAt").defaultNow().notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  verifiedAt: timestamp("verifiedAt"),
+  accessTokenHash: varchar("accessTokenHash", { length: 64 }),
+  accessExpiresAt: timestamp("accessExpiresAt"),
+  revokedAt: timestamp("revokedAt"),
+}, (table) => [
+  uniqueIndex("guardian_record_access_challenge_unique").on(table.challengeId),
+  uniqueIndex("guardian_record_access_reference_unique").on(table.referenceHash),
+  index("guardian_record_access_scope_child_idx").on(table.clinicianUserId, table.childId),
+  index("guardian_record_access_token_idx").on(table.accessTokenHash),
+]);
+
 export type ReferralAuditEventRow = typeof referralAuditEvents.$inferSelect;
 export type InsertReferralAuditEvent = typeof referralAuditEvents.$inferInsert;

@@ -43,6 +43,18 @@ export const appRouter = router({
       return { acknowledged };
     }),
   }),
+  guardianRecordAccess: router({
+    verify: publicProcedure.input(z.object({ reference: z.string().trim().regex(/^[A-F0-9]{12}$/), verificationCode: z.string().trim().regex(/^\d{6}$/) })).mutation(async ({ input }) => {
+      const verified = await referralDb.verifyGuardianRecordAccess(input);
+      if (!verified) throw new TRPCError({ code: "UNAUTHORIZED", message: "The record-access reference or one-time code is invalid, expired, already used, or unavailable." });
+      return { accessToken: verified.accessToken, childId: verified.childId, accessExpiresAt: verified.accessExpiresAt.toISOString() };
+    }),
+    validate: publicProcedure.input(z.object({ accessToken: z.string().min(40).max(100) })).query(async ({ input }) => {
+      const access = await referralDb.validateGuardianRecordAccess(input.accessToken);
+      if (!access) throw new TRPCError({ code: "UNAUTHORIZED", message: "Guardian record access has expired or is unavailable." });
+      return { childId: access.childId, accessExpiresAt: access.accessExpiresAt.toISOString() };
+    }),
+  }),
   clinician: router({
     access: protectedProcedure.query(async ({ ctx }) => {
       const access = await referralDb.getAuthenticatedStaffAccess(ctx.user);
@@ -63,6 +75,10 @@ export const appRouter = router({
     saveGuardianVerificationSettings: adminProcedure.input(z.object({ guardianReverificationDays: z.number().int().min(30).max(730) })).mutation(async ({ ctx, input }) => {
       const settings = await referralDb.saveGuardianReverificationDays(input.guardianReverificationDays, ctx.user.name ?? "Associate Professor Dr. Anil Ojha");
       return { guardianReverificationDays: settings.guardianReverificationDays };
+    }),
+    issueGuardianRecordAccess: adminProcedure.input(z.object({ childId: z.string().min(1).max(120) })).mutation(async ({ ctx, input }) => {
+      const challenge = await referralDb.issueGuardianRecordAccessChallenge(ctx.user.id, { childId: input.childId, issuedBy: ctx.user.name ?? "Associate Professor Dr. Anil Ojha" });
+      return { reference: challenge.reference, verificationCode: challenge.verificationCode, expiresAt: challenge.expiresAt.toISOString(), attemptLimit: referralDb.GUARDIAN_RECORD_ACCESS_ATTEMPT_LIMIT, meaning: "Share this reference and code only after independently verifying the guardian. No message is sent automatically." };
     }),
     listGuardianContacts: adminProcedure.input(z.object({ childId: z.string().min(1).max(120).optional() }).optional()).query(async ({ ctx, input }) => {
       const contacts = await referralDb.listGuardianContacts(ctx.user.id, input?.childId);

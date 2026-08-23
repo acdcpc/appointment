@@ -10,3 +10,21 @@ export function getLargeTextLayout(fontScale: number) {
     shouldStackDenseRows: isLargeText,
   } as const;
 }
+
+export const LARGE_TEXT_TEST_SCALES = [1, 1.3, 1.6, 2] as const;
+
+export function getStructuredLargeTextChecks(observedFontScale: number) {
+  const observed = getLargeTextLayout(observedFontScale);
+  return {
+    observed,
+    targets: LARGE_TEXT_TEST_SCALES.map((fontScale) => {
+      const layout = getLargeTextLayout(fontScale);
+      return {
+        fontScale,
+        minimumActionHeight: layout.minimumActionHeight,
+        denseRowsStack: layout.shouldStackDenseRows,
+        passes: layout.minimumActionHeight >= 44 && (fontScale < LARGE_TEXT_THRESHOLD || layout.shouldStackDenseRows),
+      };
+    }),
+  } as const;
+}
