@@ -306,3 +306,8 @@
 - [x] Update recurring clinic hours for Wednesday, Saturday, and the remaining days
 - [x] Add clinic email and update the official clinic location link
 - [x] Validate public clinic details and appointment availability against the updated hours
+- [x] Review public directions and date-specific clinic-hours scheduling dependencies
+- [x] Add public dashboard directions shortcut using the official clinic map
+- [x] Add clinician-managed durable individual-day hours overrides
+- [x] Add informational in-app notices for booked families affected by modified-hours dates
+- [x] Validate directions, override availability, and appointment-notice safeguards

@@ -246,6 +246,23 @@ export const clinicAppointments = mysqlTable("clinic_appointments", {
   index("clinic_appointments_scope_child_idx").on(table.clinicianUserId, table.childId),
 ]);
 
+export const clinicDayHourOverrides = mysqlTable("clinic_day_hour_overrides", {
+  id: int("id").autoincrement().primaryKey(),
+  clinicianUserId: int("clinicianUserId").notNull(),
+  overrideId: varchar("overrideId", { length: 120 }).notNull(),
+  appointmentDate: varchar("appointmentDate", { length: 10 }).notNull(),
+  isOpen: boolean("isOpen").notNull(),
+  startTime: varchar("startTime", { length: 20 }),
+  endTime: varchar("endTime", { length: 20 }),
+  familyNotice: varchar("familyNotice", { length: 500 }).notNull().default("Clinic hours have been updated for this date. Please review your confirmed appointment and contact the clinic with questions."),
+  updatedBy: varchar("updatedBy", { length: 255 }).notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => [
+  uniqueIndex("clinic_day_hour_override_scope_date_unique").on(table.clinicianUserId, table.appointmentDate),
+  uniqueIndex("clinic_day_hour_override_scope_id_unique").on(table.clinicianUserId, table.overrideId),
+  index("clinic_day_hour_override_scope_date_idx").on(table.clinicianUserId, table.appointmentDate),
+]);
+
 export const guardianRecordAccessChallenges = mysqlTable("guardian_record_access_challenges", {
   id: int("id").autoincrement().primaryKey(),
   clinicianUserId: int("clinicianUserId").notNull(),

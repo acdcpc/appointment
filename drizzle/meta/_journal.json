@@ -169,6 +169,13 @@
       "when": 1787501399370,
       "tag": "0023_lucky_firelord",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "5",
+      "when": 1787502149980,
+      "tag": "0024_nebulous_venus",
+      "breakpoints": true
     }
   ]
 }

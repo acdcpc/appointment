@@ -31,6 +31,7 @@ export const appRouter = router({
       const settings = await referralDb.getClinicPublicSettings();
       return { clinicName: settings.clinicName, address: settings.address, mapUrl: settings.mapUrl, clinicEmail: settings.clinicEmail, whatsappNumber: settings.whatsappNumber, whatsappResponseNotice: settings.whatsappResponseNotice, isProvisional: settings.isProvisional, updatedAt: settings.updatedAt.toISOString() };
     }),
+    dayHourOverrides: publicProcedure.query(async () => (await referralDb.listPublicClinicDayHourOverrides()).map((override) => ({ ...override, updatedAt: override.updatedAt.toISOString() }))),
   }),
   reportAcknowledgement: router({
     status: publicProcedure.input(z.object({ token: z.string().length(32) })).query(async ({ input }) => {
@@ -68,6 +69,13 @@ export const appRouter = router({
       const settings = await referralDb.saveClinicPublicSettings({ ...input, updatedBy: ctx.user.name ?? "Associate Professor Dr. Anil Ojha" });
       return { address: settings.address, mapUrl: settings.mapUrl, clinicEmail: settings.clinicEmail, whatsappNumber: settings.whatsappNumber, whatsappResponseNotice: settings.whatsappResponseNotice, isProvisional: settings.isProvisional };
     }),
+    listClinicDayHourOverrides: adminProcedure.query(async ({ ctx }) => (await referralDb.listClinicDayHourOverrides(ctx.user.id)).map((override) => ({ ...override, updatedAt: override.updatedAt.toISOString() }))),
+    saveClinicDayHourOverride: adminProcedure.input(z.object({ overrideId: z.string().min(1).max(120), appointmentDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), isOpen: z.boolean(), startTime: z.string().regex(/^\d{2}:\d{2}$/).optional(), endTime: z.string().regex(/^\d{2}:\d{2}$/).optional(), familyNotice: z.string().trim().min(12).max(500) })).mutation(async ({ ctx, input }) => {
+      if (input.isOpen && (!input.startTime || !input.endTime || input.startTime >= input.endTime)) throw new TRPCError({ code: "BAD_REQUEST", message: "Open modified hours need a valid start time before the end time." });
+      const overrides = await referralDb.saveClinicDayHourOverride(ctx.user.id, { ...input, updatedBy: ctx.user.name ?? "Associate Professor Dr. Anil Ojha" });
+      return overrides.map((override) => ({ ...override, updatedAt: override.updatedAt.toISOString() }));
+    }),
+    removeClinicDayHourOverride: adminProcedure.input(z.object({ appointmentDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) })).mutation(async ({ ctx, input }) => { await referralDb.removeClinicDayHourOverride(ctx.user.id, input.appointmentDate); return { removed: true }; }),
     guardianVerificationSettings: adminProcedure.query(async () => {
       const settings = await referralDb.getClinicPublicSettings();
       return { guardianReverificationDays: settings.guardianReverificationDays };

@@ -1,7 +1,7 @@
 import { drizzle } from "drizzle-orm/mysql2";
 import { createHash, randomBytes, randomInt } from "node:crypto";
 import { InsertUser, users } from "../drizzle/schema";
-import { auditArchiveRuns, auditRetentionPolicies, auditRetentionPolicyChanges, capacityAlertVisibilitySettings, capacityTargetChangeAlerts, clinicAppointments, clinicPublicSettings, clinicStaffAccounts, guardianContacts, guardianRecordAccessChallenges, internalFollowUpPrintAudits, invitationSearchPresets, patientReportShares, printAuditFilterPresets, referralAuditEvents, referralDeliveryMonitor, referralRetryCounters, staffAccountActivity, staffCapacitySnapshots, staffInvitationSettings, waitlistEventLog, waitlistRequests, weeklyCapacityReportReferenceSettings, weeklyCapacitySummaryExports } from "../drizzle/schema";
+import { auditArchiveRuns, auditRetentionPolicies, auditRetentionPolicyChanges, capacityAlertVisibilitySettings, capacityTargetChangeAlerts, clinicAppointments, clinicDayHourOverrides, clinicPublicSettings, clinicStaffAccounts, guardianContacts, guardianRecordAccessChallenges, internalFollowUpPrintAudits, invitationSearchPresets, patientReportShares, printAuditFilterPresets, referralAuditEvents, referralDeliveryMonitor, referralRetryCounters, staffAccountActivity, staffCapacitySnapshots, staffInvitationSettings, waitlistEventLog, waitlistRequests, weeklyCapacityReportReferenceSettings, weeklyCapacitySummaryExports } from "../drizzle/schema";
 import { and, asc, eq, gte, isNull, lt, lte, or, sql } from "drizzle-orm";
 import { ENV } from "./_core/env";
 
@@ -119,6 +119,12 @@ export async function saveClinicPublicSettings(input: { address: string; mapUrl:
   else await db.insert(clinicPublicSettings).values(values);
   return getClinicPublicSettings();
 }
+
+export type ClinicDayHourOverrideInput = { overrideId: string; appointmentDate: string; isOpen: boolean; startTime?: string; endTime?: string; familyNotice: string; updatedBy: string };
+export async function listClinicDayHourOverrides(clinicianUserId: number) { const db = await getDb(); if (!db) return []; return db.select().from(clinicDayHourOverrides).where(eq(clinicDayHourOverrides.clinicianUserId, clinicianUserId)).orderBy(asc(clinicDayHourOverrides.appointmentDate)); }
+export async function saveClinicDayHourOverride(clinicianUserId: number, input: ClinicDayHourOverrideInput) { const db = await getDb(); if (!db) throw new Error("Database not available for individual-day clinic hours"); await db.insert(clinicDayHourOverrides).values({ clinicianUserId, ...input, startTime: input.isOpen ? input.startTime ?? null : null, endTime: input.isOpen ? input.endTime ?? null : null }).onDuplicateKeyUpdate({ set: { overrideId: input.overrideId, isOpen: input.isOpen, startTime: input.isOpen ? input.startTime ?? null : null, endTime: input.isOpen ? input.endTime ?? null : null, familyNotice: input.familyNotice, updatedBy: input.updatedBy, updatedAt: new Date() } }); return listClinicDayHourOverrides(clinicianUserId); }
+export async function removeClinicDayHourOverride(clinicianUserId: number, appointmentDate: string) { const db = await getDb(); if (!db) throw new Error("Database not available for individual-day clinic hours"); await db.delete(clinicDayHourOverrides).where(and(eq(clinicDayHourOverrides.clinicianUserId, clinicianUserId), eq(clinicDayHourOverrides.appointmentDate, appointmentDate))); }
+export async function listPublicClinicDayHourOverrides() { const db = await getDb(); if (!db) return []; return db.select({ appointmentDate: clinicDayHourOverrides.appointmentDate, isOpen: clinicDayHourOverrides.isOpen, startTime: clinicDayHourOverrides.startTime, endTime: clinicDayHourOverrides.endTime, familyNotice: clinicDayHourOverrides.familyNotice, updatedAt: clinicDayHourOverrides.updatedAt }).from(clinicDayHourOverrides).orderBy(asc(clinicDayHourOverrides.appointmentDate)); }
 
 export async function saveGuardianReverificationDays(guardianReverificationDays: number, updatedBy: string) {
   const db = await getDb();
