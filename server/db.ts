@@ -1,6 +1,6 @@
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users } from "../drizzle/schema";
-import { auditArchiveRuns, auditRetentionPolicies, auditRetentionPolicyChanges, capacityAlertVisibilitySettings, capacityTargetChangeAlerts, clinicPublicSettings, clinicStaffAccounts, guardianContacts, internalFollowUpPrintAudits, invitationSearchPresets, patientReportShares, printAuditFilterPresets, referralAuditEvents, referralDeliveryMonitor, referralRetryCounters, staffAccountActivity, staffCapacitySnapshots, staffInvitationSettings, waitlistEventLog, waitlistRequests, weeklyCapacityReportReferenceSettings, weeklyCapacitySummaryExports } from "../drizzle/schema";
+import { auditArchiveRuns, auditRetentionPolicies, auditRetentionPolicyChanges, capacityAlertVisibilitySettings, capacityTargetChangeAlerts, clinicAppointments, clinicPublicSettings, clinicStaffAccounts, guardianContacts, internalFollowUpPrintAudits, invitationSearchPresets, patientReportShares, printAuditFilterPresets, referralAuditEvents, referralDeliveryMonitor, referralRetryCounters, staffAccountActivity, staffCapacitySnapshots, staffInvitationSettings, waitlistEventLog, waitlistRequests, weeklyCapacityReportReferenceSettings, weeklyCapacitySummaryExports } from "../drizzle/schema";
 import { and, asc, eq, gte, isNull, lt, lte, or, sql } from "drizzle-orm";
 import { ENV } from "./_core/env";
 
@@ -660,4 +660,38 @@ export async function getWeeklyCapacitySummaryReportReference(clinicianUserId: n
 
 export async function listWeeklyCapacityReportReferenceExpiryReminders(clinicianUserId: number, daysAhead = 7) {
   const db = await getDb(); if (!db) return []; const now = new Date(); const cutoff = new Date(now.getTime() + daysAhead * 86400000); return db.select({ internalReportId: weeklyCapacitySummaryExports.internalReportId, weekStartDate: weeklyCapacitySummaryExports.weekStartDate, weekEndDate: weeklyCapacitySummaryExports.weekEndDate, referenceExpiresAt: weeklyCapacitySummaryExports.referenceExpiresAt }).from(weeklyCapacitySummaryExports).where(and(eq(weeklyCapacitySummaryExports.clinicianUserId, clinicianUserId), eq(weeklyCapacitySummaryExports.exportFormat, "pdf"), gte(weeklyCapacitySummaryExports.referenceExpiresAt, now), lte(weeklyCapacitySummaryExports.referenceExpiresAt, cutoff))).orderBy(asc(weeklyCapacitySummaryExports.referenceExpiresAt));
+}
+
+export type DurableClinicAppointmentInput = {
+  appointmentId: string; childId: string; service: string; appointmentDate: string; appointmentTime: string; durationMinutes: number; reason: string; status: "confirmed" | "needs-intake" | "completed" | "cancelled"; changeMessage?: string; guardianConfirmedAt?: Date; rescheduledAt?: Date; rescheduleAcknowledgedAt?: Date; appointmentChangeReminderDraftedAt?: Date;
+};
+
+export async function listClinicAppointments(clinicianUserId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(clinicAppointments).where(eq(clinicAppointments.clinicianUserId, clinicianUserId)).orderBy(asc(clinicAppointments.appointmentDate), asc(clinicAppointments.appointmentTime));
+}
+
+export async function saveClinicAppointments(clinicianUserId: number, appointments: DurableClinicAppointmentInput[]) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available for clinic appointments");
+  for (const appointment of appointments) {
+    await db.insert(clinicAppointments).values({ clinicianUserId, ...appointment }).onDuplicateKeyUpdate({
+      set: {
+        childId: appointment.childId,
+        service: appointment.service,
+        appointmentDate: appointment.appointmentDate,
+        appointmentTime: appointment.appointmentTime,
+        durationMinutes: appointment.durationMinutes,
+        reason: appointment.reason,
+        status: appointment.status,
+        changeMessage: appointment.changeMessage ?? null,
+        guardianConfirmedAt: appointment.guardianConfirmedAt ?? null,
+        rescheduledAt: appointment.rescheduledAt ?? null,
+        rescheduleAcknowledgedAt: appointment.rescheduleAcknowledgedAt ?? null,
+        appointmentChangeReminderDraftedAt: appointment.appointmentChangeReminderDraftedAt ?? null,
+      },
+    });
+  }
+  return listClinicAppointments(clinicianUserId);
 }

@@ -221,5 +221,29 @@ export const staffAccountActivity = mysqlTable("staff_account_activity", {
   id: int("id").autoincrement().primaryKey(), clinicianUserId: int("clinicianUserId").notNull(), activityId: varchar("activityId", { length: 120 }).notNull(), staffAccountId: varchar("staffAccountId", { length: 120 }).notNull(), eventType: mysqlEnum("eventType", ["invitation-created", "resend-prepared", "activated", "expired", "role-changed", "revoked"]).notNull(), actorName: varchar("actorName", { length: 255 }).notNull(), summary: varchar("summary", { length: 500 }).notNull(), occurredAt: timestamp("occurredAt").notNull(), createdAt: timestamp("createdAt").defaultNow().notNull(),
 }, (table) => [uniqueIndex("staff_account_activity_scope_activity_unique").on(table.clinicianUserId, table.activityId), index("staff_account_activity_scope_occurred_idx").on(table.clinicianUserId, table.occurredAt)]);
 
+export const clinicAppointments = mysqlTable("clinic_appointments", {
+  id: int("id").autoincrement().primaryKey(),
+  clinicianUserId: int("clinicianUserId").notNull(),
+  appointmentId: varchar("appointmentId", { length: 120 }).notNull(),
+  childId: varchar("childId", { length: 120 }).notNull(),
+  service: varchar("service", { length: 160 }).notNull(),
+  appointmentDate: varchar("appointmentDate", { length: 40 }).notNull(),
+  appointmentTime: varchar("appointmentTime", { length: 20 }).notNull(),
+  durationMinutes: int("durationMinutes").notNull(),
+  reason: text("reason").notNull(),
+  status: mysqlEnum("status", ["confirmed", "needs-intake", "completed", "cancelled"]).notNull(),
+  changeMessage: text("changeMessage"),
+  guardianConfirmedAt: timestamp("guardianConfirmedAt"),
+  rescheduledAt: timestamp("rescheduledAt"),
+  rescheduleAcknowledgedAt: timestamp("rescheduleAcknowledgedAt"),
+  appointmentChangeReminderDraftedAt: timestamp("appointmentChangeReminderDraftedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => [
+  uniqueIndex("clinic_appointments_scope_appointment_unique").on(table.clinicianUserId, table.appointmentId),
+  index("clinic_appointments_scope_schedule_idx").on(table.clinicianUserId, table.appointmentDate, table.appointmentTime),
+  index("clinic_appointments_scope_child_idx").on(table.clinicianUserId, table.childId),
+]);
+
 export type ReferralAuditEventRow = typeof referralAuditEvents.$inferSelect;
 export type InsertReferralAuditEvent = typeof referralAuditEvents.$inferInsert;

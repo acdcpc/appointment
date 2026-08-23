@@ -292,3 +292,8 @@
 - [x] Validate the improvement review refinements and reusable workflow safeguards
 - [x] Replace hard-coded parent and clinician date or identity copy with factual contextual status labels
 - [x] Clarify clinician-versus-activated-staff sign-in and access wording without changing authorization
+- [x] Update reusable clinic workflow for dashboard shortcuts, durable appointments, and large-text accessibility
+- [x] Add clinician dashboard section shortcuts for protected operational areas
+- [x] Replace remaining sample appointment records with durable clinic-scoped appointment storage
+- [x] Add application-wide large-text scaling safeguards and accessible text layout checks
+- [x] Validate dashboard navigation, appointment persistence, and large-text accessibility safeguards

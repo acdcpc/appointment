@@ -100,6 +100,44 @@ export const appRouter = router({
       const state = await referralDb.saveDurableWaitlistState(ctx.user.id, input.requests, input.events, input.snapshots);
       return { saved: true, requests: state.requests.length, capacitySnapshots: state.capacitySnapshots.length };
     }),
+    listDurableAppointments: adminProcedure.query(async ({ ctx }) => {
+      const appointments = await referralDb.listClinicAppointments(ctx.user.id);
+      return appointments.map((appointment) => ({
+        appointmentId: appointment.appointmentId,
+        childId: appointment.childId,
+        service: appointment.service,
+        appointmentDate: appointment.appointmentDate,
+        appointmentTime: appointment.appointmentTime,
+        durationMinutes: appointment.durationMinutes,
+        reason: appointment.reason,
+        status: appointment.status,
+        changeMessage: appointment.changeMessage,
+        guardianConfirmedAt: appointment.guardianConfirmedAt?.toISOString() ?? null,
+        rescheduledAt: appointment.rescheduledAt?.toISOString() ?? null,
+        rescheduleAcknowledgedAt: appointment.rescheduleAcknowledgedAt?.toISOString() ?? null,
+        appointmentChangeReminderDraftedAt: appointment.appointmentChangeReminderDraftedAt?.toISOString() ?? null,
+        createdAt: appointment.createdAt.toISOString(),
+        updatedAt: appointment.updatedAt.toISOString(),
+      }));
+    }),
+    saveDurableAppointments: adminProcedure.input(z.object({ appointments: z.array(z.object({
+      appointmentId: z.string().min(1).max(120),
+      childId: z.string().min(1).max(120),
+      service: z.string().trim().min(1).max(160),
+      appointmentDate: z.string().trim().min(1).max(40),
+      appointmentTime: z.string().trim().min(1).max(20),
+      durationMinutes: z.number().int().min(10).max(240),
+      reason: z.string().trim().min(1).max(4000),
+      status: z.enum(["confirmed", "needs-intake", "completed", "cancelled"]),
+      changeMessage: z.string().trim().max(4000).optional(),
+      guardianConfirmedAt: z.date().optional(),
+      rescheduledAt: z.date().optional(),
+      rescheduleAcknowledgedAt: z.date().optional(),
+      appointmentChangeReminderDraftedAt: z.date().optional(),
+    })).max(500) })).mutation(async ({ ctx, input }) => {
+      const appointments = await referralDb.saveClinicAppointments(ctx.user.id, input.appointments);
+      return { saved: true, count: appointments.length };
+    }),
     recordInternalFollowUpPrintAudit: adminProcedure.input(z.object({ auditId: z.string().min(1).max(120), itemCount: z.number().int().min(0).max(5000), initiatedAt: z.date() })).mutation(async ({ ctx, input }) => {
       await referralDb.recordInternalFollowUpPrintAudit(ctx.user.id, { ...input, actorName: ctx.user.name ?? "Associate Professor Dr. Anil Ojha" });
       return { recorded: true, meaning: "Print dialog opened; this is not proof of a physical print, delivery, or viewing." };
