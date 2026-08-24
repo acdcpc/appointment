@@ -1,7 +1,7 @@
 import { drizzle } from "drizzle-orm/mysql2";
 import { createHash, randomBytes, randomInt } from "node:crypto";
 import { InsertUser, users } from "../drizzle/schema";
-import { auditArchiveRuns, auditRetentionPolicies, auditRetentionPolicyChanges, capacityAlertVisibilitySettings, capacityTargetChangeAlerts, clinicAppointments, clinicDayHourOverrides, clinicPublicSettings, clinicStaffAccounts, guardianContacts, guardianRecordAccessChallenges, internalFollowUpPrintAudits, invitationSearchPresets, maintenanceNotificationRequests, patientReportShares, postDeploymentFeedback, printAuditFilterPresets, referralAuditEvents, referralDeliveryMonitor, referralRetryCounters, staffAccountActivity, staffCapacitySnapshots, staffInvitationSettings, superAdminAccessReviews, superAdminAuditEvents, superAdminGovernanceSettings, superAdminMaintenanceEvents, waitlistEventLog, waitlistRequests, weeklyCapacityReportReferenceSettings, weeklyCapacitySummaryExports } from "../drizzle/schema";
+import { auditArchiveRuns, auditRetentionPolicies, auditRetentionPolicyChanges, capacityAlertVisibilitySettings, capacityTargetChangeAlerts, clinicAppointments, clinicDayHourOverrides, clinicPublicSettings, clinicStaffAccounts, guardianContacts, guardianRecordAccessChallenges, internalFollowUpPrintAudits, invitationSearchPresets, maintenanceNotificationPreferenceExports, maintenanceNotificationRequests, patientReportShares, postDeploymentFeedback, printAuditFilterPresets, referralAuditEvents, referralDeliveryMonitor, referralRetryCounters, staffAccountActivity, staffCapacitySnapshots, staffInvitationSettings, superAdminAccessReviews, superAdminAuditEvents, superAdminGovernanceSettings, superAdminMaintenanceEvents, waitlistEventLog, waitlistRequests, weeklyCapacityReportReferenceSettings, weeklyCapacitySummaryExports } from "../drizzle/schema";
 import { and, asc, eq, gte, isNull, like, lt, lte, or, sql } from "drizzle-orm";
 import { ENV } from "./_core/env";
 import { isClinicAdministratorEmail, isSuperAdminEmail } from "./clinic-authority";
@@ -189,6 +189,29 @@ export async function requestMaintenanceNotificationPreference(email: string) {
   if (existing) { await db.update(maintenanceNotificationRequests).set({ status: "requested" }).where(eq(maintenanceNotificationRequests.id, existing.id)); return { alreadyRecorded: true }; }
   await db.insert(maintenanceNotificationRequests).values({ requestId: `maintenance-notification-${Date.now()}-${randomInt(1000, 9999)}`, maintenanceChangedAt: status.changedAt, email: normalizedEmail, status: "requested" });
   return { alreadyRecorded: false };
+}
+
+export type MaintenanceNotificationPreferenceFilter = { status?: "all" | "requested" | "withdrawn"; emailQuery?: string };
+export async function listMaintenanceNotificationPreferences(filter: MaintenanceNotificationPreferenceFilter = {}) {
+  const db = await getDb(); if (!db) return [];
+  const conditions = [];
+  if (filter.status && filter.status !== "all") conditions.push(eq(maintenanceNotificationRequests.status, filter.status));
+  const emailQuery = filter.emailQuery?.trim().toLowerCase(); if (emailQuery) conditions.push(like(maintenanceNotificationRequests.email, `%${emailQuery.replace(/[\\%_]/g, "\\$&")}%`));
+  const base = db.select({ requestId: maintenanceNotificationRequests.requestId, email: maintenanceNotificationRequests.email, status: maintenanceNotificationRequests.status, maintenanceChangedAt: maintenanceNotificationRequests.maintenanceChangedAt, requestedAt: maintenanceNotificationRequests.requestedAt, updatedAt: maintenanceNotificationRequests.updatedAt }).from(maintenanceNotificationRequests);
+  return conditions.length ? base.where(and(...conditions)).orderBy(sql`${maintenanceNotificationRequests.requestedAt} desc`).limit(100) : base.orderBy(sql`${maintenanceNotificationRequests.requestedAt} desc`).limit(100);
+}
+
+export async function setMaintenanceNotificationPreferenceStatus(input: { requestId: string; status: "requested" | "withdrawn" }) {
+  const db = await getDb(); if (!db) throw new Error("Database not available for maintenance notification preferences");
+  const preference = (await db.select().from(maintenanceNotificationRequests).where(eq(maintenanceNotificationRequests.requestId, input.requestId)).limit(1))[0]; if (!preference) throw new Error("This notification preference is no longer available.");
+  await db.update(maintenanceNotificationRequests).set({ status: input.status }).where(eq(maintenanceNotificationRequests.id, preference.id));
+  return { requestId: preference.requestId, status: input.status };
+}
+
+export async function prepareMaintenanceNotificationPreferenceExport(input: MaintenanceNotificationPreferenceFilter & { actorEmail: string }) {
+  const rows = await listMaintenanceNotificationPreferences(input); const db = await getDb(); if (!db) throw new Error("Database not available for maintenance notification preference export");
+  await db.insert(maintenanceNotificationPreferenceExports).values({ exportId: `maintenance-preference-export-${Date.now()}-${randomInt(1000, 9999)}`, actorEmail: input.actorEmail, statusFilter: input.status ?? "all", emailQuery: input.emailQuery?.trim().toLowerCase() || null, recordCount: rows.length });
+  return rows;
 }
 
 export async function submitPostDeploymentFeedback(input: { submittedBy: string; category: "login" | "scheduling" | "records" | "display" | "other"; title: string; description: string; screenshotStorageKey?: string; screenshotContentType?: string; screenshotBytes?: number }) {

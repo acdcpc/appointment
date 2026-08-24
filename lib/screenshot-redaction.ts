@@ -10,3 +10,11 @@ export function clampBlurRectangle(startX: number, startY: number, endX: number,
   const height = bottom - top;
   return width >= 12 && height >= 12 ? { x: left, y: top, width, height } : null;
 }
+
+export function clampViewportPan(x: number, y: number, zoom: number, canvasWidth: number, canvasHeight: number) {
+  const safeZoom = Math.max(1, Math.min(3, zoom));
+  return {
+    x: Math.min(0, Math.max(canvasWidth - canvasWidth * safeZoom, x)),
+    y: Math.min(0, Math.max(canvasHeight - canvasHeight * safeZoom, y)),
+  };
+}

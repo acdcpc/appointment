@@ -83,6 +83,16 @@ export const maintenanceNotificationRequests = mysqlTable("maintenance_notificat
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, (table) => [uniqueIndex("maintenance_notification_request_unique").on(table.maintenanceChangedAt, table.email), uniqueIndex("maintenance_notification_request_id_unique").on(table.requestId), index("maintenance_notification_request_status_idx").on(table.status, table.requestedAt)]);
 
+export const maintenanceNotificationPreferenceExports = mysqlTable("maintenance_notification_preference_exports", {
+  id: int("id").autoincrement().primaryKey(),
+  exportId: varchar("exportId", { length: 120 }).notNull(),
+  actorEmail: varchar("actorEmail", { length: 320 }).notNull(),
+  statusFilter: varchar("statusFilter", { length: 20 }).notNull(),
+  emailQuery: varchar("emailQuery", { length: 160 }),
+  recordCount: int("recordCount").notNull().default(0),
+  preparedAt: timestamp("preparedAt").defaultNow().notNull(),
+}, (table) => [uniqueIndex("maintenance_notification_preference_export_unique").on(table.exportId), index("maintenance_notification_preference_export_time_idx").on(table.preparedAt)]);
+
 export const postDeploymentFeedback = mysqlTable("post_deployment_feedback", {
   id: int("id").autoincrement().primaryKey(),
   feedbackId: varchar("feedbackId", { length: 120 }).notNull(),

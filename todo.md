@@ -362,3 +362,8 @@
 - [x] Add user-directed local screenshot blur-area selection before upload
 - [x] Add an explicit maintenance notification preference without automatic email delivery
 - [x] Validate attachment-review, manual-redaction, and notification-preference safeguards
+- [x] Update reusable workflow for redaction onboarding, mobile zoom/pan, and protected preference management
+- [x] Add first-use manual-redaction tutorial guidance for sensitive screenshot areas
+- [x] Add zoom and pan controls to improve mobile screenshot area redaction
+- [x] Add super-admin maintenance preference dashboard with bounded filters and scoped export
+- [x] Validate redaction usability and preference-management safeguards
