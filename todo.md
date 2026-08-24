@@ -338,3 +338,7 @@
 - [x] Inspect GitHub branches and pull requests for completed review work
 - [x] Safely merge completed review work into the protected main branch
 - [x] Verify main branch includes the completed clinic governance updates
+- [x] Review production configuration and authority boundaries for the deployment runbook
+- [x] Create a secure production deployment checklist for the clinic application
+- [x] Create a live-build super-admin and clinic-administrator login verification guide
+- [x] Validate the deployment and verification guide against the current project configuration
