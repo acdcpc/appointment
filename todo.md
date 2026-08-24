@@ -352,3 +352,8 @@
 - [x] Add a super-admin-maintained estimated maintenance completion field
 - [x] Add clickable environment badge release details with non-secret version and deployment notes
 - [x] Validate feedback attachment, maintenance estimate, and release-detail safeguards
+- [x] Update reusable workflow for attachment confirmation, user-controlled screenshot redaction, and estimate countdown safeguards
+- [x] Add visual screenshot attachment confirmation and compact preview thumbnail
+- [x] Add an opt-in local blur/redaction step before screenshot feedback submission
+- [x] Add an explicitly estimate-only maintenance completion countdown
+- [x] Validate attachment-redaction, countdown, and privacy safeguards

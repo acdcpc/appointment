@@ -53,6 +53,7 @@ export const superAdminGovernanceSettings = mysqlTable("super_admin_governance_s
   maintenanceModeEnabled: boolean("maintenanceModeEnabled").notNull().default(false),
   maintenanceNotice: varchar("maintenanceNotice", { length: 300 }).notNull().default("A scheduled clinic service update is in progress. Please return shortly."),
   maintenanceEstimatedCompletion: varchar("maintenanceEstimatedCompletion", { length: 160 }),
+  maintenanceEstimatedCompletionAt: timestamp("maintenanceEstimatedCompletionAt"),
   maintenanceChangedAt: timestamp("maintenanceChangedAt"),
   maintenanceChangedBy: varchar("maintenanceChangedBy", { length: 320 }),
   updatedBy: varchar("updatedBy", { length: 320 }).notNull(),
@@ -68,6 +69,7 @@ export const superAdminMaintenanceEvents = mysqlTable("super_admin_maintenance_e
   enabled: boolean("enabled").notNull(),
   noticeSummary: varchar("noticeSummary", { length: 300 }).notNull(),
   estimatedCompletion: varchar("estimatedCompletion", { length: 160 }),
+  estimatedCompletionAt: timestamp("estimatedCompletionAt"),
   occurredAt: timestamp("occurredAt").defaultNow().notNull(),
 }, (table) => [uniqueIndex("super_admin_maintenance_event_unique").on(table.eventId), index("super_admin_maintenance_event_time_idx").on(table.occurredAt)]);
 

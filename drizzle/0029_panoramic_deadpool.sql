@@ -1,0 +1,2 @@
+ALTER TABLE `super_admin_governance_settings` ADD `maintenanceEstimatedCompletionAt` timestamp;--> statement-breakpoint
+ALTER TABLE `super_admin_maintenance_events` ADD `estimatedCompletionAt` timestamp;
