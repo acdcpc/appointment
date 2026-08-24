@@ -335,3 +335,6 @@
 - [x] Add a factual super-admin access-review due reminder
 - [x] Add super-admin-only search and filters for CSV preparation audit records
 - [x] Validate review timing and export-register privacy safeguards
+- [ ] Inspect GitHub branches and pull requests for completed review work
+- [ ] Safely merge completed review work into the protected main branch
+- [ ] Verify main branch includes the completed clinic governance updates
