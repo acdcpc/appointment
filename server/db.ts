@@ -2,7 +2,7 @@ import { drizzle } from "drizzle-orm/mysql2";
 import { createHash, randomBytes, randomInt } from "node:crypto";
 import { InsertUser, users } from "../drizzle/schema";
 import { auditArchiveRuns, auditRetentionPolicies, auditRetentionPolicyChanges, capacityAlertVisibilitySettings, capacityTargetChangeAlerts, clinicAppointments, clinicDayHourOverrides, clinicPublicSettings, clinicStaffAccounts, guardianContacts, guardianRecordAccessChallenges, internalFollowUpPrintAudits, invitationSearchPresets, patientReportShares, printAuditFilterPresets, referralAuditEvents, referralDeliveryMonitor, referralRetryCounters, staffAccountActivity, staffCapacitySnapshots, staffInvitationSettings, superAdminAccessReviews, superAdminAuditEvents, superAdminGovernanceSettings, waitlistEventLog, waitlistRequests, weeklyCapacityReportReferenceSettings, weeklyCapacitySummaryExports } from "../drizzle/schema";
-import { and, asc, eq, gte, isNull, lt, lte, or, sql } from "drizzle-orm";
+import { and, asc, eq, gte, isNull, like, lt, lte, or, sql } from "drizzle-orm";
 import { ENV } from "./_core/env";
 import { isClinicAdministratorEmail, isSuperAdminEmail } from "./clinic-authority";
 
@@ -162,6 +162,15 @@ export async function prepareSuperAdminAppointmentExport(input: { actorEmail: st
   const governance = await getSuperAdminGovernanceSettings(); const retentionExpiresAt = new Date(Date.now() + governance.exportRetentionDays * 86400000);
   await db.insert(superAdminAuditEvents).values({ eventId: `appointment-export-${Date.now()}`, eventType: "appointment-csv-prepared", actorEmail: input.actorEmail, startDate: input.startDate, endDate: input.endDate, recordCount: rows.length, summary: `Super-admin prepared a confidential appointment-record CSV with a ${governance.exportRetentionDays}-day clinic policy. Preparation does not prove download, delivery, secure storage, or disposal.` });
   return { rows, retentionDays: governance.exportRetentionDays, retentionExpiresAt };
+}
+
+export async function searchSuperAdminAppointmentExportRegister(input: { startDate?: string; endDate?: string; actorQuery?: string }) {
+  const db = await getDb(); if (!db) return [];
+  const conditions = [eq(superAdminAuditEvents.eventType, "appointment-csv-prepared")];
+  if (input.startDate) conditions.push(gte(superAdminAuditEvents.occurredAt, new Date(`${input.startDate}T00:00:00.000Z`)));
+  if (input.endDate) conditions.push(lte(superAdminAuditEvents.occurredAt, new Date(`${input.endDate}T23:59:59.999Z`)));
+  const actorQuery = input.actorQuery?.trim().toLowerCase(); if (actorQuery) conditions.push(like(superAdminAuditEvents.actorEmail, `%${actorQuery.replace(/[\\%_]/g, "\\$&")}%`));
+  return db.select({ eventId: superAdminAuditEvents.eventId, actorEmail: superAdminAuditEvents.actorEmail, startDate: superAdminAuditEvents.startDate, endDate: superAdminAuditEvents.endDate, recordCount: superAdminAuditEvents.recordCount, summary: superAdminAuditEvents.summary, occurredAt: superAdminAuditEvents.occurredAt }).from(superAdminAuditEvents).where(and(...conditions)).orderBy(sql`${superAdminAuditEvents.occurredAt} desc`).limit(100);
 }
 
 export async function getClinicPublicSettings() {

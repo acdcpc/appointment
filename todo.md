@@ -331,3 +331,7 @@
 - [x] Add clinic-configured export retention period and enforce it during confidential CSV preparation
 - [x] Add a periodic super-admin admin-and-staff permission review checklist
 - [x] Validate reactivation, retention, review, and lifecycle safeguards
+- [x] Update reusable workflow for review-due reminders and secure export-register search
+- [x] Add a factual super-admin access-review due reminder
+- [x] Add super-admin-only search and filters for CSV preparation audit records
+- [x] Validate review timing and export-register privacy safeguards
