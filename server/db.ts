@@ -116,12 +116,28 @@ export async function getSuperAdminDashboardData() {
   return { databaseAvailable: true, users: userRows, appointmentCount: appointmentRows.length, activeStaffCount: activeStaffRows.length, auditEvents };
 }
 
+export async function listAllClinicStaffAccountsForSuperAdmin() {
+  const db = await getDb(); if (!db) return [];
+  return db.select({ staffAccountId: clinicStaffAccounts.staffAccountId, invitedEmail: clinicStaffAccounts.invitedEmail, displayName: clinicStaffAccounts.displayName, staffRole: clinicStaffAccounts.staffRole, status: clinicStaffAccounts.status, activatedAt: clinicStaffAccounts.activatedAt, revokedAt: clinicStaffAccounts.revokedAt }).from(clinicStaffAccounts).orderBy(sql`${clinicStaffAccounts.invitedAt} desc`).limit(100);
+}
+
 export async function updateApplicationUserAccess(input: { actorEmail: string; targetUserId: number; nextAccess: "user" | "admin" }) {
   const db = await getDb(); if (!db) throw new Error("Database not available for application access management");
   const target = (await db.select().from(users).where(eq(users.id, input.targetUserId)).limit(1))[0]; if (!target) throw new Error("The selected user account no longer exists.");
   if (isSuperAdminEmail(target.email)) throw new Error("The designated super-admin access cannot be changed through the application.");
   await db.update(users).set({ role: input.nextAccess }).where(eq(users.id, target.id));
   await db.insert(superAdminAuditEvents).values({ eventId: `access-${Date.now()}-${target.id}`, eventType: "user-access-updated", actorEmail: input.actorEmail, targetUserId: target.id, targetEmail: target.email, previousAccess: target.role, nextAccess: input.nextAccess, recordCount: 0, summary: "Super-admin updated the application-level user access flag. This does not grant database, server, deployment, or source-control access." });
+}
+
+export async function deactivateFormerStaffAccount(input: { actorEmail: string; staffAccountId: string }) {
+  const db = await getDb(); if (!db) throw new Error("Database not available for staff account deactivation");
+  const account = (await db.select().from(clinicStaffAccounts).where(eq(clinicStaffAccounts.staffAccountId, input.staffAccountId)).limit(1))[0];
+  if (!account) throw new Error("The selected staff account no longer exists.");
+  if (account.status === "revoked") throw new Error("This staff account is already revoked.");
+  const now = new Date();
+  await db.update(clinicStaffAccounts).set({ status: "revoked", revokedAt: now }).where(eq(clinicStaffAccounts.id, account.id));
+  await recordStaffAccountActivity(account.clinicianUserId, { staffAccountId: account.staffAccountId, eventType: "revoked", actorName: input.actorEmail, summary: "Super-admin revoked this former staff account’s authenticated operational access.", occurredAt: now });
+  return { staffAccountId: account.staffAccountId, status: "revoked" as const };
 }
 
 export async function prepareSuperAdminAppointmentExport(input: { actorEmail: string; startDate: string; endDate: string }) {

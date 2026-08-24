@@ -321,3 +321,8 @@
 - [x] Add a visible navigation badge for Admin and Super-Admin authority
 - [x] Add a super-admin-only, auditable appointment-record CSV export
 - [x] Validate super-admin restrictions, audit visibility, role badges, and protected export safeguards
+- [x] Update reusable workflow for confirmed access changes, staff deactivation, and appointment-export retention guidance
+- [x] Add a deliberate confirmation modal before super-admin application access changes
+- [x] Add a safe former-staff account deactivation flow with durable access-revocation evidence
+- [x] Add visual retention warning and safe-storage guidance before confidential appointment CSV export
+- [x] Validate confirmation, deactivation, audit, and retention-warning safeguards

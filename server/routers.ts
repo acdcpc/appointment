@@ -43,12 +43,14 @@ export const appRouter = router({
     serverAuthority: superAdminProcedure.query(({ ctx }) => ({ authority: clinicAuthorityLabel(ctx.user.email), databaseAccess: "The app does not expose database credentials or direct data-access APIs to any user.", sourceControlAccess: "Private repository and deployment access are controlled separately through the super-admin’s GitHub account." })),
     overview: superAdminProcedure.query(async () => {
       const data = await referralDb.getSuperAdminDashboardData();
-      return { databaseAvailable: data.databaseAvailable, appointmentCount: data.appointmentCount, activeStaffCount: data.activeStaffCount, users: data.users.map((user) => ({ ...user, lastSignedIn: user.lastSignedIn.toISOString(), createdAt: user.createdAt.toISOString() })), auditEvents: data.auditEvents.map((event) => ({ ...event, occurredAt: event.occurredAt.toISOString() })) };
+      const staff = await referralDb.listAllClinicStaffAccountsForSuperAdmin();
+      return { databaseAvailable: data.databaseAvailable, appointmentCount: data.appointmentCount, activeStaffCount: data.activeStaffCount, users: data.users.map((user) => ({ ...user, lastSignedIn: user.lastSignedIn.toISOString(), createdAt: user.createdAt.toISOString() })), staffAccounts: staff.map((account) => ({ staffAccountId: account.staffAccountId, invitedEmail: account.invitedEmail, displayName: account.displayName, staffRole: account.staffRole, status: account.status, activatedAt: account.activatedAt?.toISOString() ?? null, revokedAt: account.revokedAt?.toISOString() ?? null })), auditEvents: data.auditEvents.map((event) => ({ ...event, occurredAt: event.occurredAt.toISOString() })) };
     }),
-    updateUserAccess: superAdminProcedure.input(z.object({ targetUserId: z.number().int().positive(), nextAccess: z.enum(["user", "admin"]) })).mutation(async ({ ctx, input }) => {
+    updateUserAccess: superAdminProcedure.input(z.object({ targetUserId: z.number().int().positive(), nextAccess: z.enum(["user", "admin"]), confirmed: z.literal(true) })).mutation(async ({ ctx, input }) => {
       await referralDb.updateApplicationUserAccess({ actorEmail: ctx.user.email ?? "super-admin", ...input });
       return { updated: true };
     }),
+    deactivateFormerStaff: superAdminProcedure.input(z.object({ staffAccountId: z.string().min(1).max(120), confirmed: z.literal(true) })).mutation(async ({ ctx, input }) => referralDb.deactivateFormerStaffAccount({ actorEmail: ctx.user.email ?? "super-admin", staffAccountId: input.staffAccountId })),
     prepareAppointmentCsv: superAdminProcedure.input(z.object({ startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) })).mutation(async ({ ctx, input }) => {
       if (input.startDate > input.endDate) throw new TRPCError({ code: "BAD_REQUEST", message: "The export start date must be on or before the end date." });
       const appointments = await referralDb.prepareSuperAdminAppointmentExport({ actorEmail: ctx.user.email ?? "super-admin", ...input });
