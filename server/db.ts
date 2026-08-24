@@ -2,7 +2,7 @@ import { drizzle } from "drizzle-orm/mysql2";
 import { createHash, randomBytes, randomInt } from "node:crypto";
 import { InsertUser, users } from "../drizzle/schema";
 import { auditArchiveRuns, auditRetentionPolicies, auditRetentionPolicyChanges, capacityAlertVisibilitySettings, capacityTargetChangeAlerts, clinicAppointments, clinicDayHourOverrides, clinicPublicSettings, clinicStaffAccounts, guardianContacts, guardianRecordAccessChallenges, internalFollowUpPrintAudits, invitationSearchPresets, maintenanceNotificationPreferenceExports, maintenanceNotificationRequests, patientReportShares, postDeploymentFeedback, printAuditFilterPresets, referralAuditEvents, referralDeliveryMonitor, referralRetryCounters, staffAccountActivity, staffCapacitySnapshots, staffInvitationSettings, superAdminAccessReviews, superAdminAuditEvents, superAdminGovernanceSettings, superAdminMaintenanceEvents, waitlistEventLog, waitlistRequests, weeklyCapacityReportReferenceSettings, weeklyCapacitySummaryExports } from "../drizzle/schema";
-import { and, asc, eq, gte, isNull, like, lt, lte, or, sql } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, isNull, like, lt, lte, or, sql } from "drizzle-orm";
 import { ENV } from "./_core/env";
 import { isClinicAdministratorEmail, isSuperAdminEmail } from "./clinic-authority";
 
@@ -206,6 +206,15 @@ export async function setMaintenanceNotificationPreferenceStatus(input: { reques
   const preference = (await db.select().from(maintenanceNotificationRequests).where(eq(maintenanceNotificationRequests.requestId, input.requestId)).limit(1))[0]; if (!preference) throw new Error("This notification preference is no longer available.");
   await db.update(maintenanceNotificationRequests).set({ status: input.status }).where(eq(maintenanceNotificationRequests.id, preference.id));
   return { requestId: preference.requestId, status: input.status };
+}
+
+export async function setBulkMaintenanceNotificationPreferenceStatus(input: { requestIds: string[]; status: "requested" | "withdrawn" }) {
+  const db = await getDb(); if (!db) throw new Error("Database not available for maintenance notification preferences");
+  const requestIds = [...new Set(input.requestIds)]; if (requestIds.length < 1 || requestIds.length > 100) throw new Error("Select between one and one hundred notification preferences.");
+  const rows = await db.select({ requestId: maintenanceNotificationRequests.requestId }).from(maintenanceNotificationRequests).where(inArray(maintenanceNotificationRequests.requestId, requestIds));
+  if (rows.length !== requestIds.length) throw new Error("One or more selected notification preferences are no longer available.");
+  await db.update(maintenanceNotificationRequests).set({ status: input.status }).where(inArray(maintenanceNotificationRequests.requestId, requestIds));
+  return { updatedCount: rows.length, status: input.status };
 }
 
 export async function prepareMaintenanceNotificationPreferenceExport(input: MaintenanceNotificationPreferenceFilter & { actorEmail: string }) {

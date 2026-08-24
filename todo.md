@@ -367,3 +367,9 @@
 - [x] Add zoom and pan controls to improve mobile screenshot area redaction
 - [x] Add super-admin maintenance preference dashboard with bounded filters and scoped export
 - [x] Validate redaction usability and preference-management safeguards
+- [x] Update reusable workflow for verified parent-facing design refinement, redaction history, and bulk preference status changes
+- [x] Refine priority parent-facing booking design using the verified single-clinician bilingual trust brief
+- [x] Add manual redaction brush undo and redo controls
+- [x] Add a persistent tutorial preference with a "Don't show this again" option
+- [x] Add super-admin-confirmed bulk maintenance preference status changes
+- [x] Validate design, redaction history, tutorial preference, and bulk-action safeguards
