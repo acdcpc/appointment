@@ -27,6 +27,25 @@ export const users = mysqlTable("users", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
+export const superAdminAuditEvents = mysqlTable("super_admin_audit_events", {
+  id: int("id").autoincrement().primaryKey(),
+  eventId: varchar("eventId", { length: 120 }).notNull(),
+  eventType: mysqlEnum("eventType", ["user-access-updated", "appointment-csv-prepared"]).notNull(),
+  actorEmail: varchar("actorEmail", { length: 320 }).notNull(),
+  targetUserId: int("targetUserId"),
+  targetEmail: varchar("targetEmail", { length: 320 }),
+  previousAccess: varchar("previousAccess", { length: 40 }),
+  nextAccess: varchar("nextAccess", { length: 40 }),
+  startDate: varchar("startDate", { length: 10 }),
+  endDate: varchar("endDate", { length: 10 }),
+  recordCount: int("recordCount").default(0).notNull(),
+  summary: varchar("summary", { length: 500 }).notNull(),
+  occurredAt: timestamp("occurredAt").defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex("super_admin_audit_event_unique").on(table.eventId),
+  index("super_admin_audit_type_occurred_idx").on(table.eventType, table.occurredAt),
+]);
+
 export const referralAuditEvents = mysqlTable("referral_audit_events", {
   id: int("id").autoincrement().primaryKey(),
   clinicianUserId: int("clinicianUserId").notNull(),

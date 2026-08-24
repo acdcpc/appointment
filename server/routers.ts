@@ -30,7 +30,7 @@ export const appRouter = router({
   system: systemRouter,
   auth: router({
     me: publicProcedure.query((opts) => opts.ctx.user),
-    authority: protectedProcedure.query(({ ctx }) => ({ authority: clinicAuthorityLabel(ctx.user.email), canAccessClinicAdministration: isClinicAdministratorEmail(ctx.user.email), canManageServerOrDatabase: isSuperAdminEmail(ctx.user.email) })),
+    authority: protectedProcedure.query(({ ctx }) => ({ authority: clinicAuthorityLabel(ctx.user.email), applicationRole: ctx.user.role, canAccessClinicAdministration: isClinicAdministratorEmail(ctx.user.email), canManageServerOrDatabase: isSuperAdminEmail(ctx.user.email) })),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
@@ -41,6 +41,19 @@ export const appRouter = router({
   }),
   administration: router({
     serverAuthority: superAdminProcedure.query(({ ctx }) => ({ authority: clinicAuthorityLabel(ctx.user.email), databaseAccess: "The app does not expose database credentials or direct data-access APIs to any user.", sourceControlAccess: "Private repository and deployment access are controlled separately through the super-admin’s GitHub account." })),
+    overview: superAdminProcedure.query(async () => {
+      const data = await referralDb.getSuperAdminDashboardData();
+      return { databaseAvailable: data.databaseAvailable, appointmentCount: data.appointmentCount, activeStaffCount: data.activeStaffCount, users: data.users.map((user) => ({ ...user, lastSignedIn: user.lastSignedIn.toISOString(), createdAt: user.createdAt.toISOString() })), auditEvents: data.auditEvents.map((event) => ({ ...event, occurredAt: event.occurredAt.toISOString() })) };
+    }),
+    updateUserAccess: superAdminProcedure.input(z.object({ targetUserId: z.number().int().positive(), nextAccess: z.enum(["user", "admin"]) })).mutation(async ({ ctx, input }) => {
+      await referralDb.updateApplicationUserAccess({ actorEmail: ctx.user.email ?? "super-admin", ...input });
+      return { updated: true };
+    }),
+    prepareAppointmentCsv: superAdminProcedure.input(z.object({ startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) })).mutation(async ({ ctx, input }) => {
+      if (input.startDate > input.endDate) throw new TRPCError({ code: "BAD_REQUEST", message: "The export start date must be on or before the end date." });
+      const appointments = await referralDb.prepareSuperAdminAppointmentExport({ actorEmail: ctx.user.email ?? "super-admin", ...input });
+      return { appointments: appointments.map((appointment) => ({ appointmentId: appointment.appointmentId, clinicianUserId: appointment.clinicianUserId, childId: appointment.childId, service: appointment.service, appointmentDate: appointment.appointmentDate, appointmentTime: appointment.appointmentTime, durationMinutes: appointment.durationMinutes, reason: appointment.reason, status: appointment.status, changeMessage: appointment.changeMessage, guardianConfirmedAt: appointment.guardianConfirmedAt?.toISOString() ?? null, rescheduledAt: appointment.rescheduledAt?.toISOString() ?? null, createdAt: appointment.createdAt.toISOString(), updatedAt: appointment.updatedAt.toISOString() })), confidentialityNotice: "Confidential appointment record export. Preparation is audited and does not prove download, delivery, or secure storage." };
+    }),
   }),
   clinicPublic: router({
     settings: publicProcedure.query(async () => {

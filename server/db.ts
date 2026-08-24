@@ -1,10 +1,10 @@
 import { drizzle } from "drizzle-orm/mysql2";
 import { createHash, randomBytes, randomInt } from "node:crypto";
 import { InsertUser, users } from "../drizzle/schema";
-import { auditArchiveRuns, auditRetentionPolicies, auditRetentionPolicyChanges, capacityAlertVisibilitySettings, capacityTargetChangeAlerts, clinicAppointments, clinicDayHourOverrides, clinicPublicSettings, clinicStaffAccounts, guardianContacts, guardianRecordAccessChallenges, internalFollowUpPrintAudits, invitationSearchPresets, patientReportShares, printAuditFilterPresets, referralAuditEvents, referralDeliveryMonitor, referralRetryCounters, staffAccountActivity, staffCapacitySnapshots, staffInvitationSettings, waitlistEventLog, waitlistRequests, weeklyCapacityReportReferenceSettings, weeklyCapacitySummaryExports } from "../drizzle/schema";
+import { auditArchiveRuns, auditRetentionPolicies, auditRetentionPolicyChanges, capacityAlertVisibilitySettings, capacityTargetChangeAlerts, clinicAppointments, clinicDayHourOverrides, clinicPublicSettings, clinicStaffAccounts, guardianContacts, guardianRecordAccessChallenges, internalFollowUpPrintAudits, invitationSearchPresets, patientReportShares, printAuditFilterPresets, referralAuditEvents, referralDeliveryMonitor, referralRetryCounters, staffAccountActivity, staffCapacitySnapshots, staffInvitationSettings, superAdminAuditEvents, waitlistEventLog, waitlistRequests, weeklyCapacityReportReferenceSettings, weeklyCapacitySummaryExports } from "../drizzle/schema";
 import { and, asc, eq, gte, isNull, lt, lte, or, sql } from "drizzle-orm";
 import { ENV } from "./_core/env";
-import { isClinicAdministratorEmail } from "./clinic-authority";
+import { isClinicAdministratorEmail, isSuperAdminEmail } from "./clinic-authority";
 
 export const MAX_REFERRAL_EMAIL_RESENDS = 3;
 export const MAX_STAFF_INVITATION_RESENDS = 3;
@@ -102,6 +102,33 @@ export async function getUserByOpenId(openId: string) {
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
 
   return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getSuperAdminDashboardData() {
+  const db = await getDb();
+  if (!db) return { databaseAvailable: false, users: [], appointmentCount: 0, activeStaffCount: 0, auditEvents: [] as Array<typeof superAdminAuditEvents.$inferSelect> };
+  const [userRows, appointmentRows, activeStaffRows, auditEvents] = await Promise.all([
+    db.select({ id: users.id, name: users.name, email: users.email, role: users.role, lastSignedIn: users.lastSignedIn, createdAt: users.createdAt }).from(users).orderBy(sql`${users.lastSignedIn} desc`).limit(100),
+    db.select({ id: clinicAppointments.id }).from(clinicAppointments),
+    db.select({ id: clinicStaffAccounts.id }).from(clinicStaffAccounts).where(eq(clinicStaffAccounts.status, "active")),
+    db.select().from(superAdminAuditEvents).orderBy(sql`${superAdminAuditEvents.occurredAt} desc`).limit(50),
+  ]);
+  return { databaseAvailable: true, users: userRows, appointmentCount: appointmentRows.length, activeStaffCount: activeStaffRows.length, auditEvents };
+}
+
+export async function updateApplicationUserAccess(input: { actorEmail: string; targetUserId: number; nextAccess: "user" | "admin" }) {
+  const db = await getDb(); if (!db) throw new Error("Database not available for application access management");
+  const target = (await db.select().from(users).where(eq(users.id, input.targetUserId)).limit(1))[0]; if (!target) throw new Error("The selected user account no longer exists.");
+  if (isSuperAdminEmail(target.email)) throw new Error("The designated super-admin access cannot be changed through the application.");
+  await db.update(users).set({ role: input.nextAccess }).where(eq(users.id, target.id));
+  await db.insert(superAdminAuditEvents).values({ eventId: `access-${Date.now()}-${target.id}`, eventType: "user-access-updated", actorEmail: input.actorEmail, targetUserId: target.id, targetEmail: target.email, previousAccess: target.role, nextAccess: input.nextAccess, recordCount: 0, summary: "Super-admin updated the application-level user access flag. This does not grant database, server, deployment, or source-control access." });
+}
+
+export async function prepareSuperAdminAppointmentExport(input: { actorEmail: string; startDate: string; endDate: string }) {
+  const db = await getDb(); if (!db) throw new Error("Database not available for confidential appointment export");
+  const rows = await db.select().from(clinicAppointments).where(and(gte(clinicAppointments.appointmentDate, input.startDate), lte(clinicAppointments.appointmentDate, input.endDate))).orderBy(asc(clinicAppointments.appointmentDate), asc(clinicAppointments.appointmentTime));
+  await db.insert(superAdminAuditEvents).values({ eventId: `appointment-export-${Date.now()}`, eventType: "appointment-csv-prepared", actorEmail: input.actorEmail, startDate: input.startDate, endDate: input.endDate, recordCount: rows.length, summary: "Super-admin prepared a confidential appointment-record CSV. Preparation does not prove download, delivery, or secure storage." });
+  return rows;
 }
 
 export async function getClinicPublicSettings() {

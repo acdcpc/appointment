@@ -316,3 +316,8 @@
 - [x] Prevent clinic administrators from database, server-configuration, and source-control management routes
 - [x] Write secure deployment and operations instructions in the repository README
 - [x] Validate role boundaries, README guidance, and repository commit/push status
+- [x] Update reusable clinic workflow for super-admin monitoring, access controls, role badges, and appointment exports
+- [x] Add a super-admin-only dashboard for system status and user access management
+- [x] Add a visible navigation badge for Admin and Super-Admin authority
+- [x] Add a super-admin-only, auditable appointment-record CSV export
+- [x] Validate super-admin restrictions, audit visibility, role badges, and protected export safeguards
