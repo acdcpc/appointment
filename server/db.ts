@@ -1,7 +1,7 @@
 import { drizzle } from "drizzle-orm/mysql2";
 import { createHash, randomBytes, randomInt } from "node:crypto";
 import { InsertUser, users } from "../drizzle/schema";
-import { auditArchiveRuns, auditRetentionPolicies, auditRetentionPolicyChanges, capacityAlertVisibilitySettings, capacityTargetChangeAlerts, clinicAppointments, clinicDayHourOverrides, clinicPublicSettings, clinicStaffAccounts, guardianContacts, guardianRecordAccessChallenges, internalFollowUpPrintAudits, invitationSearchPresets, patientReportShares, postDeploymentFeedback, printAuditFilterPresets, referralAuditEvents, referralDeliveryMonitor, referralRetryCounters, staffAccountActivity, staffCapacitySnapshots, staffInvitationSettings, superAdminAccessReviews, superAdminAuditEvents, superAdminGovernanceSettings, superAdminMaintenanceEvents, waitlistEventLog, waitlistRequests, weeklyCapacityReportReferenceSettings, weeklyCapacitySummaryExports } from "../drizzle/schema";
+import { auditArchiveRuns, auditRetentionPolicies, auditRetentionPolicyChanges, capacityAlertVisibilitySettings, capacityTargetChangeAlerts, clinicAppointments, clinicDayHourOverrides, clinicPublicSettings, clinicStaffAccounts, guardianContacts, guardianRecordAccessChallenges, internalFollowUpPrintAudits, invitationSearchPresets, maintenanceNotificationRequests, patientReportShares, postDeploymentFeedback, printAuditFilterPresets, referralAuditEvents, referralDeliveryMonitor, referralRetryCounters, staffAccountActivity, staffCapacitySnapshots, staffInvitationSettings, superAdminAccessReviews, superAdminAuditEvents, superAdminGovernanceSettings, superAdminMaintenanceEvents, waitlistEventLog, waitlistRequests, weeklyCapacityReportReferenceSettings, weeklyCapacitySummaryExports } from "../drizzle/schema";
 import { and, asc, eq, gte, isNull, like, lt, lte, or, sql } from "drizzle-orm";
 import { ENV } from "./_core/env";
 import { isClinicAdministratorEmail, isSuperAdminEmail } from "./clinic-authority";
@@ -180,6 +180,16 @@ export async function setMaintenanceMode(input: { enabled: boolean; notice: stri
 }
 
 export async function getMaintenanceModeStatus() { const settings = await getSuperAdminGovernanceSettings(); return { enabled: settings.maintenanceModeEnabled, notice: settings.maintenanceNotice, estimatedCompletion: settings.maintenanceEstimatedCompletion, estimatedCompletionAt: settings.maintenanceEstimatedCompletionAt, changedAt: settings.maintenanceChangedAt, changedBy: settings.maintenanceChangedBy }; }
+
+export async function requestMaintenanceNotificationPreference(email: string) {
+  const db = await getDb(); if (!db) throw new Error("Database not available for maintenance notification preferences");
+  const status = await getMaintenanceModeStatus(); if (!status.enabled || !status.changedAt) throw new Error("Maintenance mode is not currently active.");
+  const normalizedEmail = email.trim().toLowerCase();
+  const existing = (await db.select().from(maintenanceNotificationRequests).where(and(eq(maintenanceNotificationRequests.maintenanceChangedAt, status.changedAt), eq(maintenanceNotificationRequests.email, normalizedEmail))).limit(1))[0];
+  if (existing) { await db.update(maintenanceNotificationRequests).set({ status: "requested" }).where(eq(maintenanceNotificationRequests.id, existing.id)); return { alreadyRecorded: true }; }
+  await db.insert(maintenanceNotificationRequests).values({ requestId: `maintenance-notification-${Date.now()}-${randomInt(1000, 9999)}`, maintenanceChangedAt: status.changedAt, email: normalizedEmail, status: "requested" });
+  return { alreadyRecorded: false };
+}
 
 export async function submitPostDeploymentFeedback(input: { submittedBy: string; category: "login" | "scheduling" | "records" | "display" | "other"; title: string; description: string; screenshotStorageKey?: string; screenshotContentType?: string; screenshotBytes?: number }) {
   const db = await getDb(); if (!db) throw new Error("Database not available for deployment feedback"); const feedbackId = `deployment-feedback-${Date.now()}-${randomInt(1000, 9999)}`; await db.insert(postDeploymentFeedback).values({ feedbackId, ...input }); return feedbackId;

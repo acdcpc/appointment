@@ -357,3 +357,8 @@
 - [x] Add an opt-in local blur/redaction step before screenshot feedback submission
 - [x] Add an explicitly estimate-only maintenance completion countdown
 - [x] Validate attachment-redaction, countdown, and privacy safeguards
+- [x] Update reusable workflow for review acknowledgement, selection redaction, and review-first maintenance notification preferences
+- [x] Require super-admin acknowledgement before opening a protected feedback attachment
+- [x] Add user-directed local screenshot blur-area selection before upload
+- [x] Add an explicit maintenance notification preference without automatic email delivery
+- [x] Validate attachment-review, manual-redaction, and notification-preference safeguards

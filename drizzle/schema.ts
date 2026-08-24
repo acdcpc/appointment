@@ -73,6 +73,16 @@ export const superAdminMaintenanceEvents = mysqlTable("super_admin_maintenance_e
   occurredAt: timestamp("occurredAt").defaultNow().notNull(),
 }, (table) => [uniqueIndex("super_admin_maintenance_event_unique").on(table.eventId), index("super_admin_maintenance_event_time_idx").on(table.occurredAt)]);
 
+export const maintenanceNotificationRequests = mysqlTable("maintenance_notification_requests", {
+  id: int("id").autoincrement().primaryKey(),
+  requestId: varchar("requestId", { length: 120 }).notNull(),
+  maintenanceChangedAt: timestamp("maintenanceChangedAt").notNull(),
+  email: varchar("email", { length: 320 }).notNull(),
+  status: mysqlEnum("status", ["requested", "withdrawn"]).notNull().default("requested"),
+  requestedAt: timestamp("requestedAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => [uniqueIndex("maintenance_notification_request_unique").on(table.maintenanceChangedAt, table.email), uniqueIndex("maintenance_notification_request_id_unique").on(table.requestId), index("maintenance_notification_request_status_idx").on(table.status, table.requestedAt)]);
+
 export const postDeploymentFeedback = mysqlTable("post_deployment_feedback", {
   id: int("id").autoincrement().primaryKey(),
   feedbackId: varchar("feedbackId", { length: 120 }).notNull(),
