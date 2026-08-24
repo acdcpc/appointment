@@ -52,9 +52,14 @@ export const appRouter = router({
     }),
     deactivateFormerStaff: superAdminProcedure.input(z.object({ staffAccountId: z.string().min(1).max(120), confirmed: z.literal(true) })).mutation(async ({ ctx, input }) => referralDb.deactivateFormerStaffAccount({ actorEmail: ctx.user.email ?? "super-admin", staffAccountId: input.staffAccountId })),
     reactivateReturningStaff: superAdminProcedure.input(z.object({ staffAccountId: z.string().min(1).max(120), confirmed: z.literal(true) })).mutation(async ({ ctx, input }) => referralDb.reactivateReturningStaffAccount({ actorEmail: ctx.user.email ?? "super-admin", staffAccountId: input.staffAccountId })),
-    governanceSettings: superAdminProcedure.query(async () => { const settings = await referralDb.getSuperAdminGovernanceSettings(); return { exportRetentionDays: settings.exportRetentionDays, accessReviewIntervalDays: settings.accessReviewIntervalDays, updatedBy: settings.updatedBy, updatedAt: settings.updatedAt.toISOString(), lastAccessReviewAt: settings.lastAccessReviewAt?.toISOString() ?? null, lastAccessReviewBy: settings.lastAccessReviewBy ?? null }; }),
+    governanceSettings: superAdminProcedure.query(async () => { const settings = await referralDb.getSuperAdminGovernanceSettings(); return { exportRetentionDays: settings.exportRetentionDays, accessReviewIntervalDays: settings.accessReviewIntervalDays, maintenanceModeEnabled: settings.maintenanceModeEnabled, maintenanceNotice: settings.maintenanceNotice, maintenanceChangedAt: settings.maintenanceChangedAt?.toISOString() ?? null, maintenanceChangedBy: settings.maintenanceChangedBy ?? null, updatedBy: settings.updatedBy, updatedAt: settings.updatedAt.toISOString(), lastAccessReviewAt: settings.lastAccessReviewAt?.toISOString() ?? null, lastAccessReviewBy: settings.lastAccessReviewBy ?? null }; }),
     saveGovernanceSettings: superAdminProcedure.input(z.object({ exportRetentionDays: z.number().int().min(1).max(3650), accessReviewIntervalDays: z.number().int().min(30).max(365), confirmed: z.literal(true) })).mutation(async ({ ctx, input }) => referralDb.saveSuperAdminGovernanceSettings({ exportRetentionDays: input.exportRetentionDays, accessReviewIntervalDays: input.accessReviewIntervalDays, updatedBy: ctx.user.email ?? "super-admin" })),
     completeAccessReview: superAdminProcedure.input(z.object({ confirmed: z.literal(true) })).mutation(async ({ ctx }) => referralDb.completeSuperAdminAccessReview(ctx.user.email ?? "super-admin")),
+    setMaintenanceMode: superAdminProcedure.input(z.object({ enabled: z.boolean(), notice: z.string().trim().min(12).max(300), confirmed: z.literal(true) })).mutation(async ({ ctx, input }) => {
+      const settings = await referralDb.setMaintenanceMode({ enabled: input.enabled, notice: input.notice, actorEmail: ctx.user.email ?? "super-admin" }); return { enabled: settings.maintenanceModeEnabled, notice: settings.maintenanceNotice, changedAt: settings.maintenanceChangedAt?.toISOString() ?? null };
+    }),
+    postDeploymentFeedback: superAdminProcedure.query(async () => (await referralDb.listPostDeploymentFeedback()).map((item) => ({ ...item, submittedAt: item.submittedAt.toISOString(), reviewedAt: item.reviewedAt?.toISOString() ?? null, updatedAt: item.updatedAt.toISOString() }))),
+    updatePostDeploymentFeedbackStatus: superAdminProcedure.input(z.object({ feedbackId: z.string().min(1).max(120), status: z.enum(["reviewed", "resolved"]), confirmed: z.literal(true) })).mutation(async ({ ctx, input }) => referralDb.updatePostDeploymentFeedbackStatus({ ...input, reviewedBy: ctx.user.email ?? "super-admin" })),
     searchAppointmentExportRegister: superAdminProcedure.input(z.object({ startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(), endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(), actorQuery: z.string().trim().max(160).optional() })).query(async ({ input }) => {
       if ((input.startDate && !input.endDate) || (!input.startDate && input.endDate)) throw new TRPCError({ code: "BAD_REQUEST", message: "Provide both preparation dates or clear both filters." });
       if (input.startDate && input.endDate && (input.startDate > input.endDate || new Date(`${input.endDate}T00:00:00.000Z`).getTime() - new Date(`${input.startDate}T00:00:00.000Z`).getTime() > 90 * 86400000)) throw new TRPCError({ code: "BAD_REQUEST", message: "Use an inclusive preparation-date range of no more than 90 days." });
@@ -68,6 +73,7 @@ export const appRouter = router({
     }),
   }),
   clinicPublic: router({
+    maintenanceStatus: publicProcedure.query(async () => { const status = await referralDb.getMaintenanceModeStatus(); return { enabled: status.enabled, notice: status.notice }; }),
     settings: publicProcedure.query(async () => {
       const settings = await referralDb.getClinicPublicSettings();
       return { clinicName: settings.clinicName, address: settings.address, mapUrl: settings.mapUrl, clinicEmail: settings.clinicEmail, whatsappNumber: settings.whatsappNumber, whatsappResponseNotice: settings.whatsappResponseNotice, isProvisional: settings.isProvisional, updatedAt: settings.updatedAt.toISOString() };
@@ -101,6 +107,9 @@ export const appRouter = router({
     access: protectedProcedure.query(async ({ ctx }) => {
       const access = await referralDb.getAuthenticatedStaffAccess(ctx.user);
       return access.allowed ? { allowed: true, clinicianName: ctx.user.name ?? "Associate Professor Dr. Anil Ojha", staffRole: access.staffRole, isOwner: access.isOwner } : { allowed: false, reason: access.reason };
+    }),
+    submitPostDeploymentFeedback: clinicAdminProcedure.input(z.object({ category: z.enum(["login", "scheduling", "records", "display", "other"]), title: z.string().trim().min(5).max(140), description: z.string().trim().min(12).max(1200) })).mutation(async ({ ctx, input }) => {
+      const feedbackId = await referralDb.submitPostDeploymentFeedback({ ...input, submittedBy: ctx.user.email ?? "clinic-administrator" }); return { feedbackId, submitted: true, meaning: "Feedback was recorded for super-admin review. Submission does not resolve the issue or send a message automatically." };
     }),
     clinicPublicSettings: clinicAdminProcedure.query(async () => {
       const settings = await referralDb.getClinicPublicSettings();

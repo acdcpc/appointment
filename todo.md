@@ -342,3 +342,8 @@
 - [x] Create a secure production deployment checklist for the clinic application
 - [x] Create a live-build super-admin and clinic-administrator login verification guide
 - [x] Validate the deployment and verification guide against the current project configuration
+- [x] Update reusable workflow for maintenance mode, clinician deployment feedback, and production indicators
+- [x] Add super-admin-controlled maintenance mode with server-enforced access hold and audit evidence
+- [x] Add clinician post-deployment feedback submission and super-admin review controls
+- [x] Add a clear navigation indicator for the live production environment
+- [x] Validate maintenance, feedback, environment, and access safeguards

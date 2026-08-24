@@ -50,11 +50,38 @@ export const superAdminGovernanceSettings = mysqlTable("super_admin_governance_s
   id: int("id").autoincrement().primaryKey(),
   exportRetentionDays: int("exportRetentionDays").notNull().default(30),
   accessReviewIntervalDays: int("accessReviewIntervalDays").notNull().default(90),
+  maintenanceModeEnabled: boolean("maintenanceModeEnabled").notNull().default(false),
+  maintenanceNotice: varchar("maintenanceNotice", { length: 300 }).notNull().default("A scheduled clinic service update is in progress. Please return shortly."),
+  maintenanceChangedAt: timestamp("maintenanceChangedAt"),
+  maintenanceChangedBy: varchar("maintenanceChangedBy", { length: 320 }),
   updatedBy: varchar("updatedBy", { length: 320 }).notNull(),
   lastAccessReviewAt: timestamp("lastAccessReviewAt"),
   lastAccessReviewBy: varchar("lastAccessReviewBy", { length: 320 }),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
+
+export const superAdminMaintenanceEvents = mysqlTable("super_admin_maintenance_events", {
+  id: int("id").autoincrement().primaryKey(),
+  eventId: varchar("eventId", { length: 120 }).notNull(),
+  actorEmail: varchar("actorEmail", { length: 320 }).notNull(),
+  enabled: boolean("enabled").notNull(),
+  noticeSummary: varchar("noticeSummary", { length: 300 }).notNull(),
+  occurredAt: timestamp("occurredAt").defaultNow().notNull(),
+}, (table) => [uniqueIndex("super_admin_maintenance_event_unique").on(table.eventId), index("super_admin_maintenance_event_time_idx").on(table.occurredAt)]);
+
+export const postDeploymentFeedback = mysqlTable("post_deployment_feedback", {
+  id: int("id").autoincrement().primaryKey(),
+  feedbackId: varchar("feedbackId", { length: 120 }).notNull(),
+  submittedBy: varchar("submittedBy", { length: 320 }).notNull(),
+  category: mysqlEnum("category", ["login", "scheduling", "records", "display", "other"]).notNull(),
+  title: varchar("title", { length: 140 }).notNull(),
+  description: varchar("description", { length: 1200 }).notNull(),
+  status: mysqlEnum("status", ["open", "reviewed", "resolved"]).notNull().default("open"),
+  reviewedBy: varchar("reviewedBy", { length: 320 }),
+  reviewedAt: timestamp("reviewedAt"),
+  submittedAt: timestamp("submittedAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => [uniqueIndex("post_deployment_feedback_unique").on(table.feedbackId), index("post_deployment_feedback_status_time_idx").on(table.status, table.submittedAt)]);
 
 export const superAdminAccessReviews = mysqlTable("super_admin_access_reviews", {
   id: int("id").autoincrement().primaryKey(),

@@ -15,6 +15,7 @@ Use the following checklist before selecting **Publish** in the workspace. The c
 | Validation | Run `pnpm check`, `pnpm lint`, and `pnpm test` from the reviewed release source. | TypeScript and tests pass. The existing module-type warning may be noted separately if it remains non-blocking. |
 | Authority identifiers | Confirm the exact trusted OAuth email addresses in `server/clinic-authority.ts`. | `thisispratha@gmail.com` is super-admin; `anilrajojha@pahs.edu.np` is clinic administrator. |
 | Secrets | Confirm production values live only in the workspace or host secret store. | No `.env` file, credentials, tokens, or database URL is committed. |
+| Environment indicator | Set the non-secret build value `EXPO_PUBLIC_APP_ENV=production` for the production release. | Navigation displays **Live environment**; preview builds remain visibly Staging or Local. |
 | Database | Confirm a current backup and review every pending Drizzle migration before applying it. | Backup reference and migration review record are retained outside patient-facing screens. |
 | Public information | Confirm clinic name, phone, email, hours, address, and map link are accurate in the production settings. | Public pages show the approved information; no placeholder location remains. |
 | Recovery | Confirm the super-admin can reach the private repository, checkpoint history, and database backup process. | Recovery contacts and paths are documented privately. |

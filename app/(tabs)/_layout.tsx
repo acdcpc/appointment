@@ -6,6 +6,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
 import { useLargeTextLayout } from "@/lib/large-text-accessibility";
 import { AuthorityNavigationBadge } from "@/components/authority-navigation-badge";
+import { EnvironmentNavigationBadge } from "@/components/environment-navigation-badge";
 
 export default function TabLayout() {
   const colors = useColors();
@@ -21,7 +22,7 @@ export default function TabLayout() {
       <Tabs.Screen name="appointments" options={{ title: "Visits", tabBarIcon: ({ color }) => <IconSymbol size={24} name="calendar" color={color} /> }} />
       <Tabs.Screen name="records" options={{ title: "Records", tabBarIcon: ({ color }) => <IconSymbol size={24} name="doc.text" color={color} /> }} />
       <Tabs.Screen name="profile" options={{ title: "Profile", tabBarIcon: ({ color }) => <IconSymbol size={24} name="person.fill" color={color} /> }} />
-    </Tabs><AuthorityNavigationBadge />
+    </Tabs><EnvironmentNavigationBadge /><AuthorityNavigationBadge />
     </>
   );
 }

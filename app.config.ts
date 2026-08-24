@@ -36,6 +36,7 @@ const env = {
   scheme: schemeFromBundleId,
   iosBundleId: bundleId,
   androidPackage: bundleId,
+  appEnvironment: process.env.EXPO_PUBLIC_APP_ENV ?? "staging",
 };
 
 const config: ExpoConfig = {
@@ -83,6 +84,9 @@ const config: ExpoConfig = {
     bundler: "metro",
     output: "static",
     favicon: "./assets/images/favicon.png",
+  },
+  extra: {
+    appEnvironment: env.appEnvironment,
   },
   plugins: [
     "expo-router",
