@@ -373,3 +373,7 @@
 - [x] Add a persistent tutorial preference with a "Don't show this again" option
 - [x] Add super-admin-confirmed bulk maintenance preference status changes
 - [x] Validate design, redaction history, tutorial preference, and bulk-action safeguards
+- [x] Update reusable workflow for cohesive visual-system assessment and low-friction parent service browsing
+- [x] Harmonize parent-facing clinic design tokens with the verified navy-teal trust direction
+- [x] Add accessible service search and concise visit-topic filters to the parent booking flow
+- [x] Validate visual-system integration without expanding clinical data collection or communication automation
