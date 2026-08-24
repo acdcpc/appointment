@@ -311,3 +311,8 @@
 - [x] Add clinician-managed durable individual-day hours overrides
 - [x] Add informational in-app notices for booked families affected by modified-hours dates
 - [x] Validate directions, override availability, and appointment-notice safeguards
+- [x] Review current authentication and deployment practices for separate super-admin and clinic-admin authority
+- [x] Enforce super-admin authority for thisispratha@gmail.com and limited clinic administrator authority for anilrajojha@pahs.edu.np
+- [x] Prevent clinic administrators from database, server-configuration, and source-control management routes
+- [x] Write secure deployment and operations instructions in the repository README
+- [x] Validate role boundaries, README guidance, and repository commit/push status

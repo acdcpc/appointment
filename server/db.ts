@@ -4,6 +4,7 @@ import { InsertUser, users } from "../drizzle/schema";
 import { auditArchiveRuns, auditRetentionPolicies, auditRetentionPolicyChanges, capacityAlertVisibilitySettings, capacityTargetChangeAlerts, clinicAppointments, clinicDayHourOverrides, clinicPublicSettings, clinicStaffAccounts, guardianContacts, guardianRecordAccessChallenges, internalFollowUpPrintAudits, invitationSearchPresets, patientReportShares, printAuditFilterPresets, referralAuditEvents, referralDeliveryMonitor, referralRetryCounters, staffAccountActivity, staffCapacitySnapshots, staffInvitationSettings, waitlistEventLog, waitlistRequests, weeklyCapacityReportReferenceSettings, weeklyCapacitySummaryExports } from "../drizzle/schema";
 import { and, asc, eq, gte, isNull, lt, lte, or, sql } from "drizzle-orm";
 import { ENV } from "./_core/env";
+import { isClinicAdministratorEmail } from "./clinic-authority";
 
 export const MAX_REFERRAL_EMAIL_RESENDS = 3;
 export const MAX_STAFF_INVITATION_RESENDS = 3;
@@ -626,7 +627,7 @@ export async function getMonthlyStaffAccountActivitySummary(clinicianUserId: num
 }
 
 export async function getAuthenticatedStaffAccess(user: { id: number; email: string | null; name: string | null; role: "user" | "admin" }) {
-  if (user.role === "admin") return { allowed: true, isOwner: true, clinicianUserId: user.id, staffRole: "clinician" as ClinicStaffRole };
+  if (user.role === "admin" || isClinicAdministratorEmail(user.email)) return { allowed: true, isOwner: true, clinicianUserId: user.id, staffRole: "clinician" as ClinicStaffRole };
   const email = user.email ? normalizedEmail(user.email) : "";
   if (!email) return { allowed: false, reason: "This authenticated account has no verified email to match a clinic invitation." as const };
   const db = await getDb(); if (!db) return { allowed: false, reason: "Clinic staff access is unavailable while the database is offline." as const };

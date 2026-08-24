@@ -1,13 +1,25 @@
 import { COOKIE_NAME } from "../shared/const.js";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { adminProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc";
+import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { invokeLLM } from "./_core/llm";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { parse as parseCookie } from "cookie";
 import { createHeartbeatJob, updateHeartbeatJob } from "./_core/heartbeat";
 import * as referralDb from "./db";
+import { clinicAuthorityLabel, isClinicAdministratorEmail, isSuperAdminEmail } from "./clinic-authority";
+
+const clinicAdminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
+  if (!isClinicAdministratorEmail(ctx.user.email)) throw new TRPCError({ code: "FORBIDDEN", message: "This clinical administration area is restricted to the designated clinic administrator." });
+  return next({ ctx: { ...ctx, user: ctx.user } });
+});
+const adminProcedure = clinicAdminProcedure;
+
+const superAdminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
+  if (!isSuperAdminEmail(ctx.user.email)) throw new TRPCError({ code: "FORBIDDEN", message: "This environment administration action is restricted to the designated super-admin." });
+  return next({ ctx: { ...ctx, user: ctx.user } });
+});
 
 function parseUtcDeliveryTime(value: string) { const match = /^(\d{2}):(\d{2})$/.exec(value); if (!match) throw new TRPCError({ code: "BAD_REQUEST", message: "Enter the delivery time as HH:MM in UTC." }); const hours = Number(match[1]); const minutes = Number(match[2]); if (hours > 23 || minutes > 59) throw new TRPCError({ code: "BAD_REQUEST", message: "Enter a valid UTC delivery time." }); return { minuteOfDay: hours * 60 + minutes, cron: `0 ${minutes} ${hours} 1 * *` }; }
 function formatUtcDeliveryTime(minuteOfDay: number) { return `${String(Math.floor(minuteOfDay / 60)).padStart(2, "0")}:${String(minuteOfDay % 60).padStart(2, "0")}`; }
@@ -18,6 +30,7 @@ export const appRouter = router({
   system: systemRouter,
   auth: router({
     me: publicProcedure.query((opts) => opts.ctx.user),
+    authority: protectedProcedure.query(({ ctx }) => ({ authority: clinicAuthorityLabel(ctx.user.email), canAccessClinicAdministration: isClinicAdministratorEmail(ctx.user.email), canManageServerOrDatabase: isSuperAdminEmail(ctx.user.email) })),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
@@ -25,6 +38,9 @@ export const appRouter = router({
         success: true,
       } as const;
     }),
+  }),
+  administration: router({
+    serverAuthority: superAdminProcedure.query(({ ctx }) => ({ authority: clinicAuthorityLabel(ctx.user.email), databaseAccess: "The app does not expose database credentials or direct data-access APIs to any user.", sourceControlAccess: "Private repository and deployment access are controlled separately through the super-admin’s GitHub account." })),
   }),
   clinicPublic: router({
     settings: publicProcedure.query(async () => {
@@ -61,21 +77,21 @@ export const appRouter = router({
       const access = await referralDb.getAuthenticatedStaffAccess(ctx.user);
       return access.allowed ? { allowed: true, clinicianName: ctx.user.name ?? "Associate Professor Dr. Anil Ojha", staffRole: access.staffRole, isOwner: access.isOwner } : { allowed: false, reason: access.reason };
     }),
-    clinicPublicSettings: adminProcedure.query(async () => {
+    clinicPublicSettings: clinicAdminProcedure.query(async () => {
       const settings = await referralDb.getClinicPublicSettings();
       return { clinicName: settings.clinicName, address: settings.address, mapUrl: settings.mapUrl, clinicEmail: settings.clinicEmail, whatsappNumber: settings.whatsappNumber, whatsappResponseNotice: settings.whatsappResponseNotice, isProvisional: settings.isProvisional };
     }),
-    saveClinicPublicSettings: adminProcedure.input(z.object({ address: z.string().trim().min(5).max(1000), mapUrl: z.string().url().max(2048), clinicEmail: z.string().trim().email().max(320), whatsappNumber: z.string().regex(/^\d{10,15}$/, "Enter the WhatsApp number with country code and digits only."), whatsappResponseNotice: z.string().trim().min(12).max(500) })).mutation(async ({ ctx, input }) => {
+    saveClinicPublicSettings: clinicAdminProcedure.input(z.object({ address: z.string().trim().min(5).max(1000), mapUrl: z.string().url().max(2048), clinicEmail: z.string().trim().email().max(320), whatsappNumber: z.string().regex(/^\d{10,15}$/, "Enter the WhatsApp number with country code and digits only."), whatsappResponseNotice: z.string().trim().min(12).max(500) })).mutation(async ({ ctx, input }) => {
       const settings = await referralDb.saveClinicPublicSettings({ ...input, updatedBy: ctx.user.name ?? "Associate Professor Dr. Anil Ojha" });
       return { address: settings.address, mapUrl: settings.mapUrl, clinicEmail: settings.clinicEmail, whatsappNumber: settings.whatsappNumber, whatsappResponseNotice: settings.whatsappResponseNotice, isProvisional: settings.isProvisional };
     }),
-    listClinicDayHourOverrides: adminProcedure.query(async ({ ctx }) => (await referralDb.listClinicDayHourOverrides(ctx.user.id)).map((override) => ({ ...override, updatedAt: override.updatedAt.toISOString() }))),
-    saveClinicDayHourOverride: adminProcedure.input(z.object({ overrideId: z.string().min(1).max(120), appointmentDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), isOpen: z.boolean(), startTime: z.string().regex(/^\d{2}:\d{2}$/).optional(), endTime: z.string().regex(/^\d{2}:\d{2}$/).optional(), familyNotice: z.string().trim().min(12).max(500) })).mutation(async ({ ctx, input }) => {
+    listClinicDayHourOverrides: clinicAdminProcedure.query(async ({ ctx }) => (await referralDb.listClinicDayHourOverrides(ctx.user.id)).map((override) => ({ ...override, updatedAt: override.updatedAt.toISOString() }))),
+    saveClinicDayHourOverride: clinicAdminProcedure.input(z.object({ overrideId: z.string().min(1).max(120), appointmentDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), isOpen: z.boolean(), startTime: z.string().regex(/^\d{2}:\d{2}$/).optional(), endTime: z.string().regex(/^\d{2}:\d{2}$/).optional(), familyNotice: z.string().trim().min(12).max(500) })).mutation(async ({ ctx, input }) => {
       if (input.isOpen && (!input.startTime || !input.endTime || input.startTime >= input.endTime)) throw new TRPCError({ code: "BAD_REQUEST", message: "Open modified hours need a valid start time before the end time." });
       const overrides = await referralDb.saveClinicDayHourOverride(ctx.user.id, { ...input, updatedBy: ctx.user.name ?? "Associate Professor Dr. Anil Ojha" });
       return overrides.map((override) => ({ ...override, updatedAt: override.updatedAt.toISOString() }));
     }),
-    removeClinicDayHourOverride: adminProcedure.input(z.object({ appointmentDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) })).mutation(async ({ ctx, input }) => { await referralDb.removeClinicDayHourOverride(ctx.user.id, input.appointmentDate); return { removed: true }; }),
+    removeClinicDayHourOverride: clinicAdminProcedure.input(z.object({ appointmentDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) })).mutation(async ({ ctx, input }) => { await referralDb.removeClinicDayHourOverride(ctx.user.id, input.appointmentDate); return { removed: true }; }),
     guardianVerificationSettings: adminProcedure.query(async () => {
       const settings = await referralDb.getClinicPublicSettings();
       return { guardianReverificationDays: settings.guardianReverificationDays };
