@@ -52,6 +52,7 @@ export const superAdminGovernanceSettings = mysqlTable("super_admin_governance_s
   accessReviewIntervalDays: int("accessReviewIntervalDays").notNull().default(90),
   maintenanceModeEnabled: boolean("maintenanceModeEnabled").notNull().default(false),
   maintenanceNotice: varchar("maintenanceNotice", { length: 300 }).notNull().default("A scheduled clinic service update is in progress. Please return shortly."),
+  maintenanceEstimatedCompletion: varchar("maintenanceEstimatedCompletion", { length: 160 }),
   maintenanceChangedAt: timestamp("maintenanceChangedAt"),
   maintenanceChangedBy: varchar("maintenanceChangedBy", { length: 320 }),
   updatedBy: varchar("updatedBy", { length: 320 }).notNull(),
@@ -66,6 +67,7 @@ export const superAdminMaintenanceEvents = mysqlTable("super_admin_maintenance_e
   actorEmail: varchar("actorEmail", { length: 320 }).notNull(),
   enabled: boolean("enabled").notNull(),
   noticeSummary: varchar("noticeSummary", { length: 300 }).notNull(),
+  estimatedCompletion: varchar("estimatedCompletion", { length: 160 }),
   occurredAt: timestamp("occurredAt").defaultNow().notNull(),
 }, (table) => [uniqueIndex("super_admin_maintenance_event_unique").on(table.eventId), index("super_admin_maintenance_event_time_idx").on(table.occurredAt)]);
 
@@ -76,6 +78,9 @@ export const postDeploymentFeedback = mysqlTable("post_deployment_feedback", {
   category: mysqlEnum("category", ["login", "scheduling", "records", "display", "other"]).notNull(),
   title: varchar("title", { length: 140 }).notNull(),
   description: varchar("description", { length: 1200 }).notNull(),
+  screenshotStorageKey: varchar("screenshotStorageKey", { length: 512 }),
+  screenshotContentType: varchar("screenshotContentType", { length: 80 }),
+  screenshotBytes: int("screenshotBytes"),
   status: mysqlEnum("status", ["open", "reviewed", "resolved"]).notNull().default("open"),
   reviewedBy: varchar("reviewedBy", { length: 320 }),
   reviewedAt: timestamp("reviewedAt"),

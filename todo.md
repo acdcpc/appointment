@@ -347,3 +347,8 @@
 - [x] Add clinician post-deployment feedback submission and super-admin review controls
 - [x] Add a clear navigation indicator for the live production environment
 - [x] Validate maintenance, feedback, environment, and access safeguards
+- [x] Update reusable workflow for feedback screenshots, maintenance completion estimates, and release-detail indicators
+- [x] Add secure clinician feedback screenshot attachments with restricted review access
+- [x] Add a super-admin-maintained estimated maintenance completion field
+- [x] Add clickable environment badge release details with non-secret version and deployment notes
+- [x] Validate feedback attachment, maintenance estimate, and release-detail safeguards
