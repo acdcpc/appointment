@@ -326,3 +326,8 @@
 - [x] Add a safe former-staff account deactivation flow with durable access-revocation evidence
 - [x] Add visual retention warning and safe-storage guidance before confidential appointment CSV export
 - [x] Validate confirmation, deactivation, audit, and retention-warning safeguards
+- [x] Update reusable workflow for supervised staff reactivation, export retention, and periodic access reviews
+- [x] Add super-admin-confirmed staff reactivation with durable lifecycle evidence
+- [x] Add clinic-configured export retention period and enforce it during confidential CSV preparation
+- [x] Add a periodic super-admin admin-and-staff permission review checklist
+- [x] Validate reactivation, retention, review, and lifecycle safeguards

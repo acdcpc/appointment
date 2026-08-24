@@ -46,6 +46,27 @@ export const superAdminAuditEvents = mysqlTable("super_admin_audit_events", {
   index("super_admin_audit_type_occurred_idx").on(table.eventType, table.occurredAt),
 ]);
 
+export const superAdminGovernanceSettings = mysqlTable("super_admin_governance_settings", {
+  id: int("id").autoincrement().primaryKey(),
+  exportRetentionDays: int("exportRetentionDays").notNull().default(30),
+  accessReviewIntervalDays: int("accessReviewIntervalDays").notNull().default(90),
+  updatedBy: varchar("updatedBy", { length: 320 }).notNull(),
+  lastAccessReviewAt: timestamp("lastAccessReviewAt"),
+  lastAccessReviewBy: varchar("lastAccessReviewBy", { length: 320 }),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export const superAdminAccessReviews = mysqlTable("super_admin_access_reviews", {
+  id: int("id").autoincrement().primaryKey(),
+  reviewId: varchar("reviewId", { length: 120 }).notNull(),
+  actorEmail: varchar("actorEmail", { length: 320 }).notNull(),
+  applicationAdminCount: int("applicationAdminCount").notNull(),
+  activeStaffCount: int("activeStaffCount").notNull(),
+  revokedStaffCount: int("revokedStaffCount").notNull(),
+  pendingInvitationCount: int("pendingInvitationCount").notNull(),
+  reviewedAt: timestamp("reviewedAt").defaultNow().notNull(),
+}, (table) => [uniqueIndex("super_admin_access_review_unique").on(table.reviewId), index("super_admin_access_review_time_idx").on(table.reviewedAt)]);
+
 export const referralAuditEvents = mysqlTable("referral_audit_events", {
   id: int("id").autoincrement().primaryKey(),
   clinicianUserId: int("clinicianUserId").notNull(),

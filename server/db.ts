@@ -1,7 +1,7 @@
 import { drizzle } from "drizzle-orm/mysql2";
 import { createHash, randomBytes, randomInt } from "node:crypto";
 import { InsertUser, users } from "../drizzle/schema";
-import { auditArchiveRuns, auditRetentionPolicies, auditRetentionPolicyChanges, capacityAlertVisibilitySettings, capacityTargetChangeAlerts, clinicAppointments, clinicDayHourOverrides, clinicPublicSettings, clinicStaffAccounts, guardianContacts, guardianRecordAccessChallenges, internalFollowUpPrintAudits, invitationSearchPresets, patientReportShares, printAuditFilterPresets, referralAuditEvents, referralDeliveryMonitor, referralRetryCounters, staffAccountActivity, staffCapacitySnapshots, staffInvitationSettings, superAdminAuditEvents, waitlistEventLog, waitlistRequests, weeklyCapacityReportReferenceSettings, weeklyCapacitySummaryExports } from "../drizzle/schema";
+import { auditArchiveRuns, auditRetentionPolicies, auditRetentionPolicyChanges, capacityAlertVisibilitySettings, capacityTargetChangeAlerts, clinicAppointments, clinicDayHourOverrides, clinicPublicSettings, clinicStaffAccounts, guardianContacts, guardianRecordAccessChallenges, internalFollowUpPrintAudits, invitationSearchPresets, patientReportShares, printAuditFilterPresets, referralAuditEvents, referralDeliveryMonitor, referralRetryCounters, staffAccountActivity, staffCapacitySnapshots, staffInvitationSettings, superAdminAccessReviews, superAdminAuditEvents, superAdminGovernanceSettings, waitlistEventLog, waitlistRequests, weeklyCapacityReportReferenceSettings, weeklyCapacitySummaryExports } from "../drizzle/schema";
 import { and, asc, eq, gte, isNull, lt, lte, or, sql } from "drizzle-orm";
 import { ENV } from "./_core/env";
 import { isClinicAdministratorEmail, isSuperAdminEmail } from "./clinic-authority";
@@ -140,11 +140,28 @@ export async function deactivateFormerStaffAccount(input: { actorEmail: string; 
   return { staffAccountId: account.staffAccountId, status: "revoked" as const };
 }
 
+export async function reactivateReturningStaffAccount(input: { actorEmail: string; staffAccountId: string }) {
+  const db = await getDb(); if (!db) throw new Error("Database not available for staff account reactivation");
+  const account = (await db.select().from(clinicStaffAccounts).where(eq(clinicStaffAccounts.staffAccountId, input.staffAccountId)).limit(1))[0];
+  if (!account) throw new Error("The selected staff account no longer exists.");
+  if (account.status !== "revoked") throw new Error("Only a currently revoked former staff account can be reactivated.");
+  const now = new Date();
+  await db.update(clinicStaffAccounts).set({ status: "active", activatedAt: now, revokedAt: null }).where(eq(clinicStaffAccounts.id, account.id));
+  await recordStaffAccountActivity(account.clinicianUserId, { staffAccountId: account.staffAccountId, eventType: "activated", actorName: input.actorEmail, summary: "Super-admin reactivated this returning staff account’s existing operational access.", occurredAt: now });
+  return { staffAccountId: account.staffAccountId, status: "active" as const };
+}
+
+const defaultSuperAdminGovernanceSettings = { exportRetentionDays: 30, accessReviewIntervalDays: 90, updatedBy: "Initial governance setup", lastAccessReviewAt: null as Date | null, lastAccessReviewBy: null as string | null, updatedAt: new Date() };
+export async function getSuperAdminGovernanceSettings() { const db = await getDb(); if (!db) return { ...defaultSuperAdminGovernanceSettings, id: 0 }; const rows = await db.select().from(superAdminGovernanceSettings).orderBy(asc(superAdminGovernanceSettings.id)).limit(1); return rows[0] ?? { ...defaultSuperAdminGovernanceSettings, id: 0 }; }
+export async function saveSuperAdminGovernanceSettings(input: { exportRetentionDays: number; accessReviewIntervalDays: number; updatedBy: string }) { const db = await getDb(); if (!db) throw new Error("Database not available for super-admin governance settings"); const existing = await db.select().from(superAdminGovernanceSettings).orderBy(asc(superAdminGovernanceSettings.id)).limit(1); if (existing[0]) await db.update(superAdminGovernanceSettings).set(input).where(eq(superAdminGovernanceSettings.id, existing[0].id)); else await db.insert(superAdminGovernanceSettings).values(input); return getSuperAdminGovernanceSettings(); }
+export async function completeSuperAdminAccessReview(actorEmail: string) { const db = await getDb(); if (!db) throw new Error("Database not available for access review"); const [admins, activeStaff, revokedStaff, pendingInvitations] = await Promise.all([db.select({ id: users.id }).from(users).where(eq(users.role, "admin")), db.select({ id: clinicStaffAccounts.id }).from(clinicStaffAccounts).where(eq(clinicStaffAccounts.status, "active")), db.select({ id: clinicStaffAccounts.id }).from(clinicStaffAccounts).where(eq(clinicStaffAccounts.status, "revoked")), db.select({ id: clinicStaffAccounts.id }).from(clinicStaffAccounts).where(eq(clinicStaffAccounts.status, "invited"))]); const now = new Date(); const review = { reviewId: `access-review-${Date.now()}`, actorEmail, applicationAdminCount: admins.length, activeStaffCount: activeStaff.length, revokedStaffCount: revokedStaff.length, pendingInvitationCount: pendingInvitations.length, reviewedAt: now }; await db.insert(superAdminAccessReviews).values(review); const settings = await getSuperAdminGovernanceSettings(); if (settings.id) await db.update(superAdminGovernanceSettings).set({ lastAccessReviewAt: now, lastAccessReviewBy: actorEmail }).where(eq(superAdminGovernanceSettings.id, settings.id)); else await db.insert(superAdminGovernanceSettings).values({ ...defaultSuperAdminGovernanceSettings, updatedBy: actorEmail, lastAccessReviewAt: now, lastAccessReviewBy: actorEmail }); return review; }
+
 export async function prepareSuperAdminAppointmentExport(input: { actorEmail: string; startDate: string; endDate: string }) {
   const db = await getDb(); if (!db) throw new Error("Database not available for confidential appointment export");
   const rows = await db.select().from(clinicAppointments).where(and(gte(clinicAppointments.appointmentDate, input.startDate), lte(clinicAppointments.appointmentDate, input.endDate))).orderBy(asc(clinicAppointments.appointmentDate), asc(clinicAppointments.appointmentTime));
-  await db.insert(superAdminAuditEvents).values({ eventId: `appointment-export-${Date.now()}`, eventType: "appointment-csv-prepared", actorEmail: input.actorEmail, startDate: input.startDate, endDate: input.endDate, recordCount: rows.length, summary: "Super-admin prepared a confidential appointment-record CSV. Preparation does not prove download, delivery, or secure storage." });
-  return rows;
+  const governance = await getSuperAdminGovernanceSettings(); const retentionExpiresAt = new Date(Date.now() + governance.exportRetentionDays * 86400000);
+  await db.insert(superAdminAuditEvents).values({ eventId: `appointment-export-${Date.now()}`, eventType: "appointment-csv-prepared", actorEmail: input.actorEmail, startDate: input.startDate, endDate: input.endDate, recordCount: rows.length, summary: `Super-admin prepared a confidential appointment-record CSV with a ${governance.exportRetentionDays}-day clinic policy. Preparation does not prove download, delivery, secure storage, or disposal.` });
+  return { rows, retentionDays: governance.exportRetentionDays, retentionExpiresAt };
 }
 
 export async function getClinicPublicSettings() {
