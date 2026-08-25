@@ -417,7 +417,7 @@ Note: Figma is not available in the current development workspace; produce a Fig
 - [x] Document parent OTP mockup and clipboard privacy safeguards in design.md and reusable workflow skill
 - [x] Validate TypeScript, lint, tests, and reusable skill structure
 
-- [ ] Inspect all local and remote branches and identify completed work not yet in main
-- [ ] Consolidate complete clinic product, architecture, authority, and run instructions for future agents
-- [ ] Merge all completed branches into main and push the verified result
-- [ ] Verify main branch integrity, project checks, and finalization handoff
+- [x] Inspect all local and remote branches and identify completed work not yet in main
+- [x] Consolidate complete clinic product, architecture, authority, and run instructions for future agents
+- [x] Merge all completed branches into main and push the verified result
+- [x] Verify main branch integrity, project checks, and finalization handoff
