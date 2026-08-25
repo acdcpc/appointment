@@ -387,3 +387,16 @@
 - [x] Add a persistent English and Nepali language toggle in main navigation
 - [x] Add an optional, consent-based email preference to service suggestions without automatic notifications
 - [x] Validate service-review, language, and contact-preference safeguards
+
+
+### Current Nepali parent-usability audit
+
+- [x] Audit current parent-facing screens against the attached Nepali usability brief
+- [x] Write a verified gap report and design changelog before implementation
+- [x] Make Nepali the default parent presentation while preserving the persistent language toggle
+- [x] Add or refine parent-facing WhatsApp/share and plain-language connectivity states where gaps are confirmed
+- [x] Document the phone-plus-OTP gap without changing the existing admin OAuth architecture
+- [x] Validate parent-facing changes and preserve clinician governance boundaries
+- [x] Update the reusable workflow with the attached brief’s audit-first Nepali parent safeguards
+
+Note: Figma is not available in the current development workspace; produce a Figma-ready gap report and implement supported code-level refinements unless a Figma connector is enabled.

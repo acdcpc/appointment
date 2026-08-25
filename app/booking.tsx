@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import * as Sharing from "expo-sharing";
+import * as FileSystem from "expo-file-system/legacy";
 import { useRouter } from "expo-router";
 
 import { ScreenContainer } from "@/components/screen-container";
@@ -83,6 +85,29 @@ export default function BookingScreen() {
     if (!result.ok) { setMessage(result.message); return; }
     setSuccess(true);
   };
+
+  const shareSummary = async () => {
+    const summary = `Rainbow Child Development Clinic\nAppointment: ${selectedServiceLabel}\nDate: ${date}\nTime: ${time}\nChild: ${activeChild.name}\n\nDr. Anil Ojha, MBBS, MD, FCCH`;
+    try {
+      if (Platform.OS === "web") {
+        const blob = new Blob([summary], { type: "text/plain;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = `rainbow-appointment-${date.replace(/\W+/g, "-")}.txt`;
+        anchor.click();
+        URL.revokeObjectURL(url);
+        return;
+      }
+      const uri = `${FileSystem.cacheDirectory}rainbow-appointment.txt`;
+      await FileSystem.writeAsStringAsync(uri, summary, { encoding: FileSystem.EncodingType.UTF8 });
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri, { mimeType: "text/plain", dialogTitle: "Share appointment summary" });
+      }
+    } catch {
+      // Ignore share cancellation or failure
+    }
+  };
   const submitSuggestion = async () => {
     if (!suggestionDraft.trim()) { setSuggestionMessage("Enter a general service name before submitting."); return; }
     const notificationEmail = suggestionEmail.trim().toLowerCase();
@@ -109,6 +134,7 @@ export default function BookingScreen() {
         <Text style={[styles.summaryText, { color: colors.muted }]}>{date} · {time}</Text>
         <Text style={[styles.summaryText, { color: colors.muted }]}>{activeChild.name}</Text>
       </View>
+      <Pressable onPress={shareSummary} style={[styles.primaryButton, { backgroundColor: colors.primary, marginBottom: 12 }]}><Text style={styles.primaryButtonText}>Share to WhatsApp / सेयर गर्नुहोस्</Text></Pressable>
       <Pressable onPress={() => router.replace("/(tabs)/appointments")} style={[styles.primaryButton, { backgroundColor: accent }]}><Text style={styles.primaryButtonText}>View appointments / भेटहरू हेर्नुहोस्</Text></Pressable>
       <Pressable onPress={() => router.replace("/(tabs)")}><Text style={[styles.link, { color: colors.primary }]}>Back to home / गृहपृष्ठमा फर्कनुहोस्</Text></Pressable>
     </View></ScreenContainer>;

@@ -7,7 +7,7 @@ const LanguageContext = createContext<LanguagePreference | null>(null);
 const STORAGE_KEY = "rainbow-clinic-language";
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguageState] = useState<AppLanguage>("en");
+  const [language, setLanguageState] = useState<AppLanguage>("ne");
   const [ready, setReady] = useState(false);
   useEffect(() => { AsyncStorage.getItem(STORAGE_KEY).then((value) => { if (value === "ne" || value === "en") setLanguageState(value); }).finally(() => setReady(true)); }, []);
   const setLanguage = (next: AppLanguage) => { setLanguageState(next); void AsyncStorage.setItem(STORAGE_KEY, next); };
