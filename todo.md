@@ -400,3 +400,19 @@
 - [x] Update the reusable workflow with the attached brief’s audit-first Nepali parent safeguards
 
 Note: Figma is not available in the current development workspace; produce a Figma-ready gap report and implement supported code-level refinements unless a Figma connector is enabled.
+
+
+### Parent OTP mockup and healthcare design template
+
+- [ ] Update reusable workflow for free review-only parent OTP mockups, local clipboard feedback, and design-token templates
+- [ ] Create a standard healthcare branding `design.md` with the existing clinic trust palette
+- [ ] Apply the healthcare design tokens to the Nepali booking flow without changing canonical data
+- [ ] Build a free parent phone-plus-OTP frontend mockup with request-code, code-entry, resend, and edit-number states
+- [ ] Add one-click copy-to-clipboard for appointment summaries with a visual success toast
+- [ ] Keep OTP as a frontend mockup only; do not connect paid SMS, credentials, or real authentication
+- [ ] Validate the mockup, clipboard flow, design-token application, and free-cost safeguards
+
+- [x] Complete bilingual copy-to-clipboard action with success and failure feedback on booking confirmation
+- [x] Add discoverable parent phone-plus-OTP frontend mockup entry point from the home screen
+- [x] Document parent OTP mockup and clipboard privacy safeguards in design.md and reusable workflow skill
+- [x] Validate TypeScript, lint, tests, and reusable skill structure
