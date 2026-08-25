@@ -86,6 +86,9 @@ export const appRouter = router({
     requestMaintenanceNotification: publicProcedure.input(z.object({ email: z.string().trim().email().max(320), consented: z.literal(true) })).mutation(async ({ input }) => {
       const preference = await referralDb.requestMaintenanceNotificationPreference(input.email); return { ...preference, meaning: "Your preference was recorded for later clinic review. This app does not send an automatic email or guarantee a future notification." };
     }),
+    suggestService: publicProcedure.input(z.object({ suggestedService: z.string().trim().min(2).max(80).refine((value) => /\S/.test(value), "Enter a service name.") })).mutation(async ({ input }) => {
+      const suggestion = await referralDb.submitServiceSuggestion(input.suggestedService); return { ...suggestion, meaning: "Your non-clinical service suggestion was recorded for later clinic review. It is not an appointment, clinical request, or promise that the clinic will add the service." };
+    }),
     settings: publicProcedure.query(async () => {
       const settings = await referralDb.getClinicPublicSettings();
       return { clinicName: settings.clinicName, address: settings.address, mapUrl: settings.mapUrl, clinicEmail: settings.clinicEmail, whatsappNumber: settings.whatsappNumber, whatsappResponseNotice: settings.whatsappResponseNotice, isProvisional: settings.isProvisional, updatedAt: settings.updatedAt.toISOString() };

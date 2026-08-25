@@ -83,6 +83,15 @@ export const maintenanceNotificationRequests = mysqlTable("maintenance_notificat
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, (table) => [uniqueIndex("maintenance_notification_request_unique").on(table.maintenanceChangedAt, table.email), uniqueIndex("maintenance_notification_request_id_unique").on(table.requestId), index("maintenance_notification_request_status_idx").on(table.status, table.requestedAt)]);
 
+export const serviceSuggestionRequests = mysqlTable("service_suggestion_requests", {
+  id: int("id").autoincrement().primaryKey(),
+  suggestionId: varchar("suggestionId", { length: 120 }).notNull(),
+  suggestedService: varchar("suggestedService", { length: 80 }).notNull(),
+  status: mysqlEnum("status", ["submitted", "reviewed"]).notNull().default("submitted"),
+  requestedAt: timestamp("requestedAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => [uniqueIndex("service_suggestion_request_id_unique").on(table.suggestionId), index("service_suggestion_request_service_time_idx").on(table.suggestedService, table.requestedAt)]);
+
 export const maintenanceNotificationPreferenceExports = mysqlTable("maintenance_notification_preference_exports", {
   id: int("id").autoincrement().primaryKey(),
   exportId: varchar("exportId", { length: 120 }).notNull(),

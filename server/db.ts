@@ -1,7 +1,7 @@
 import { drizzle } from "drizzle-orm/mysql2";
 import { createHash, randomBytes, randomInt } from "node:crypto";
 import { InsertUser, users } from "../drizzle/schema";
-import { auditArchiveRuns, auditRetentionPolicies, auditRetentionPolicyChanges, capacityAlertVisibilitySettings, capacityTargetChangeAlerts, clinicAppointments, clinicDayHourOverrides, clinicPublicSettings, clinicStaffAccounts, guardianContacts, guardianRecordAccessChallenges, internalFollowUpPrintAudits, invitationSearchPresets, maintenanceNotificationPreferenceExports, maintenanceNotificationRequests, patientReportShares, postDeploymentFeedback, printAuditFilterPresets, referralAuditEvents, referralDeliveryMonitor, referralRetryCounters, staffAccountActivity, staffCapacitySnapshots, staffInvitationSettings, superAdminAccessReviews, superAdminAuditEvents, superAdminGovernanceSettings, superAdminMaintenanceEvents, waitlistEventLog, waitlistRequests, weeklyCapacityReportReferenceSettings, weeklyCapacitySummaryExports } from "../drizzle/schema";
+import { auditArchiveRuns, auditRetentionPolicies, auditRetentionPolicyChanges, capacityAlertVisibilitySettings, capacityTargetChangeAlerts, clinicAppointments, clinicDayHourOverrides, clinicPublicSettings, clinicStaffAccounts, guardianContacts, guardianRecordAccessChallenges, internalFollowUpPrintAudits, invitationSearchPresets, maintenanceNotificationPreferenceExports, maintenanceNotificationRequests, patientReportShares, postDeploymentFeedback, printAuditFilterPresets, referralAuditEvents, referralDeliveryMonitor, referralRetryCounters, serviceSuggestionRequests, staffAccountActivity, staffCapacitySnapshots, staffInvitationSettings, superAdminAccessReviews, superAdminAuditEvents, superAdminGovernanceSettings, superAdminMaintenanceEvents, waitlistEventLog, waitlistRequests, weeklyCapacityReportReferenceSettings, weeklyCapacitySummaryExports } from "../drizzle/schema";
 import { and, asc, eq, gte, inArray, isNull, like, lt, lte, or, sql } from "drizzle-orm";
 import { ENV } from "./_core/env";
 import { isClinicAdministratorEmail, isSuperAdminEmail } from "./clinic-authority";
@@ -189,6 +189,15 @@ export async function requestMaintenanceNotificationPreference(email: string) {
   if (existing) { await db.update(maintenanceNotificationRequests).set({ status: "requested" }).where(eq(maintenanceNotificationRequests.id, existing.id)); return { alreadyRecorded: true }; }
   await db.insert(maintenanceNotificationRequests).values({ requestId: `maintenance-notification-${Date.now()}-${randomInt(1000, 9999)}`, maintenanceChangedAt: status.changedAt, email: normalizedEmail, status: "requested" });
   return { alreadyRecorded: false };
+}
+
+export async function submitServiceSuggestion(suggestedService: string) {
+  const db = await getDb(); if (!db) throw new Error("Database not available for service suggestions");
+  const normalized = suggestedService.trim().replace(/\s+/g, " "); const recentCutoff = new Date(Date.now() - 60 * 60 * 1000);
+  const duplicate = (await db.select({ suggestionId: serviceSuggestionRequests.suggestionId }).from(serviceSuggestionRequests).where(and(eq(serviceSuggestionRequests.suggestedService, normalized), gte(serviceSuggestionRequests.requestedAt, recentCutoff))).limit(1))[0];
+  if (duplicate) return { alreadySubmitted: true };
+  await db.insert(serviceSuggestionRequests).values({ suggestionId: `service-suggestion-${Date.now()}-${randomInt(1000, 9999)}`, suggestedService: normalized });
+  return { alreadySubmitted: false };
 }
 
 export type MaintenanceNotificationPreferenceFilter = { status?: "all" | "requested" | "withdrawn"; emailQuery?: string };

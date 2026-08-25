@@ -377,3 +377,8 @@
 - [x] Harmonize parent-facing clinic design tokens with the verified navy-teal trust direction
 - [x] Add accessible service search and concise visit-topic filters to the parent booking flow
 - [x] Validate visual-system integration without expanding clinical data collection or communication automation
+- [x] Update reusable workflow for bilingual service labels, compact-device review, and service-suggestion safeguards
+- [x] Add final Nepali labels for available appointment service types
+- [x] Add a compact-device preview toggle for booking service search and topic chips
+- [x] Add a bounded service-suggestion request from the booking no-match state
+- [x] Validate bilingual labels, compact preview, and service-suggestion safeguards
