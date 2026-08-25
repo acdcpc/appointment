@@ -232,6 +232,13 @@
       "when": 1787642157369,
       "tag": "0032_smart_doomsday",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "5",
+      "when": 1787643663113,
+      "tag": "0033_loving_la_nuit",
+      "breakpoints": true
     }
   ]
 }

@@ -191,13 +191,29 @@ export async function requestMaintenanceNotificationPreference(email: string) {
   return { alreadyRecorded: false };
 }
 
-export async function submitServiceSuggestion(suggestedService: string) {
+export async function submitServiceSuggestion(input: { suggestedService: string; notificationEmail?: string | null; notificationConsented: boolean }) {
   const db = await getDb(); if (!db) throw new Error("Database not available for service suggestions");
-  const normalized = suggestedService.trim().replace(/\s+/g, " "); const recentCutoff = new Date(Date.now() - 60 * 60 * 1000);
-  const duplicate = (await db.select({ suggestionId: serviceSuggestionRequests.suggestionId }).from(serviceSuggestionRequests).where(and(eq(serviceSuggestionRequests.suggestedService, normalized), gte(serviceSuggestionRequests.requestedAt, recentCutoff))).limit(1))[0];
-  if (duplicate) return { alreadySubmitted: true };
-  await db.insert(serviceSuggestionRequests).values({ suggestionId: `service-suggestion-${Date.now()}-${randomInt(1000, 9999)}`, suggestedService: normalized });
+  const normalized = input.suggestedService.trim().replace(/\s+/g, " "); const notificationEmail = input.notificationEmail?.trim().toLowerCase() || null; const recentCutoff = new Date(Date.now() - 60 * 60 * 1000);
+  const duplicate = (await db.select({ id: serviceSuggestionRequests.id }).from(serviceSuggestionRequests).where(and(eq(serviceSuggestionRequests.suggestedService, normalized), gte(serviceSuggestionRequests.requestedAt, recentCutoff))).limit(1))[0];
+  if (duplicate) { if (notificationEmail && input.notificationConsented) await db.update(serviceSuggestionRequests).set({ notificationEmail, notificationConsented: true }).where(eq(serviceSuggestionRequests.id, duplicate.id)); return { alreadySubmitted: true }; }
+  await db.insert(serviceSuggestionRequests).values({ suggestionId: `service-suggestion-${Date.now()}-${randomInt(1000, 9999)}`, suggestedService: normalized, notificationEmail, notificationConsented: Boolean(notificationEmail && input.notificationConsented) });
   return { alreadySubmitted: false };
+}
+
+export type ServiceSuggestionFilter = { status?: "all" | "submitted" | "approved" | "dismissed"; serviceQuery?: string };
+export async function listServiceSuggestions(filter: ServiceSuggestionFilter = {}) {
+  const db = await getDb(); if (!db) return [];
+  const conditions = []; if (filter.status && filter.status !== "all") conditions.push(eq(serviceSuggestionRequests.status, filter.status));
+  const serviceQuery = filter.serviceQuery?.trim().toLowerCase(); if (serviceQuery) conditions.push(like(serviceSuggestionRequests.suggestedService, `%${serviceQuery.replace(/[\\%_]/g, "\\$&")}%`));
+  const base = db.select({ suggestionId: serviceSuggestionRequests.suggestionId, suggestedService: serviceSuggestionRequests.suggestedService, notificationEmail: serviceSuggestionRequests.notificationEmail, notificationConsented: serviceSuggestionRequests.notificationConsented, status: serviceSuggestionRequests.status, requestedAt: serviceSuggestionRequests.requestedAt, reviewedAt: serviceSuggestionRequests.reviewedAt, reviewedBy: serviceSuggestionRequests.reviewedBy, updatedAt: serviceSuggestionRequests.updatedAt }).from(serviceSuggestionRequests);
+  return conditions.length ? base.where(and(...conditions)).orderBy(sql`${serviceSuggestionRequests.requestedAt} desc`).limit(100) : base.orderBy(sql`${serviceSuggestionRequests.requestedAt} desc`).limit(100);
+}
+
+export async function reviewServiceSuggestion(input: { suggestionId: string; status: "approved" | "dismissed"; reviewedBy: string }) {
+  const db = await getDb(); if (!db) throw new Error("Database not available for service suggestions");
+  const suggestion = (await db.select({ id: serviceSuggestionRequests.id }).from(serviceSuggestionRequests).where(eq(serviceSuggestionRequests.suggestionId, input.suggestionId)).limit(1))[0]; if (!suggestion) throw new Error("This service suggestion is no longer available.");
+  await db.update(serviceSuggestionRequests).set({ status: input.status, reviewedAt: new Date(), reviewedBy: input.reviewedBy }).where(eq(serviceSuggestionRequests.id, suggestion.id));
+  return { updated: true };
 }
 
 export type MaintenanceNotificationPreferenceFilter = { status?: "all" | "requested" | "withdrawn"; emailQuery?: string };

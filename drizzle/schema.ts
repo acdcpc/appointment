@@ -87,7 +87,11 @@ export const serviceSuggestionRequests = mysqlTable("service_suggestion_requests
   id: int("id").autoincrement().primaryKey(),
   suggestionId: varchar("suggestionId", { length: 120 }).notNull(),
   suggestedService: varchar("suggestedService", { length: 80 }).notNull(),
-  status: mysqlEnum("status", ["submitted", "reviewed"]).notNull().default("submitted"),
+  notificationEmail: varchar("notificationEmail", { length: 320 }),
+  notificationConsented: boolean("notificationConsented").notNull().default(false),
+  status: mysqlEnum("status", ["submitted", "approved", "dismissed"]).notNull().default("submitted"),
+  reviewedAt: timestamp("reviewedAt"),
+  reviewedBy: varchar("reviewedBy", { length: 320 }),
   requestedAt: timestamp("requestedAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, (table) => [uniqueIndex("service_suggestion_request_id_unique").on(table.suggestionId), index("service_suggestion_request_service_time_idx").on(table.suggestedService, table.requestedAt)]);

@@ -382,3 +382,8 @@
 - [x] Add a compact-device preview toggle for booking service search and topic chips
 - [x] Add a bounded service-suggestion request from the booking no-match state
 - [x] Validate bilingual labels, compact preview, and service-suggestion safeguards
+- [x] Update reusable workflow for protected service-suggestion review, language selection, and review-first contact preferences
+- [x] Add a super-admin dashboard view to review, approve, or dismiss service suggestions
+- [x] Add a persistent English and Nepali language toggle in main navigation
+- [x] Add an optional, consent-based email preference to service suggestions without automatic notifications
+- [x] Validate service-review, language, and contact-preference safeguards
