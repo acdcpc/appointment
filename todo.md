@@ -338,3 +338,86 @@
 - [x] Inspect GitHub branches and pull requests for completed review work
 - [x] Safely merge completed review work into the protected main branch
 - [x] Verify main branch includes the completed clinic governance updates
+- [x] Review production configuration and authority boundaries for the deployment runbook
+- [x] Create a secure production deployment checklist for the clinic application
+- [x] Create a live-build super-admin and clinic-administrator login verification guide
+- [x] Validate the deployment and verification guide against the current project configuration
+- [x] Update reusable workflow for maintenance mode, clinician deployment feedback, and production indicators
+- [x] Add super-admin-controlled maintenance mode with server-enforced access hold and audit evidence
+- [x] Add clinician post-deployment feedback submission and super-admin review controls
+- [x] Add a clear navigation indicator for the live production environment
+- [x] Validate maintenance, feedback, environment, and access safeguards
+- [x] Update reusable workflow for feedback screenshots, maintenance completion estimates, and release-detail indicators
+- [x] Add secure clinician feedback screenshot attachments with restricted review access
+- [x] Add a super-admin-maintained estimated maintenance completion field
+- [x] Add clickable environment badge release details with non-secret version and deployment notes
+- [x] Validate feedback attachment, maintenance estimate, and release-detail safeguards
+- [x] Update reusable workflow for attachment confirmation, user-controlled screenshot redaction, and estimate countdown safeguards
+- [x] Add visual screenshot attachment confirmation and compact preview thumbnail
+- [x] Add an opt-in local blur/redaction step before screenshot feedback submission
+- [x] Add an explicitly estimate-only maintenance completion countdown
+- [x] Validate attachment-redaction, countdown, and privacy safeguards
+- [x] Update reusable workflow for review acknowledgement, selection redaction, and review-first maintenance notification preferences
+- [x] Require super-admin acknowledgement before opening a protected feedback attachment
+- [x] Add user-directed local screenshot blur-area selection before upload
+- [x] Add an explicit maintenance notification preference without automatic email delivery
+- [x] Validate attachment-review, manual-redaction, and notification-preference safeguards
+- [x] Update reusable workflow for redaction onboarding, mobile zoom/pan, and protected preference management
+- [x] Add first-use manual-redaction tutorial guidance for sensitive screenshot areas
+- [x] Add zoom and pan controls to improve mobile screenshot area redaction
+- [x] Add super-admin maintenance preference dashboard with bounded filters and scoped export
+- [x] Validate redaction usability and preference-management safeguards
+- [x] Update reusable workflow for verified parent-facing design refinement, redaction history, and bulk preference status changes
+- [x] Refine priority parent-facing booking design using the verified single-clinician bilingual trust brief
+- [x] Add manual redaction brush undo and redo controls
+- [x] Add a persistent tutorial preference with a "Don't show this again" option
+- [x] Add super-admin-confirmed bulk maintenance preference status changes
+- [x] Validate design, redaction history, tutorial preference, and bulk-action safeguards
+- [x] Update reusable workflow for cohesive visual-system assessment and low-friction parent service browsing
+- [x] Harmonize parent-facing clinic design tokens with the verified navy-teal trust direction
+- [x] Add accessible service search and concise visit-topic filters to the parent booking flow
+- [x] Validate visual-system integration without expanding clinical data collection or communication automation
+- [x] Update reusable workflow for bilingual service labels, compact-device review, and service-suggestion safeguards
+- [x] Add final Nepali labels for available appointment service types
+- [x] Add a compact-device preview toggle for booking service search and topic chips
+- [x] Add a bounded service-suggestion request from the booking no-match state
+- [x] Validate bilingual labels, compact preview, and service-suggestion safeguards
+- [x] Update reusable workflow for protected service-suggestion review, language selection, and review-first contact preferences
+- [x] Add a super-admin dashboard view to review, approve, or dismiss service suggestions
+- [x] Add a persistent English and Nepali language toggle in main navigation
+- [x] Add an optional, consent-based email preference to service suggestions without automatic notifications
+- [x] Validate service-review, language, and contact-preference safeguards
+
+
+### Current Nepali parent-usability audit
+
+- [x] Audit current parent-facing screens against the attached Nepali usability brief
+- [x] Write a verified gap report and design changelog before implementation
+- [x] Make Nepali the default parent presentation while preserving the persistent language toggle
+- [x] Add or refine parent-facing WhatsApp/share and plain-language connectivity states where gaps are confirmed
+- [x] Document the phone-plus-OTP gap without changing the existing admin OAuth architecture
+- [x] Validate parent-facing changes and preserve clinician governance boundaries
+- [x] Update the reusable workflow with the attached brief’s audit-first Nepali parent safeguards
+
+Note: Figma is not available in the current development workspace; produce a Figma-ready gap report and implement supported code-level refinements unless a Figma connector is enabled.
+
+
+### Parent OTP mockup and healthcare design template
+
+- [ ] Update reusable workflow for free review-only parent OTP mockups, local clipboard feedback, and design-token templates
+- [ ] Create a standard healthcare branding `design.md` with the existing clinic trust palette
+- [ ] Apply the healthcare design tokens to the Nepali booking flow without changing canonical data
+- [ ] Build a free parent phone-plus-OTP frontend mockup with request-code, code-entry, resend, and edit-number states
+- [ ] Add one-click copy-to-clipboard for appointment summaries with a visual success toast
+- [ ] Keep OTP as a frontend mockup only; do not connect paid SMS, credentials, or real authentication
+- [ ] Validate the mockup, clipboard flow, design-token application, and free-cost safeguards
+
+- [x] Complete bilingual copy-to-clipboard action with success and failure feedback on booking confirmation
+- [x] Add discoverable parent phone-plus-OTP frontend mockup entry point from the home screen
+- [x] Document parent OTP mockup and clipboard privacy safeguards in design.md and reusable workflow skill
+- [x] Validate TypeScript, lint, tests, and reusable skill structure
+
+- [ ] Inspect all local and remote branches and identify completed work not yet in main
+- [ ] Consolidate complete clinic product, architecture, authority, and run instructions for future agents
+- [ ] Merge all completed branches into main and push the verified result
+- [ ] Verify main branch integrity, project checks, and finalization handoff

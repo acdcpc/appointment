@@ -50,11 +50,78 @@ export const superAdminGovernanceSettings = mysqlTable("super_admin_governance_s
   id: int("id").autoincrement().primaryKey(),
   exportRetentionDays: int("exportRetentionDays").notNull().default(30),
   accessReviewIntervalDays: int("accessReviewIntervalDays").notNull().default(90),
+  maintenanceModeEnabled: boolean("maintenanceModeEnabled").notNull().default(false),
+  maintenanceNotice: varchar("maintenanceNotice", { length: 300 }).notNull().default("A scheduled clinic service update is in progress. Please return shortly."),
+  maintenanceEstimatedCompletion: varchar("maintenanceEstimatedCompletion", { length: 160 }),
+  maintenanceEstimatedCompletionAt: timestamp("maintenanceEstimatedCompletionAt"),
+  maintenanceChangedAt: timestamp("maintenanceChangedAt"),
+  maintenanceChangedBy: varchar("maintenanceChangedBy", { length: 320 }),
   updatedBy: varchar("updatedBy", { length: 320 }).notNull(),
   lastAccessReviewAt: timestamp("lastAccessReviewAt"),
   lastAccessReviewBy: varchar("lastAccessReviewBy", { length: 320 }),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
+
+export const superAdminMaintenanceEvents = mysqlTable("super_admin_maintenance_events", {
+  id: int("id").autoincrement().primaryKey(),
+  eventId: varchar("eventId", { length: 120 }).notNull(),
+  actorEmail: varchar("actorEmail", { length: 320 }).notNull(),
+  enabled: boolean("enabled").notNull(),
+  noticeSummary: varchar("noticeSummary", { length: 300 }).notNull(),
+  estimatedCompletion: varchar("estimatedCompletion", { length: 160 }),
+  estimatedCompletionAt: timestamp("estimatedCompletionAt"),
+  occurredAt: timestamp("occurredAt").defaultNow().notNull(),
+}, (table) => [uniqueIndex("super_admin_maintenance_event_unique").on(table.eventId), index("super_admin_maintenance_event_time_idx").on(table.occurredAt)]);
+
+export const maintenanceNotificationRequests = mysqlTable("maintenance_notification_requests", {
+  id: int("id").autoincrement().primaryKey(),
+  requestId: varchar("requestId", { length: 120 }).notNull(),
+  maintenanceChangedAt: timestamp("maintenanceChangedAt").notNull(),
+  email: varchar("email", { length: 320 }).notNull(),
+  status: mysqlEnum("status", ["requested", "withdrawn"]).notNull().default("requested"),
+  requestedAt: timestamp("requestedAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => [uniqueIndex("maintenance_notification_request_unique").on(table.maintenanceChangedAt, table.email), uniqueIndex("maintenance_notification_request_id_unique").on(table.requestId), index("maintenance_notification_request_status_idx").on(table.status, table.requestedAt)]);
+
+export const serviceSuggestionRequests = mysqlTable("service_suggestion_requests", {
+  id: int("id").autoincrement().primaryKey(),
+  suggestionId: varchar("suggestionId", { length: 120 }).notNull(),
+  suggestedService: varchar("suggestedService", { length: 80 }).notNull(),
+  notificationEmail: varchar("notificationEmail", { length: 320 }),
+  notificationConsented: boolean("notificationConsented").notNull().default(false),
+  status: mysqlEnum("status", ["submitted", "approved", "dismissed"]).notNull().default("submitted"),
+  reviewedAt: timestamp("reviewedAt"),
+  reviewedBy: varchar("reviewedBy", { length: 320 }),
+  requestedAt: timestamp("requestedAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => [uniqueIndex("service_suggestion_request_id_unique").on(table.suggestionId), index("service_suggestion_request_service_time_idx").on(table.suggestedService, table.requestedAt)]);
+
+export const maintenanceNotificationPreferenceExports = mysqlTable("maintenance_notification_preference_exports", {
+  id: int("id").autoincrement().primaryKey(),
+  exportId: varchar("exportId", { length: 120 }).notNull(),
+  actorEmail: varchar("actorEmail", { length: 320 }).notNull(),
+  statusFilter: varchar("statusFilter", { length: 20 }).notNull(),
+  emailQuery: varchar("emailQuery", { length: 160 }),
+  recordCount: int("recordCount").notNull().default(0),
+  preparedAt: timestamp("preparedAt").defaultNow().notNull(),
+}, (table) => [uniqueIndex("maintenance_notification_preference_export_unique").on(table.exportId), index("maintenance_notification_preference_export_time_idx").on(table.preparedAt)]);
+
+export const postDeploymentFeedback = mysqlTable("post_deployment_feedback", {
+  id: int("id").autoincrement().primaryKey(),
+  feedbackId: varchar("feedbackId", { length: 120 }).notNull(),
+  submittedBy: varchar("submittedBy", { length: 320 }).notNull(),
+  category: mysqlEnum("category", ["login", "scheduling", "records", "display", "other"]).notNull(),
+  title: varchar("title", { length: 140 }).notNull(),
+  description: varchar("description", { length: 1200 }).notNull(),
+  screenshotStorageKey: varchar("screenshotStorageKey", { length: 512 }),
+  screenshotContentType: varchar("screenshotContentType", { length: 80 }),
+  screenshotBytes: int("screenshotBytes"),
+  status: mysqlEnum("status", ["open", "reviewed", "resolved"]).notNull().default("open"),
+  reviewedBy: varchar("reviewedBy", { length: 320 }),
+  reviewedAt: timestamp("reviewedAt"),
+  submittedAt: timestamp("submittedAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => [uniqueIndex("post_deployment_feedback_unique").on(table.feedbackId), index("post_deployment_feedback_status_time_idx").on(table.status, table.submittedAt)]);
 
 export const superAdminAccessReviews = mysqlTable("super_admin_access_reviews", {
   id: int("id").autoincrement().primaryKey(),

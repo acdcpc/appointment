@@ -2,6 +2,8 @@ import { NOT_ADMIN_ERR_MSG, UNAUTHED_ERR_MSG } from "../../shared/const.js";
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import type { TrpcContext } from "./context";
+import { getMaintenanceModeStatus } from "../db";
+import { isSuperAdminEmail } from "../clinic-authority";
 
 const t = initTRPC.context<TrpcContext>().create({
   transformer: superjson,
@@ -15,6 +17,11 @@ const requireUser = t.middleware(async (opts) => {
 
   if (!ctx.user) {
     throw new TRPCError({ code: "UNAUTHORIZED", message: UNAUTHED_ERR_MSG });
+  }
+
+  const maintenance = await getMaintenanceModeStatus();
+  if (maintenance.enabled && !isSuperAdminEmail(ctx.user.email)) {
+    throw new TRPCError({ code: "FORBIDDEN", message: `${maintenance.notice} Protected clinic operations are temporarily unavailable during maintenance.` });
   }
 
   return next({

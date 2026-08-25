@@ -224,3 +224,12 @@ The retention dashboard adds a **Run summary now** action that calculates and sh
 ## Trend Export and Quarterly Review
 
 The archive-volume chart provides a clinician-selected start and end month range, with a CSV export that includes only month bucket, archive-run count, archived-record count, and selected range metadata. The dashboard adds a quarterly retention-review control that can enable, pause, or resume a published reminder; each reminder contains aggregate storage and archive information only. While **Run summary now** is executing, its button changes to a progress label and remains disabled. A success card confirms the completed summary period and aggregate result after the action finishes.
+
+
+## Parent phone-plus-OTP mockup
+
+The parent authentication prototype is a review-only front-end flow. It uses a phone-number entry screen, a request-code action, a six-digit code-entry state, an edit-number action, a resend-preview action, and a completion card. It must always say that no SMS was sent and that no account was authenticated. Real SMS delivery, rate limiting, recovery, verified identity, and account linking require a separately approved production architecture and are not part of this free prototype.
+
+## Appointment-summary copy interaction
+
+After a booking request succeeds, place **Copy summary / सारांश कपी गर्नुहोस्** beside the existing user-initiated share action. Copy only the clinic, public clinician designation, service, date, time, and selected child display name. Show a green bilingual success toast after the asynchronous clipboard write; show an actionable failure toast if browser or device clipboard permission is unavailable. Never copy clinical notes, credentials, tokens, or internal identifiers.

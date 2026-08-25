@@ -1,8 +1,8 @@
 import { drizzle } from "drizzle-orm/mysql2";
 import { createHash, randomBytes, randomInt } from "node:crypto";
 import { InsertUser, users } from "../drizzle/schema";
-import { auditArchiveRuns, auditRetentionPolicies, auditRetentionPolicyChanges, capacityAlertVisibilitySettings, capacityTargetChangeAlerts, clinicAppointments, clinicDayHourOverrides, clinicPublicSettings, clinicStaffAccounts, guardianContacts, guardianRecordAccessChallenges, internalFollowUpPrintAudits, invitationSearchPresets, patientReportShares, printAuditFilterPresets, referralAuditEvents, referralDeliveryMonitor, referralRetryCounters, staffAccountActivity, staffCapacitySnapshots, staffInvitationSettings, superAdminAccessReviews, superAdminAuditEvents, superAdminGovernanceSettings, waitlistEventLog, waitlistRequests, weeklyCapacityReportReferenceSettings, weeklyCapacitySummaryExports } from "../drizzle/schema";
-import { and, asc, eq, gte, isNull, like, lt, lte, or, sql } from "drizzle-orm";
+import { auditArchiveRuns, auditRetentionPolicies, auditRetentionPolicyChanges, capacityAlertVisibilitySettings, capacityTargetChangeAlerts, clinicAppointments, clinicDayHourOverrides, clinicPublicSettings, clinicStaffAccounts, guardianContacts, guardianRecordAccessChallenges, internalFollowUpPrintAudits, invitationSearchPresets, maintenanceNotificationPreferenceExports, maintenanceNotificationRequests, patientReportShares, postDeploymentFeedback, printAuditFilterPresets, referralAuditEvents, referralDeliveryMonitor, referralRetryCounters, serviceSuggestionRequests, staffAccountActivity, staffCapacitySnapshots, staffInvitationSettings, superAdminAccessReviews, superAdminAuditEvents, superAdminGovernanceSettings, superAdminMaintenanceEvents, waitlistEventLog, waitlistRequests, weeklyCapacityReportReferenceSettings, weeklyCapacitySummaryExports } from "../drizzle/schema";
+import { and, asc, eq, gte, inArray, isNull, like, lt, lte, or, sql } from "drizzle-orm";
 import { ENV } from "./_core/env";
 import { isClinicAdministratorEmail, isSuperAdminEmail } from "./clinic-authority";
 
@@ -151,7 +151,7 @@ export async function reactivateReturningStaffAccount(input: { actorEmail: strin
   return { staffAccountId: account.staffAccountId, status: "active" as const };
 }
 
-const defaultSuperAdminGovernanceSettings = { exportRetentionDays: 30, accessReviewIntervalDays: 90, updatedBy: "Initial governance setup", lastAccessReviewAt: null as Date | null, lastAccessReviewBy: null as string | null, updatedAt: new Date() };
+const defaultSuperAdminGovernanceSettings = { exportRetentionDays: 30, accessReviewIntervalDays: 90, maintenanceModeEnabled: false, maintenanceNotice: "A scheduled clinic service update is in progress. Please return shortly.", maintenanceEstimatedCompletion: null as string | null, maintenanceEstimatedCompletionAt: null as Date | null, maintenanceChangedAt: null as Date | null, maintenanceChangedBy: null as string | null, updatedBy: "Initial governance setup", lastAccessReviewAt: null as Date | null, lastAccessReviewBy: null as string | null, updatedAt: new Date() };
 export async function getSuperAdminGovernanceSettings() { const db = await getDb(); if (!db) return { ...defaultSuperAdminGovernanceSettings, id: 0 }; const rows = await db.select().from(superAdminGovernanceSettings).orderBy(asc(superAdminGovernanceSettings.id)).limit(1); return rows[0] ?? { ...defaultSuperAdminGovernanceSettings, id: 0 }; }
 export async function saveSuperAdminGovernanceSettings(input: { exportRetentionDays: number; accessReviewIntervalDays: number; updatedBy: string }) { const db = await getDb(); if (!db) throw new Error("Database not available for super-admin governance settings"); const existing = await db.select().from(superAdminGovernanceSettings).orderBy(asc(superAdminGovernanceSettings.id)).limit(1); if (existing[0]) await db.update(superAdminGovernanceSettings).set(input).where(eq(superAdminGovernanceSettings.id, existing[0].id)); else await db.insert(superAdminGovernanceSettings).values(input); return getSuperAdminGovernanceSettings(); }
 export async function completeSuperAdminAccessReview(actorEmail: string) { const db = await getDb(); if (!db) throw new Error("Database not available for access review"); const [admins, activeStaff, revokedStaff, pendingInvitations] = await Promise.all([db.select({ id: users.id }).from(users).where(eq(users.role, "admin")), db.select({ id: clinicStaffAccounts.id }).from(clinicStaffAccounts).where(eq(clinicStaffAccounts.status, "active")), db.select({ id: clinicStaffAccounts.id }).from(clinicStaffAccounts).where(eq(clinicStaffAccounts.status, "revoked")), db.select({ id: clinicStaffAccounts.id }).from(clinicStaffAccounts).where(eq(clinicStaffAccounts.status, "invited"))]); const now = new Date(); const review = { reviewId: `access-review-${Date.now()}`, actorEmail, applicationAdminCount: admins.length, activeStaffCount: activeStaff.length, revokedStaffCount: revokedStaff.length, pendingInvitationCount: pendingInvitations.length, reviewedAt: now }; await db.insert(superAdminAccessReviews).values(review); const settings = await getSuperAdminGovernanceSettings(); if (settings.id) await db.update(superAdminGovernanceSettings).set({ lastAccessReviewAt: now, lastAccessReviewBy: actorEmail }).where(eq(superAdminGovernanceSettings.id, settings.id)); else await db.insert(superAdminGovernanceSettings).values({ ...defaultSuperAdminGovernanceSettings, updatedBy: actorEmail, lastAccessReviewAt: now, lastAccessReviewBy: actorEmail }); return review; }
@@ -171,6 +171,93 @@ export async function searchSuperAdminAppointmentExportRegister(input: { startDa
   if (input.endDate) conditions.push(lte(superAdminAuditEvents.occurredAt, new Date(`${input.endDate}T23:59:59.999Z`)));
   const actorQuery = input.actorQuery?.trim().toLowerCase(); if (actorQuery) conditions.push(like(superAdminAuditEvents.actorEmail, `%${actorQuery.replace(/[\\%_]/g, "\\$&")}%`));
   return db.select({ eventId: superAdminAuditEvents.eventId, actorEmail: superAdminAuditEvents.actorEmail, startDate: superAdminAuditEvents.startDate, endDate: superAdminAuditEvents.endDate, recordCount: superAdminAuditEvents.recordCount, summary: superAdminAuditEvents.summary, occurredAt: superAdminAuditEvents.occurredAt }).from(superAdminAuditEvents).where(and(...conditions)).orderBy(sql`${superAdminAuditEvents.occurredAt} desc`).limit(100);
+}
+
+export async function setMaintenanceMode(input: { enabled: boolean; notice: string; estimatedCompletion?: string | null; estimatedCompletionAt?: Date | null; actorEmail: string }) {
+  const db = await getDb(); if (!db) throw new Error("Database not available for maintenance mode"); const now = new Date(); const settings = await getSuperAdminGovernanceSettings(); const update = { maintenanceModeEnabled: input.enabled, maintenanceNotice: input.notice, maintenanceEstimatedCompletion: input.estimatedCompletion ?? null, maintenanceEstimatedCompletionAt: input.estimatedCompletionAt ?? null, maintenanceChangedAt: now, maintenanceChangedBy: input.actorEmail, updatedBy: input.actorEmail };
+  if (settings.id) await db.update(superAdminGovernanceSettings).set(update).where(eq(superAdminGovernanceSettings.id, settings.id)); else await db.insert(superAdminGovernanceSettings).values({ ...defaultSuperAdminGovernanceSettings, ...update });
+  await db.insert(superAdminMaintenanceEvents).values({ eventId: `maintenance-${Date.now()}`, actorEmail: input.actorEmail, enabled: input.enabled, noticeSummary: input.notice, estimatedCompletion: input.estimatedCompletion ?? null, estimatedCompletionAt: input.estimatedCompletionAt ?? null, occurredAt: now }); return getSuperAdminGovernanceSettings();
+}
+
+export async function getMaintenanceModeStatus() { const settings = await getSuperAdminGovernanceSettings(); return { enabled: settings.maintenanceModeEnabled, notice: settings.maintenanceNotice, estimatedCompletion: settings.maintenanceEstimatedCompletion, estimatedCompletionAt: settings.maintenanceEstimatedCompletionAt, changedAt: settings.maintenanceChangedAt, changedBy: settings.maintenanceChangedBy }; }
+
+export async function requestMaintenanceNotificationPreference(email: string) {
+  const db = await getDb(); if (!db) throw new Error("Database not available for maintenance notification preferences");
+  const status = await getMaintenanceModeStatus(); if (!status.enabled || !status.changedAt) throw new Error("Maintenance mode is not currently active.");
+  const normalizedEmail = email.trim().toLowerCase();
+  const existing = (await db.select().from(maintenanceNotificationRequests).where(and(eq(maintenanceNotificationRequests.maintenanceChangedAt, status.changedAt), eq(maintenanceNotificationRequests.email, normalizedEmail))).limit(1))[0];
+  if (existing) { await db.update(maintenanceNotificationRequests).set({ status: "requested" }).where(eq(maintenanceNotificationRequests.id, existing.id)); return { alreadyRecorded: true }; }
+  await db.insert(maintenanceNotificationRequests).values({ requestId: `maintenance-notification-${Date.now()}-${randomInt(1000, 9999)}`, maintenanceChangedAt: status.changedAt, email: normalizedEmail, status: "requested" });
+  return { alreadyRecorded: false };
+}
+
+export async function submitServiceSuggestion(input: { suggestedService: string; notificationEmail?: string | null; notificationConsented: boolean }) {
+  const db = await getDb(); if (!db) throw new Error("Database not available for service suggestions");
+  const normalized = input.suggestedService.trim().replace(/\s+/g, " "); const notificationEmail = input.notificationEmail?.trim().toLowerCase() || null; const recentCutoff = new Date(Date.now() - 60 * 60 * 1000);
+  const duplicate = (await db.select({ id: serviceSuggestionRequests.id }).from(serviceSuggestionRequests).where(and(eq(serviceSuggestionRequests.suggestedService, normalized), gte(serviceSuggestionRequests.requestedAt, recentCutoff))).limit(1))[0];
+  if (duplicate) { if (notificationEmail && input.notificationConsented) await db.update(serviceSuggestionRequests).set({ notificationEmail, notificationConsented: true }).where(eq(serviceSuggestionRequests.id, duplicate.id)); return { alreadySubmitted: true }; }
+  await db.insert(serviceSuggestionRequests).values({ suggestionId: `service-suggestion-${Date.now()}-${randomInt(1000, 9999)}`, suggestedService: normalized, notificationEmail, notificationConsented: Boolean(notificationEmail && input.notificationConsented) });
+  return { alreadySubmitted: false };
+}
+
+export type ServiceSuggestionFilter = { status?: "all" | "submitted" | "approved" | "dismissed"; serviceQuery?: string };
+export async function listServiceSuggestions(filter: ServiceSuggestionFilter = {}) {
+  const db = await getDb(); if (!db) return [];
+  const conditions = []; if (filter.status && filter.status !== "all") conditions.push(eq(serviceSuggestionRequests.status, filter.status));
+  const serviceQuery = filter.serviceQuery?.trim().toLowerCase(); if (serviceQuery) conditions.push(like(serviceSuggestionRequests.suggestedService, `%${serviceQuery.replace(/[\\%_]/g, "\\$&")}%`));
+  const base = db.select({ suggestionId: serviceSuggestionRequests.suggestionId, suggestedService: serviceSuggestionRequests.suggestedService, notificationEmail: serviceSuggestionRequests.notificationEmail, notificationConsented: serviceSuggestionRequests.notificationConsented, status: serviceSuggestionRequests.status, requestedAt: serviceSuggestionRequests.requestedAt, reviewedAt: serviceSuggestionRequests.reviewedAt, reviewedBy: serviceSuggestionRequests.reviewedBy, updatedAt: serviceSuggestionRequests.updatedAt }).from(serviceSuggestionRequests);
+  return conditions.length ? base.where(and(...conditions)).orderBy(sql`${serviceSuggestionRequests.requestedAt} desc`).limit(100) : base.orderBy(sql`${serviceSuggestionRequests.requestedAt} desc`).limit(100);
+}
+
+export async function reviewServiceSuggestion(input: { suggestionId: string; status: "approved" | "dismissed"; reviewedBy: string }) {
+  const db = await getDb(); if (!db) throw new Error("Database not available for service suggestions");
+  const suggestion = (await db.select({ id: serviceSuggestionRequests.id }).from(serviceSuggestionRequests).where(eq(serviceSuggestionRequests.suggestionId, input.suggestionId)).limit(1))[0]; if (!suggestion) throw new Error("This service suggestion is no longer available.");
+  await db.update(serviceSuggestionRequests).set({ status: input.status, reviewedAt: new Date(), reviewedBy: input.reviewedBy }).where(eq(serviceSuggestionRequests.id, suggestion.id));
+  return { updated: true };
+}
+
+export type MaintenanceNotificationPreferenceFilter = { status?: "all" | "requested" | "withdrawn"; emailQuery?: string };
+export async function listMaintenanceNotificationPreferences(filter: MaintenanceNotificationPreferenceFilter = {}) {
+  const db = await getDb(); if (!db) return [];
+  const conditions = [];
+  if (filter.status && filter.status !== "all") conditions.push(eq(maintenanceNotificationRequests.status, filter.status));
+  const emailQuery = filter.emailQuery?.trim().toLowerCase(); if (emailQuery) conditions.push(like(maintenanceNotificationRequests.email, `%${emailQuery.replace(/[\\%_]/g, "\\$&")}%`));
+  const base = db.select({ requestId: maintenanceNotificationRequests.requestId, email: maintenanceNotificationRequests.email, status: maintenanceNotificationRequests.status, maintenanceChangedAt: maintenanceNotificationRequests.maintenanceChangedAt, requestedAt: maintenanceNotificationRequests.requestedAt, updatedAt: maintenanceNotificationRequests.updatedAt }).from(maintenanceNotificationRequests);
+  return conditions.length ? base.where(and(...conditions)).orderBy(sql`${maintenanceNotificationRequests.requestedAt} desc`).limit(100) : base.orderBy(sql`${maintenanceNotificationRequests.requestedAt} desc`).limit(100);
+}
+
+export async function setMaintenanceNotificationPreferenceStatus(input: { requestId: string; status: "requested" | "withdrawn" }) {
+  const db = await getDb(); if (!db) throw new Error("Database not available for maintenance notification preferences");
+  const preference = (await db.select().from(maintenanceNotificationRequests).where(eq(maintenanceNotificationRequests.requestId, input.requestId)).limit(1))[0]; if (!preference) throw new Error("This notification preference is no longer available.");
+  await db.update(maintenanceNotificationRequests).set({ status: input.status }).where(eq(maintenanceNotificationRequests.id, preference.id));
+  return { requestId: preference.requestId, status: input.status };
+}
+
+export async function setBulkMaintenanceNotificationPreferenceStatus(input: { requestIds: string[]; status: "requested" | "withdrawn" }) {
+  const db = await getDb(); if (!db) throw new Error("Database not available for maintenance notification preferences");
+  const requestIds = [...new Set(input.requestIds)]; if (requestIds.length < 1 || requestIds.length > 100) throw new Error("Select between one and one hundred notification preferences.");
+  const rows = await db.select({ requestId: maintenanceNotificationRequests.requestId }).from(maintenanceNotificationRequests).where(inArray(maintenanceNotificationRequests.requestId, requestIds));
+  if (rows.length !== requestIds.length) throw new Error("One or more selected notification preferences are no longer available.");
+  await db.update(maintenanceNotificationRequests).set({ status: input.status }).where(inArray(maintenanceNotificationRequests.requestId, requestIds));
+  return { updatedCount: rows.length, status: input.status };
+}
+
+export async function prepareMaintenanceNotificationPreferenceExport(input: MaintenanceNotificationPreferenceFilter & { actorEmail: string }) {
+  const rows = await listMaintenanceNotificationPreferences(input); const db = await getDb(); if (!db) throw new Error("Database not available for maintenance notification preference export");
+  await db.insert(maintenanceNotificationPreferenceExports).values({ exportId: `maintenance-preference-export-${Date.now()}-${randomInt(1000, 9999)}`, actorEmail: input.actorEmail, statusFilter: input.status ?? "all", emailQuery: input.emailQuery?.trim().toLowerCase() || null, recordCount: rows.length });
+  return rows;
+}
+
+export async function submitPostDeploymentFeedback(input: { submittedBy: string; category: "login" | "scheduling" | "records" | "display" | "other"; title: string; description: string; screenshotStorageKey?: string; screenshotContentType?: string; screenshotBytes?: number }) {
+  const db = await getDb(); if (!db) throw new Error("Database not available for deployment feedback"); const feedbackId = `deployment-feedback-${Date.now()}-${randomInt(1000, 9999)}`; await db.insert(postDeploymentFeedback).values({ feedbackId, ...input }); return feedbackId;
+}
+
+export async function listPostDeploymentFeedback() { const db = await getDb(); if (!db) return []; return db.select().from(postDeploymentFeedback).orderBy(sql`${postDeploymentFeedback.submittedAt} desc`).limit(100); }
+
+export async function getPostDeploymentFeedbackAttachment(feedbackId: string) { const db = await getDb(); if (!db) return null; const feedback = (await db.select({ screenshotStorageKey: postDeploymentFeedback.screenshotStorageKey, screenshotContentType: postDeploymentFeedback.screenshotContentType, screenshotBytes: postDeploymentFeedback.screenshotBytes }).from(postDeploymentFeedback).where(eq(postDeploymentFeedback.feedbackId, feedbackId)).limit(1))[0]; return feedback?.screenshotStorageKey ? feedback : null; }
+
+export async function updatePostDeploymentFeedbackStatus(input: { feedbackId: string; status: "reviewed" | "resolved"; reviewedBy: string }) {
+  const db = await getDb(); if (!db) throw new Error("Database not available for deployment feedback"); const feedback = (await db.select().from(postDeploymentFeedback).where(eq(postDeploymentFeedback.feedbackId, input.feedbackId)).limit(1))[0]; if (!feedback) throw new Error("The feedback record no longer exists."); const now = new Date(); await db.update(postDeploymentFeedback).set({ status: input.status, reviewedBy: input.reviewedBy, reviewedAt: now }).where(eq(postDeploymentFeedback.id, feedback.id)); return { feedbackId: feedback.feedbackId, status: input.status, reviewedAt: now };
 }
 
 export async function getClinicPublicSettings() {

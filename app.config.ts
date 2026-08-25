@@ -36,6 +36,8 @@ const env = {
   scheme: schemeFromBundleId,
   iosBundleId: bundleId,
   androidPackage: bundleId,
+  appEnvironment: process.env.EXPO_PUBLIC_APP_ENV ?? "staging",
+  releaseNotes: process.env.EXPO_PUBLIC_RELEASE_NOTES ?? "Clinic release: authenticated scheduling and secure operational governance updates.",
 };
 
 const config: ExpoConfig = {
@@ -84,8 +86,18 @@ const config: ExpoConfig = {
     output: "static",
     favicon: "./assets/images/favicon.png",
   },
+  extra: {
+    appEnvironment: env.appEnvironment,
+    releaseNotes: env.releaseNotes,
+  },
   plugins: [
     "expo-router",
+    [
+      "expo-image-picker",
+      {
+        photosPermission: "Allow $(PRODUCT_NAME) to select an issue screenshot for restricted super-admin review.",
+      },
+    ],
     "expo-mail-composer",
     [
       "expo-calendar",

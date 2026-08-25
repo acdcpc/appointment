@@ -49,6 +49,8 @@ The recommended route for this project is the managed publish workflow.
 
 Publishing creates the production build. For Android, use the managed publish process to generate the APK rather than attempting a local Android build in this repository.
 
+For the complete release checklist and a separate live-build verification procedure for the super-admin and clinic administrator accounts, read [Production Deployment and Live Authentication Verification](docs/PRODUCTION_DEPLOYMENT_AND_LIVE_AUTH_VERIFICATION.md). For future agents, read the complete [Agent Context and Project Handoff](AGENT_CONTEXT.md) before changing product behavior, authorization, database schema, or deployment configuration.
+
 ## Self-managed deployment checklist
 
 Use this route only when the super-admin controls the hosting, database, backups, domain, and monitoring.
