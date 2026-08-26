@@ -109,6 +109,28 @@ if (createUser.status === 200 && created?.id) {
 } else {
   check("non-admin authed user blocked by RLS (0 rows)", false, `admin create status=${createUser.status}`);
 }
+// 11. Guardians table exists and is reachable by service role (RLS bypass)
+const guardians = await fetch(`${url}/rest/v1/guardians?select=id&limit=1`, { headers: hdr(service) });
+check("guardians table reachable (service role)", guardians.status === 200, `status=${guardians.status}`);
+
+// 12. Guardian record-access challenge RPC round trip (issue -> verify -> token)
+const challengeRes = await fetch(`${url}/rest/v1/rpc/issue_guardian_record_access_challenge`, {
+  method: "POST",
+  headers: hdr(service),
+  body: JSON.stringify({ p_clinician_user_id: 1, p_child_id: "verify-script-child", p_issued_by: "verify-script", p_expiry_hours: 24, p_attempt_limit: 5 }),
+});
+const challenge = await j(challengeRes);
+const verifyRes = await fetch(`${url}/rest/v1/rpc/verify_guardian_record_access`, {
+  method: "POST",
+  headers: hdr(service),
+  body: JSON.stringify({ p_reference: challenge?.reference, p_verification_code: challenge?.verificationCode, p_attempt_limit: 5, p_access_hours: 8 }),
+});
+const verified = await j(verifyRes);
+check(
+  "guardian challenge RPC round trip",
+  challengeRes.status === 200 && verifyRes.status === 200 && typeof verified?.accessToken === "string" && verified.accessToken.length > 0,
+  `issue=${challengeRes.status}, verify=${verifyRes.status}`
+);
 console.log("\n" + [...pass, ...fail].join("\n"));
 console.log(`\n${pass.length} passed, ${fail.length} failed`);
 process.exit(fail.length ? 1 : 0);

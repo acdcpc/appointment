@@ -130,3 +130,21 @@ reading from Supabase; Supabase Auth sign-in for parents is scaffolded
 guardian verification needs an explicit production decision); the web/PWA and
 Android builds are not deployed yet — see the deployment runbook. The
 Express/MySQL layer remains transitional.
+
+
+## Migration status — 2026-08-26 (Supabase phase A shipped)
+
+- Data layer: `server/db/index.ts` dispatches to `server/db/supabase.ts`
+  (service-role, all 120 legacy exports, atomicity via Postgres RPCs) when
+  `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` are set; otherwise falls back to
+  `server/db/legacy.ts` (was `server/db.ts`) so local dev + the deterministic
+  test suite are unchanged. Run `pnpm check && pnpm lint && pnpm test` and
+  `node scripts/verify-supabase.mjs` (12/12) after touching the data layer.
+- Migrations live: 0001–0006 (0003 = guardian RLS + RPCs, 0004 = maintenance/
+  feedback tables parity, 0005 = pgcrypto, 0006 = extensions search_path).
+- Guardian sign-in: `app/parent-auth.tsx` uses real `supabase.auth.signInWithOtp`
+  via `lib/supabase-auth.ts`; no mock success state. SMS delivery requires the
+  owner to enable the phone provider (Twilio) in the Supabase dashboard and
+  supply credentials; the screen surfaces the provider error until then.
+- Still open (Phase B): staff email auth on Supabase, pg_cron/Edge scheduled
+  ops, storage signed URLs, retiring the legacy Drizzle layer.
