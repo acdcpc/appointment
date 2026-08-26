@@ -1,0 +1,27 @@
+name: supabase-keepalive
+
+# Keeps the Supabase free-tier project active so it never auto-pauses.
+# Runs once per day (03:00 UTC = 08:45 NPT). Add repo secrets SUPABASE_URL
+# and SUPABASE_ANON_KEY for this to work (see docs/SUPABASE_KEEPALIVE.md).
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Ping Supabase
+        run: node scripts/keep-supabase-alive.mjs
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
