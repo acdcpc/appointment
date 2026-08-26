@@ -85,6 +85,27 @@ const config: ExpoConfig = {
     bundler: "metro",
     output: "static",
     favicon: "./assets/images/favicon.png",
+    // --- PWA manifest (Android install prompt + iOS "Add to Home Screen") ---
+    name: env.appName,
+    shortName: "Rainbow Clinic",
+    description:
+      "Rainbow Child Development Clinic — pediatric appointments, records, and family care with Dr. Anil Ojha.",
+    lang: "en",
+    dir: "ltr",
+    orientation: "portrait",
+    display: "standalone",
+    startUrl: "/",
+    scope: "/",
+    themeColor: "#0E7490",
+    backgroundColor: "#F7FAFC",
+    barStyle: "black-translucent",
+    // iOS Safari standalone-app meta tags (classic PWA path on iOS).
+    meta: {
+      appleMobileWebAppCapable: "yes",
+      appleMobileWebAppStatusBarStyle: "black-translucent",
+      appleMobileWebAppTitle: "Rainbow Clinic",
+      formatDetection: "telephone=yes",
+    },
   },
   extra: {
     appEnvironment: env.appEnvironment,

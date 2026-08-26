@@ -31,7 +31,26 @@ git pull origin main
 pnpm install
 ```
 
+## 2b. Optional: point the app at Supabase
+
+Copy `.env.example` to `.env` and set `EXPO_PUBLIC_SUPABASE_URL` and
+`EXPO_PUBLIC_SUPABASE_ANON_KEY` (plus `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY`
+for the server). Apply the schema and seed from `supabase/` as described in
+`docs/PRODUCTION_DEPLOYMENT_AND_LIVE_AUTH_VERIFICATION.md` §2. Without these
+values the app runs on local sample data.
+
+## 2c. Web + PWA build
+
+```bash
+npx expo export --platform web    # outputs dist/ (static PWA)
+```
+
+Host `dist/` on any static host (Vercel, Netlify, Cloudflare Pages). The build
+includes a web manifest, so Android Chrome can install the app and iOS Safari
+can use **Add to Home Screen**.
+
 ## 3. Run the browser-based web experience locally
+
 
 Start the API and Expo web server together:
 

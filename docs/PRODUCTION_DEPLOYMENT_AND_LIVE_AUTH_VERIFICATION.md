@@ -94,3 +94,50 @@ Document the result privately after verification. Do not include passwords, OAut
 | Outstanding issue, owner, and safe follow-up date |  |
 
 > **Go-live rule:** If a trusted email resolves to the wrong authority, a protected route exposes unexpected information, the published build cannot authenticate, or a migration/backup status is uncertain, stop the release process and investigate as super-admin before relying on the build for clinic operations.
+
+## 6. Supabase backend setup
+
+The Backend direction is **Supabase** (Postgres + Auth + Storage). Complete this
+once per project, then build the app with the public variables injected.
+
+1. Create a project at <https://supabase.com> (region near Nepal, e.g. `ap-south-1`), keep the DB password safe.
+2. Note the **Project URL** and the **anon** + **service_role** keys (Project Settings → API).
+3. Push the committed schema and seed:
+   ```bash
+   npx supabase@latest login
+   npx supabase@latest link --project-ref <project-ref>
+   npx supabase@latest db push                 # applies supabase/migrations/0001_init.sql
+   # then run supabase/seed.sql in the SQL Editor (do not use db reset on hosted)
+   ```
+4. Authentication → Email: enable with **Confirm email = on**; set Site URL to the
+   future web URL and add `http://localhost:8081` as a redirect for local testing.
+5. Create the two trusted users (`anilrajojha@pahs.edu.np`, `thisispratha@gmail.com`),
+   then in SQL Editor: `update public.users set role = 'admin' where email = 'anilrajojha@pahs.edu.np';`
+6. Verify the private `patient-documents` bucket exists; keep it private.
+7. Set environment values (never commit them): client builds need
+   `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY`; the server also
+   reads `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (service role is server-only).
+
+## 7. Web/PWA and Android publishing (outside the managed flow)
+
+- **Web + PWA (iOS path):** run `npx expo export --platform web`, host `dist/` on
+  Vercel/Netlify/Cloudflare Pages, set the `EXPO_PUBLIC_*` values, redeploy. Verify
+  `/manifest.json` in DevTools; iOS Safari users use **Add to Home Screen**
+  (standalone, HTTPS required).
+- **Android:** `npm i -g eas-cli && eas login`, ensure `eas.json` (preview =
+  internal APK, production = store AAB) and the `EXPO_PUBLIC_*` values are
+  available to the build, then `eas build -p android --profile preview`. Package
+  `com.app.appointment` is preconfigured. Upload the AAB to Play Console for release.
+- **iOS later:** the same PWA covers the launch phase; when a native app is
+  wanted, `eas build -p ios` is configured via `eas.json` (App Store submission).
+
+## 8. Troubleshooting
+
+| Symptom | Likely cause | Fix |
+|---|---|---|
+| Client logs "Supabase not configured" | `EXPO_PUBLIC_*` missing at build time | Add to hosting/EAS env, rebuild |
+| `db push` fails auth | CLI not linked / DB password mismatch | `supabase link --project-ref <ref>`, then `supabase db push -p <db password>` |
+| RLS blocks inserts for the clinic admin | `role='admin'` row missing | Run the `update public.users ...` statement in §6 step 5 |
+| Confirmation email never arrives | Email confirm disabled / provider unverified | Enable Email provider + confirm; check Inbucket in local dev |
+| PWA not installable on iOS | Not HTTPS or no manifest | Host on HTTPS; iOS ≥ 16.4; verify manifest |
+| EAS build missing env | Env scoped to the wrong profile | `eas env:list`, rebuild with the profile that has the env |

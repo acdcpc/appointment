@@ -78,7 +78,32 @@ The backend reads the following environment variable names. Set values only in a
 | `OWNER_OPEN_ID` | Platform owner identifier; do not expose it to clinic users |
 | `BUILT_IN_FORGE_API_URL` and `BUILT_IN_FORGE_API_KEY` | Built-in service integration values, if configured by the platform |
 
+## Supabase backend (patient identity + data)
+
+The project is wired for **Supabase** (Postgres + Auth + Storage) as its backend.
+The Postgres schema mirroring the clinic model, RLS policies, seed data, and a
+local CLI config live in [`supabase/`](supabase/). Client and server helpers are
+in [`lib/supabase.ts`](lib/supabase.ts) and [`server/supabase.ts`](server/supabase.ts).
+Setup, environment variables, and the live verification checklist are in
+[`docs/PRODUCTION_DEPLOYMENT_AND_LIVE_AUTH_VERIFICATION.md`](docs/PRODUCTION_DEPLOYMENT_AND_LIVE_AUTH_VERIFICATION.md).
+
+- RLS is enabled on every table; clinic data requires a trusted admin email
+  (`anilrajojha@pahs.edu.np`) or server-recognized super-admin
+  (`thisispratha@gmail.com`); `clinic_public_settings` is publicly readable.
+- `patient-documents` is a **private** Storage bucket; never make it public.
+- Without `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_ANON_KEY` the app
+  keeps working in local sample-data mode.
+
+## PWA (web + iOS)
+
+`app.config.ts` emits a full PWA manifest (standalone display, `#0E7490` theme,
+icons, iOS `apple-mobile-web-app-*` meta tags). Export with
+`npx expo export --platform web` and host the `dist/` folder. Android users can
+install the PWA or use the EAS-built APK; iOS starts with the **Add to Home
+Screen** PWA path (`eas.json` is ready for the later App Store phase).
+
 ## Database safety
+
 
 The database must not be publicly reachable. Allow access only from the production server and the super-admin’s controlled administrative path. Use encrypted connections, least-privilege database accounts, routine backups, and a tested restoration procedure. Before any schema migration, create a backup and review the generated SQL for destructive operations.
 

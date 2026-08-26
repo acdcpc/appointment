@@ -1,0 +1,40 @@
+# Supabase local development configuration.
+# Run `npx supabase start` in this directory to boot a local stack, then
+# apply migrations with `npx supabase db reset` (runs migrations + seed.sql).
+# For the hosted project use `npx supabase link --project-ref <ref>` first.
+
+project_id = "rainbow-clinic-appointment"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage"]
+extra_search_path = ["public", "extensions"]
+
+[db]
+port = 54322
+major_version = 15
+
+[studio]
+enabled = true
+port = 54323
+
+[inbucket]
+enabled = true
+port = 54324
+
+[auth]
+enabled = true
+site_url = "http://localhost:8081"
+additional_redirect_urls = ["http://localhost:8081/**"]
+jwt_expiry = 3600
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = true
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"

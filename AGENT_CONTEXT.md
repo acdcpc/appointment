@@ -83,3 +83,35 @@ Run `pnpm check`, `pnpm lint`, and `pnpm test`. Review `git diff --check`, inspe
 The current project includes the single-clinician pediatric booking experience, Nepali-first bilingual presentation, persistent language toggle, durable appointment and record workflows, clinician dashboard, super-admin governance, maintenance and feedback tooling, redaction safeguards, waitlist and capacity workflows, audit retention/archive tooling, deployment runbook, parent OTP mockup, and clipboard confirmation feedback. The last saved project checkpoint is `aeef7725`.
 
 The remaining owner decision is production finalization: review the live preview and native build, verify the two designated login roles, confirm the provisional address and clinic content, decide whether real guardian authentication is required, configure production secrets through the project UI, run the deployment checklist, and publish only after explicit review. Do not represent the app as medically diagnostic, as having sent a message when it only prepared one, or as having real parent OTP authentication while the mockup remains frontend-only.
+
+## Addendum — Supabase + PWA backend wiring (2026-08-26)
+
+The backend direction is **Supabase** for patient identity and data. This addendum
+records what was added on top of the state described above.
+
+- `supabase/migrations/0001_init.sql` — Postgres mirror of every Drizzle table
+  (29 tables), enum types, `updated_at` triggers, and **RLS policies on all
+  tables**: `clinic_public_settings` is publicly readable; the clinic-workflow
+  tables require `is_trusted_admin()` (email `anilrajojha@pahs.edu.np` or
+  `role = 'admin'`); `users` rows are self-scoped plus trusted-admin management.
+- `supabase/seed.sql` — clinic public settings, governance defaults, and the
+  **private** `patient-documents` Storage bucket (never public).
+- `supabase/config.toml` — local `npx supabase start` config.
+- `lib/supabase.ts` — anon-key client (EXPO_PUBLIC_SUPABASE_URL /
+  EXPO_PUBLIC_SUPABASE_ANON_KEY); returns null gracefully when unconfigured so
+  sample-data mode keeps working.
+- `server/supabase.ts` — service-role client (SUPABASE_URL /
+  SUPABASE_SERVICE_ROLE_KEY), server-side only.
+- `app.config.ts` web block — full PWA manifest (standalone, theme `#0E7490`,
+  background `#F7FAFC`, iOS `apple-mobile-web-app-*` meta tags); web export is
+  `static` → `npx expo export --platform web` produces an installable PWA.
+- `eas.json` — EAS profiles: `preview` (internal APK) and `production` (store AAB).
+- `.env.example` — full environment reference (existing + Supabase variables).
+- `docs/PRODUCTION_DEPLOYMENT_AND_LIVE_AUTH_VERIFICATION.md` — includes the
+  Supabase setup, PWA, EAS, and troubleshooting sections (see sections 6-8).
+
+**Still open:** the clinic-workflow tRPC routers (Drizzle-backed) are not yet
+reading from Supabase; Supabase Auth sign-in for parents is scaffolded
+(`lib/supabase.ts` helpers) but not yet surfaced in UI; no Supabase project,
+env values, or deployment exist yet — that is the owner's next step per the
+deployment runbook. The Express/MySQL layer remains transitional.
