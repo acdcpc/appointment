@@ -13,7 +13,15 @@
  *   SUPABASE_URL         e.g. https://bpocsorqstqfessdclfh.supabase.co
  *   SUPABASE_ANON_KEY    the public anon key (safe for clients; never the service-role key)
  */
-import "dotenv/config";
+import { readFileSync } from "node:fs";
+
+// Minimal .env loader (no dependencies; CI passes real env vars instead).
+try {
+  for (const line of readFileSync(new URL("../.env", import.meta.url), "utf8").split("\n")) {
+    const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
+    if (m && !(m[1] in process.env)) process.env[m[1]] = m[2].replace(/^["']|["']$/g, "");
+  }
+} catch { /* no .env in CI */ }
 
 const url = (process.env.SUPABASE_URL || process.env.EXPO_PUBLIC_SUPABASE_URL || "").replace(/\/$/, "");
 const key = process.env.SUPABASE_ANON_KEY || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || "";
