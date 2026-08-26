@@ -1,0 +1,17 @@
+# Netlify deployment config for the Expo web build.
+# Build outputs to dist/ (expo export), which is gitignored — Netlify must
+# run the build itself; do NOT publish the repo root or upload dist manually.
+
+[build]
+  command = "npx expo export --platform web"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# SPA fallback: expo-router handles client-side routing; unknown paths render
+# the app shell instead of a 404.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
