@@ -114,14 +114,14 @@ visibility unchanged (trusted-admin helpers).
    challenge issue→verify→validate round trip, wrong-code rejection, retry
    reservation, archive preview, RLS backend detection).
 
-### Phase B — next sessions
+### Phase B — next sessions (non-blocking; full detail in
+[`docs/PHASE_B_BACKLOG.md`](PHASE_B_BACKLOG.md))
 - Schedulers → pg_cron/Edge Function cron (referral monitor, retention
-  archive, monthly/quarterly summaries) using `supabase/functions/scheduled-ops`
-  (draft included in Phase A).
+  archive, monthly/quarterly summaries) using existing RPC primitives.
 - Staff sign-in → Supabase Auth email/password; deprecate OAuth endpoints.
 - Storage → Supabase Storage signed URLs in report-sharing flows.
-- Retire `server/db/legacy.ts` + Drizzle once local/tests can target a
-  Supabase test project (search for `SUPABASE_SERVICE_ROLE_KEY` in CI).
+- Retire `server/db/legacy.ts` + Drizzle only after CI targets a Supabase
+  test project; until then it stays intact as the unconfigured fallback.
 
 ## 5. Production auth decision (owner, 2026-08-26)
 

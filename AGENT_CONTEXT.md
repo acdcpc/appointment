@@ -147,5 +147,7 @@ Express/MySQL layer remains transitional.
   `lib/supabase-auth.ts` (`signInWithPassword` / `signUp`, inbox confirmation).
   Phone provider disabled at the Supabase project; phone OTP is a documented
   extension seam only (`guardians` RLS linkage is provider-agnostic).
-- Still open (Phase B): staff email auth on Supabase, pg_cron/Edge scheduled
-  ops, storage signed URLs, retiring the legacy Drizzle layer.
+- Phase B (non-blocking, tracked in `docs/PHASE_B_BACKLOG.md`): staff email
+  auth on Supabase, pg_cron/Edge scheduled ops, storage signed URLs, retiring
+  the legacy Drizzle layer (keep `server/db/legacy.ts` intact until then).
+  No SMS/phone OTP (deferred extension only).
