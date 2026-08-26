@@ -3,7 +3,10 @@
 # run the build itself; do NOT publish the repo root or upload dist manually.
 
 [build]
-  command = "npx expo export --platform web"
+  # NativeWind (forceWriteFileSystem) writes node_modules/react-native-css-interop/.cache/web.css
+  # during the bundle, but Metro resolves that path before it exists in a fresh CI install.
+  # Bootstrap the empty cache file first so the SHA-1 lookup succeeds; the bundle fills it in.
+  command = "mkdir -p node_modules/react-native-css-interop/.cache && touch node_modules/react-native-css-interop/.cache/web.css && npx expo export --platform web"
   publish = "dist"
 
 [build.environment]
