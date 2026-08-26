@@ -20,7 +20,7 @@ let _client: SupabaseClient | null = null;
 
 export function getSupabase(): SupabaseClient | null {
   if (!isSupabaseConfigured) {
-    if (__DEV__) {
+    if (typeof __DEV__ !== "undefined" && __DEV__) {
       console.warn(
         "[Supabase] EXPO_PUBLIC_SUPABASE_URL / EXPO_PUBLIC_SUPABASE_ANON_KEY not set — running without Supabase."
       );

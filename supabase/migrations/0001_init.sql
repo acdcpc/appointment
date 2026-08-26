@@ -37,32 +37,6 @@ begin
 end;
 $$;
 
--- Trusted authority helpers (keys to Supabase Auth email; kept in sync with
--- server/clinic-authority.ts).
-create or replace function public.is_super_admin()
-returns boolean language sql stable as $$
-  select auth.jwt()->>'email' = 'thisispratha@gmail.com';
-$$;
-
-create or replace function public.is_clinic_admin()
-returns boolean language sql stable as $$
-  select auth.jwt()->>'email' = 'anilrajojha@pahs.edu.np'
-      or exists (
-        select 1 from public.users u
-        where u.email = auth.jwt()->>'email'
-          and u.role = 'admin'
-      );
-$$;
-
-create or replace function public.is_trusted_admin()
-returns boolean language sql stable as $$
-  select public.is_super_admin() or public.is_clinic_admin();
-$$;
-
-create or replace function public.current_profile_email()
-returns text language sql stable as $$
-  select nullif(auth.jwt()->>'email', '')::text;
-$$;
 
 -- ============================= TABLES =============================
 create table if not exists public.users (
@@ -535,6 +509,34 @@ create index if not exists guardian_record_access_scope_child_idx
   on public.guardian_record_access_challenges ("clinicianUserId", "childId");
 create index if not exists guardian_record_access_token_idx
   on public.guardian_record_access_challenges ("accessTokenHash");
+
+-- Trusted authority helpers (keys to Supabase Auth email; kept in sync with
+-- server/clinic-authority.ts).
+create or replace function public.is_super_admin()
+returns boolean language sql stable as $$
+  select auth.jwt()->>'email' = 'thisispratha@gmail.com';
+$$;
+
+create or replace function public.is_clinic_admin()
+returns boolean language sql stable as $$
+  select auth.jwt()->>'email' = 'anilrajojha@pahs.edu.np'
+      or exists (
+        select 1 from public.users u
+        where u.email = auth.jwt()->>'email'
+          and u.role = 'admin'
+      );
+$$;
+
+create or replace function public.is_trusted_admin()
+returns boolean language sql stable as $$
+  select public.is_super_admin() or public.is_clinic_admin();
+$$;
+
+create or replace function public.current_profile_email()
+returns text language sql stable as $$
+  select nullif(auth.jwt()->>'email', '')::text;
+$$;
+
 
 -- ============================= UPDATED_AT TRIGGERS =============================
 do $$

@@ -97,6 +97,12 @@ Document the result privately after verification. Do not include passwords, OAut
 
 ## 6. Supabase backend setup
 
+> **Status: COMPLETE (2026-08-26)** for project `appointment`
+> (ref `bpocsorqstqfessdclfh`). Migrations `0001`–`0002`, seed, Email auth
+> (confirmations on), trusted users, grants, and the private bucket are live
+> and verified by `node scripts/verify-supabase.mjs` (10/10). The steps below
+> remain the reference for any future (re)build of the backend.
+
 The Backend direction is **Supabase** (Postgres + Auth + Storage). Complete this
 once per project, then build the app with the public variables injected.
 

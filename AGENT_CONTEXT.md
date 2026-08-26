@@ -110,8 +110,23 @@ records what was added on top of the state described above.
 - `docs/PRODUCTION_DEPLOYMENT_AND_LIVE_AUTH_VERIFICATION.md` — includes the
   Supabase setup, PWA, EAS, and troubleshooting sections (see sections 6-8).
 
+**Live status (2026-08-26):** the Supabase project **appointment**
+(ref `bpocsorqstqfessdclfh`, Tokyo) is created and fully wired: migrations
+`0001` + `0002` applied, seed applied, `clinic_public_settings`,
+`super_admin_governance_settings` rows live, private `patient-documents`
+bucket created, Email auth enabled (confirmations on), the two trusted aunts
+provisioned and mapped into `public.users` (openId = auth uid, role `admin`),
+grants set (anon = public read only; authenticated/service_role = full with
+RLS gating; helpers are SECURITY DEFINER to avoid RLS recursion). Local `.env`
+(never committed) holds `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`,
+`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_DB_PASSWORD`, and the two
+trusted sign-in passwords. `node scripts/verify-supabase.mjs` passes 10/10
+(public read, anon write denial, trusted-admin RLS visibility, non-admin RLS
+block, storage privacy, service-role bypass).
+
 **Still open:** the clinic-workflow tRPC routers (Drizzle-backed) are not yet
 reading from Supabase; Supabase Auth sign-in for parents is scaffolded
-(`lib/supabase.ts` helpers) but not yet surfaced in UI; no Supabase project,
-env values, or deployment exist yet — that is the owner's next step per the
-deployment runbook. The Express/MySQL layer remains transitional.
+(`lib/supabase.ts` helpers) but not yet surfaced in UI (per the handoff, real
+guardian verification needs an explicit production decision); the web/PWA and
+Android builds are not deployed yet — see the deployment runbook. The
+Express/MySQL layer remains transitional.
