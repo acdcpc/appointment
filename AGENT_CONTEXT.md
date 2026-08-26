@@ -142,9 +142,10 @@ Express/MySQL layer remains transitional.
   `node scripts/verify-supabase.mjs` (12/12) after touching the data layer.
 - Migrations live: 0001–0006 (0003 = guardian RLS + RPCs, 0004 = maintenance/
   feedback tables parity, 0005 = pgcrypto, 0006 = extensions search_path).
-- Guardian sign-in: `app/parent-auth.tsx` uses real `supabase.auth.signInWithOtp`
-  via `lib/supabase-auth.ts`; no mock success state. SMS delivery requires the
-  owner to enable the phone provider (Twilio) in the Supabase dashboard and
-  supply credentials; the screen surfaces the provider error until then.
+- Guardian sign-in: **email + password** via Supabase Auth (owner decision
+  2026-08-26 — no Twilio / no paid SMS anywhere). `app/parent-auth.tsx` →
+  `lib/supabase-auth.ts` (`signInWithPassword` / `signUp`, inbox confirmation).
+  Phone provider disabled at the Supabase project; phone OTP is a documented
+  extension seam only (`guardians` RLS linkage is provider-agnostic).
 - Still open (Phase B): staff email auth on Supabase, pg_cron/Edge scheduled
   ops, storage signed URLs, retiring the legacy Drizzle layer.

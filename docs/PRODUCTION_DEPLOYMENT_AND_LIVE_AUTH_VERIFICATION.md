@@ -147,3 +147,5 @@ once per project, then build the app with the public variables injected.
 | Confirmation email never arrives | Email confirm disabled / provider unverified | Enable Email provider + confirm; check Inbucket in local dev |
 | PWA not installable on iOS | Not HTTPS or no manifest | Host on HTTPS; iOS ≥ 16.4; verify manifest |
 | EAS build missing env | Env scoped to the wrong profile | `eas env:list`, rebuild with the profile that has the env |
+
+- Production guardian auth: Supabase email + password (owner decision 2026-08-26; no SMS provider).

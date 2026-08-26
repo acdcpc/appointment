@@ -47,7 +47,7 @@ output + migration roadmap. Read it before touching backend code.
 
 | Concern | Why | Path |
 |---|---|---|
-| Platform OAuth session issuance (cookie + exchange endpoints) | Supabase Auth replaces identity; the Manus OAuth endpoints/cookie format are platform runtime | Replace: Supabase Auth email/password + phone OTP (guardians). Keep email authority checks unchanged (email-based, works with Supabase JWT email). |
+| Platform OAuth session issuance (cookie + exchange endpoints) | Supabase Auth replaces identity; the Manus OAuth endpoints/cookie format are platform runtime | Replace: Supabase Auth email/password (staff + guardians). Keep email authority checks unchanged (email-based, works with Supabase JWT email). |
 | `createHeartbeatJob` / `updateHeartbeatJob` schedulers | Manus runtime API (`/api/scheduled/*` + heartbeat) | Replace with Supabase pg_cron (DB-level, supported) or Edge Function cron triggers in Phase B. |
 | `invokeLLM` (`draftFromConsultation`) | Platform LLM gateway | Keep transitional until an external provider (Edge Function + own API key) is approved. |
 | `server/_core/storageProxy.ts`, `server/storage.ts` | Platform blob storage | Phase B: Supabase Storage (`patient-documents` bucket already exists). |
@@ -69,8 +69,9 @@ Expo app ── tRPC (unchanged client contracts)
 Supabase side:
   ├─ migrations 0001–0006 (schema + RLS + guardian identity + RPC functions,
   │   maintenance/feedback tables, pgcrypto, extension search_path)
-  ├─ Supabase Auth (email for staff; phone OTP for guardians — requires
-  │   Twilio provider credentials, supplied by the clinic owner)
+  ├─ Supabase Auth — email + password for guardians (production path,
+  │   NO SMS provider required). Phone OTP is a designed-but-deferred
+  │   extension seam in lib/supabase-auth.ts.
   └─ Edge Functions (Phase B: scheduled ops, notification orchestration)
 ```
 
@@ -101,10 +102,13 @@ visibility unchanged (trusted-admin helpers).
    `supabase.ts` implements all 120 runtime exports (service-role client +
    RPCs); `legacy.ts` is the moved `server/db.ts`, unchanged, kept as the
    hermetic-test fallback.
-4. Real guardian phone OTP shipped: `app/parent-auth.tsx` now calls
-   `supabase.auth.signInWithOtp({ phone })` + `verifyOtp` through
-   `lib/supabase-auth.ts`. No mock success state — an unconfigured project or
-   missing SMS provider surfaces a clear error. Home button relabeled.
+4. Guardian sign-in shipped as Supabase **email + password** (per owner
+   decision 2026-08-26: no Twilio / no paid SMS). `app/parent-auth.tsx`
+   signs in / signs up through `lib/supabase-auth.ts` (real
+   `signInWithPassword` / `signUp`, email confirmation via inbox). No mock
+   success state, no SMS dependency, clean seam for a future phone-OTP
+   variant. `getGuardianSession()` keeps a `phone: null` field for that
+   future path.
 5. Verified: `pnpm check` clean, `pnpm lint` clean, 41 Vitest tests green,
    `scripts/verify-supabase.mjs` 10/10, live smoke test passed (guardian
    challenge issue→verify→validate round trip, wrong-code rejection, retry
@@ -119,15 +123,16 @@ visibility unchanged (trusted-admin helpers).
 - Retire `server/db/legacy.ts` + Drizzle once local/tests can target a
   Supabase test project (search for `SUPABASE_SERVICE_ROLE_KEY` in CI).
 
-## 5. What the clinic owner must still supply (blocks the last mile)
+## 5. Production auth decision (owner, 2026-08-26)
 
-- **Twilio (or any) SMS credentials + enabling the phone provider** in the
-  Supabase dashboard (Authentication → Providers → Phone). Until then the
-  guardian OTP screen works end-to-end in code but cannot deliver SMS. This is
-  the explicit approval for a paid service already given by the owner; only
-  the credentials are missing.
-- **Supabase Management API access token** for further provider/config edits
-  via the API (dashboard edits work without it).
+- **Email + password is the production guardian auth path.** No Twilio, no
+  paid SMS provider, no SMS configuration or secrets anywhere.
+- Supabase Auth provider config verified via Management API: email enabled,
+  signups on, email confirmations required, **phone provider disabled**.
+- Phone OTP remains a designed, deferred extension: add two functions in
+  `lib/supabase-auth.ts` (`requestGuardianPhoneOtp` / `verifyGuardianPhoneOtp`
+  calling `signInWithOtp`), then enable the phone provider if ever approved.
+  The `guardians` RLS linkage and screen contract do not change.
 - Phase B follow-ups: staff email sign-in migration onto Supabase Auth
   (replacing Manus OAuth), `pg_cron`/Edge Function scheduled ops, storage
   signed URLs, retiring the legacy Drizzle layer once CI targets a Supabase
@@ -141,6 +146,5 @@ visibility unchanged (trusted-admin helpers).
 - No auto-sent messages; retry/ack/archive stay clinician-confirmed + once-only.
 - Keys: service role stays server-only (verified: anon write denied 401;
   anon governance denied 401; non-admin RLS returns 0 rows).
-- Phone OTP requires an SMS provider: the client surfaces provider errors
-  verbatim instead of fabricating a signed-in state.
-  (Twilio) — until then the flow fails closed with a clear error, not a mock.
+- Guardian identity: email + password via Supabase Auth; RLS `guardians`
+  linkage (0003) gates every guardian read. No SMS provider in the path.

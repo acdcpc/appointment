@@ -6,31 +6,44 @@ import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { useLanguagePreference, bilingualText } from "@/lib/language-preference";
 import { isSupabaseConfigured } from "@/lib/supabase";
-import { requestGuardianOtp, signOutGuardian, verifyGuardianOtp } from "@/lib/supabase-auth";
+import {
+  getGuardianSession,
+  signInGuardianWithEmail,
+  signOutGuardian,
+  signUpGuardianWithEmail,
+} from "@/lib/supabase-auth";
 
+/**
+ * Parent (guardian) account screen — production path is Supabase Auth with
+ * EMAIL + PASSWORD (no SMS provider anywhere). Phone OTP can be added later
+ * behind the same lib/supabase-auth.ts seam without touching this screen.
+ */
 export default function ParentAuth() {
   const colors = useColors();
   const router = useRouter();
   const { language } = useLanguagePreference();
-  const [phone, setPhone] = useState("");
-  const [code, setCode] = useState("");
-  const [step, setStep] = useState<"phone" | "code" | "signed-in">("phone");
+  const [mode, setMode] = useState<"sign-in" | "sign-up">("sign-in");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [messageKind, setMessageKind] = useState<"info" | "error" | "success">("info");
-  const [sessionPhone, setSessionPhone] = useState("");
+  const [sessionEmail, setSessionEmail] = useState<string | null>(null);
 
   const title = useMemo(() => bilingualText(language, "Parent sign in", "अभिभावक लग इन"), [language]);
   const t = {
     notConfigured: bilingualText(language, "Sign-in is not available on this build because Supabase is not configured.", "यस बिल्डमा Supabase कन्फिगर नभएकाले लग इन उपलब्ध छैन।"),
-    invalidPhone: bilingualText(language, "Enter a valid phone number with country code (e.g. +977 98XXXXXXXX).", "देशको कोडसहित मान्य फोन नम्बर लेख्नुहोस् (जस्तै +977 98XXXXXXXX)।"),
-    requesting: bilingualText(language, "Requesting your one-time SMS code…", "तपाईंको एक पटकको SMS कोड माग्दै…"),
-    codeSent: bilingualText(language, "A verification code was sent by SMS. Enter the six digits below.", "SMS मार्फत प्रमाणीकरण कोड पठाइयो। तल छ अंक लेख्नुहोस्।"),
-    verifying: bilingualText(language, "Verifying your code…", "कोड प्रमाणित गर्दै…"),
-    invalidCode: bilingualText(language, "Enter the six-digit code.", "छ अंकको कोड लेख्नुहोस्।"),
+    invalidEmail: bilingualText(language, "Enter a valid email address.", "मान्य इमेल ठेगाना लेख्नुहोस्।"),
+    shortPassword: bilingualText(language, "Password must be at least 6 characters.", "पासवर्ड कम्तीमा ६ क्यारेक्टर हुनुपर्छ।"),
+    signingIn: bilingualText(language, "Signing in…", "लग इन गर्दै…"),
+    creating: bilingualText(language, "Creating your account…", "खाता खोल्दै…"),
     signedIn: bilingualText(language, "You are signed in as a parent guardian.", "तपाईं अभिभावकको रूपमा लग इन हुनुभयो।"),
-    backToPhone: bilingualText(language, "Use a different phone", "अर्को फोन प्रयोग गर्नुहोस्"),
+    confirmEmail: bilingualText(language, "Almost done — confirm your email from the message we just sent, then sign in.", "लगभग सकियो — हामीले पठाएको सन्देशबाट इमेल पुष्टि गर्नुहोस्, त्यसपछि लग इन गर्नुहोस्।"),
+    switchToSignUp: bilingualText(language, "No account yet? Create one", "खाता छैन? नयाँ खाता बनाउनुहोस्"),
+    switchToSignIn: bilingualText(language, "Already have an account? Sign in", "खाता छ? लग इन गर्नुहोस्"),
     signOut: bilingualText(language, "Sign out", "लग आउट"),
+    emailLabel: bilingualText(language, "Email address", "इमेल ठेगाना"),
+    passwordLabel: bilingualText(language, "Password", "पासवर्ड"),
   };
 
   const show = (text: string, kind: "info" | "error" | "success") => {
@@ -38,31 +51,27 @@ export default function ParentAuth() {
     setMessageKind(kind);
   };
 
-  const requestCode = async () => {
+  const submit = async () => {
     if (!isSupabaseConfigured) { show(t.notConfigured, "error"); return; }
-    if (!/^\+?[1-9][0-9\s-]{6,17}$/.test(phone.trim())) { show(t.invalidPhone, "error"); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())) { show(t.invalidEmail, "error"); return; }
+    if (password.length < 6) { show(t.shortPassword, "error"); return; }
     setBusy(true);
-    show(t.requesting, "info");
+    show(mode === "sign-in" ? t.signingIn : t.creating, "info");
     try {
-      await requestGuardianOtp(phone);
-      show(t.codeSent, "success");
-      setStep("code");
-    } catch (error) {
-      show(error instanceof Error ? error.message : t.notConfigured, "error");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const verifyCode = async () => {
-    if (!/^\d{6}$/.test(code)) { show(t.invalidCode, "error"); return; }
-    setBusy(true);
-    show(t.verifying, "info");
-    try {
-      const session = await verifyGuardianOtp(phone, code);
-      setSessionPhone(session.phone);
-      setStep("signed-in");
-      show(t.signedIn, "success");
+      if (mode === "sign-in") {
+        const session = await signInGuardianWithEmail(email, password);
+        setSessionEmail(session.email);
+        show(t.signedIn, "success");
+      } else {
+        const created = await signUpGuardianWithEmail(email, password);
+        if (created.needsEmailConfirmation) {
+          show(t.confirmEmail, "success");
+          setMode("sign-in");
+        } else {
+          setSessionEmail(created.email);
+          show(t.signedIn, "success");
+        }
+      }
     } catch (error) {
       show(error instanceof Error ? error.message : t.notConfigured, "error");
     } finally {
@@ -72,11 +81,8 @@ export default function ParentAuth() {
 
   const handleSignOut = async () => {
     await signOutGuardian();
-    setStep("phone");
-    setCode("");
-    setPhone("");
-    setSessionPhone("");
-    show("", "info");
+    setSessionEmail(null);
+    setMessage("");
   };
 
   return (
@@ -89,7 +95,7 @@ export default function ParentAuth() {
         <Text style={[styles.eyebrow, { color: colors.primary }]}>RAINBOW CHILD DEVELOPMENT CLINIC</Text>
         <Text style={[styles.title, { color: colors.foreground }]}>{title}</Text>
         <Text style={[styles.subtitle, { color: colors.muted }]}>
-          {bilingualText(language, "Use your phone number to continue. A one-time SMS code is sent to verify you — no account details are stored on this device by the clinic app.", "अघि बढ्न फोन नम्बर प्रयोग गर्नुहोस्। प्रमाणीकरणका लागि एक पटकको SMS कोड पठाइन्छ।")}
+          {bilingualText(language, "Use the email you gave the clinic. Your account keeps your child's records safe with clinic-approved access only.", "क्लिनिकलाई दिनुभएको इमेल प्रयोग गर्नुहोस्। तपाईंको खाताले बच्चाको अभिलेख सुरक्षित राख्छ।")}
         </Text>
 
         {!isSupabaseConfigured ? (
@@ -98,69 +104,63 @@ export default function ParentAuth() {
           </View>
         ) : null}
 
-        {step === "phone" ? (
+        {sessionEmail === null ? (
           <>
-            <Text style={[styles.label, { color: colors.muted }]}>{bilingualText(language, "Phone number", "फोन नम्बर")}</Text>
+            <Text style={[styles.label, { color: colors.muted }]}>{t.emailLabel}</Text>
             <TextInput
-              value={phone}
-              onChangeText={setPhone}
-              placeholder="+977 98XXXXXXXX"
+              value={email}
+              onChangeText={setEmail}
+              placeholder="parent@example.com"
               placeholderTextColor={colors.muted}
-              keyboardType="phone-pad"
+              keyboardType="email-address"
               autoCapitalize="none"
+              autoComplete="email"
+              textContentType="emailAddress"
               style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.surface }]}
-              accessibilityLabel="Parent phone number"
+              accessibilityLabel="Parent email address"
             />
-            <Pressable onPress={requestCode} disabled={busy} style={[styles.button, { backgroundColor: "#F97360" }]}>
-              <Text style={styles.buttonText}>{busy ? t.requesting : bilingualText(language, "Request code", "कोड माग्नुहोस्")}</Text>
-            </Pressable>
-          </>
-        ) : null}
-
-        {step === "code" ? (
-          <>
-            <View style={styles.row}>
-              <Text style={[styles.label, { color: colors.muted }]}>{bilingualText(language, "Code sent to", "कोड पठाइएको नम्बर")}</Text>
-              <Pressable onPress={() => { setStep("phone"); setMessage(""); }} disabled={busy}>
-                <Text style={[styles.edit, { color: colors.primary }]}>{bilingualText(language, "Edit", "सम्पादन")}</Text>
-              </Pressable>
-            </View>
-            <Text style={[styles.phone, { color: colors.foreground }]}>{phone}</Text>
+            <Text style={[styles.label, { color: colors.muted }]}>{t.passwordLabel}</Text>
             <TextInput
-              value={code}
-              onChangeText={(value) => setCode(value.replace(/\D/g, "").slice(0, 6))}
-              placeholder="000000"
+              value={password}
+              onChangeText={setPassword}
+              placeholder="••••••••"
               placeholderTextColor={colors.muted}
-              keyboardType="number-pad"
-              maxLength={6}
-              style={[styles.input, styles.codeInput, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.surface }]}
-              accessibilityLabel="Six digit one time code"
+              secureTextEntry
+              autoCapitalize="none"
+              autoComplete="current-password"
+              style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.surface }]}
+              accessibilityLabel="Parent password"
             />
-            <Pressable onPress={verifyCode} disabled={busy} style={[styles.button, { backgroundColor: "#F97360" }]}>
-              <Text style={styles.buttonText}>{busy ? t.verifying : bilingualText(language, "Verify code", "कोड प्रमाणित गर्नुहोस्")}</Text>
+            <Pressable onPress={submit} disabled={busy} style={[styles.button, { backgroundColor: "#F97360" }]}>
+              <Text style={styles.buttonText}>
+                {busy
+                  ? mode === "sign-in" ? t.signingIn : t.creating
+                  : mode === "sign-in"
+                    ? bilingualText(language, "Sign in", "लग इन")
+                    : bilingualText(language, "Create account", "खाता बनाउनुहोस्")}
+              </Text>
             </Pressable>
-            <Pressable onPress={requestCode} disabled={busy}>
-              <Text style={[styles.link, { color: colors.primary }]}>{bilingualText(language, "Resend code", "कोड फेरि पठाउनुहोस्")}</Text>
+            <Pressable onPress={() => { setMode(mode === "sign-in" ? "sign-up" : "sign-in"); setMessage(""); }} disabled={busy}>
+              <Text style={[styles.link, { color: colors.primary }]}>
+                {mode === "sign-in" ? t.switchToSignUp : t.switchToSignIn}
+              </Text>
             </Pressable>
           </>
-        ) : null}
-
-        {step === "signed-in" ? (
+        ) : (
           <View style={[styles.preview, { backgroundColor: colors.surface, borderColor: colors.success }]}>
             <Text style={[styles.previewTitle, { color: colors.success }]}>{t.signedIn}</Text>
             <Text style={[styles.subtitle, { color: colors.muted }]}>
-              {bilingualText(language, "Phone", "फोन")}: {sessionPhone}
+              {bilingualText(language, "Email", "इमेल")}: {sessionEmail}
             </Text>
             <Pressable onPress={handleSignOut}>
               <Text style={[styles.link, { color: colors.primary }]}>{t.signOut}</Text>
             </Pressable>
-            <Pressable onPress={() => { setStep("phone"); setCode(""); setMessage(""); }}>
-              <Text style={[styles.link, { color: colors.primary }]}>{t.backToPhone}</Text>
-            </Pressable>
           </View>
-        ) : null}
+        )}
 
-        {message ? <Text style={[styles.message, { color: messageKind === "error" ? colors.warning : messageKind === "success" ? colors.success : colors.muted }]}>{message}</Text> : null}
+        {message ? (
+          <Text style={[styles.message, { color: messageKind === "error" ? colors.warning : messageKind === "success" ? colors.success : colors.muted }]}>{message}</Text>
+        ) : null}
       </View>
     </ScreenContainer>
   );
@@ -178,12 +178,8 @@ const styles = StyleSheet.create({
   noticeTitle: { fontSize: 13, fontWeight: "900" },
   label: { fontSize: 13, fontWeight: "800", marginTop: 26, marginBottom: 8 },
   input: { borderWidth: 1, borderRadius: 14, minHeight: 50, paddingHorizontal: 14, fontSize: 17 },
-  codeInput: { letterSpacing: 8, textAlign: "center", fontWeight: "900" },
   button: { minHeight: 50, borderRadius: 14, alignItems: "center", justifyContent: "center", marginTop: 16 },
   buttonText: { color: "#FFFFFF", fontSize: 15, fontWeight: "900" },
-  row: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 26 },
-  edit: { fontSize: 13, fontWeight: "900" },
-  phone: { fontSize: 16, fontWeight: "800", marginTop: -2 },
   link: { textAlign: "center", marginTop: 18, fontSize: 14, fontWeight: "900" },
   preview: { borderWidth: 1, borderRadius: 16, padding: 16, marginTop: 26 },
   previewTitle: { fontSize: 17, fontWeight: "900" },
