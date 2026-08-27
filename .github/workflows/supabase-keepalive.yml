@@ -1,12 +1,14 @@
 name: supabase-keepalive
 
 # Keeps the Supabase free-tier project active so it never auto-pauses.
-# Runs once per day (03:00 UTC = 08:45 NPT). Add repo secrets SUPABASE_URL
-# and SUPABASE_ANON_KEY for this to work (see docs/SUPABASE_KEEPALIVE.md).
+# Runs every 6h because GitHub may delay or drop individual scheduled runs;
+# any single miss then costs nothing against the ~7-day pause window.
+# Add repo secrets SUPABASE_URL and SUPABASE_ANON_KEY to make this work
+# (see docs/SUPABASE_KEEPALIVE.md).
 
 on:
   schedule:
-    - cron: "0 3 * * *"
+    - cron: "17 */6 * * *"
   workflow_dispatch: {}
 
 permissions:

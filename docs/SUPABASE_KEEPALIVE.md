@@ -8,10 +8,11 @@ This repo ships a daily ping so the project stays awake.
 - `scripts/keep-supabase-alive.mjs` — one minimal read against the project
   (REST row read + auth health check). Uses the **public anon key** only; the
   service-role key is never needed or stored here.
-- `.github/workflows/supabase-keepalive.yml` — GitHub Actions schedule at
-  `03:00 UTC` (08:45 NPT) daily. Runs on GitHub's servers, so it works even
+- `.github/workflows/supabase-keepalive.yml` — GitHub Actions schedule every
+  6 hours (`17 */6 * * *` UTC). Runs on GitHub's servers, so it works even
   when no local machine is on. A manual `workflow_dispatch` run is also
-  available from the Actions tab.
+  available from the Actions tab. The 4x cadence absorbs GitHub's occasional
+  delayed/dropped scheduled runs (observed: one full-day skip).
 
 ## One-time setup (required for the workflow)
 
@@ -31,8 +32,9 @@ node scripts/keep-supabase-alive.mjs   # reads .env (SUPABASE_URL / EXPO_PUBLIC_
 
 ## Caveats
 
-- GitHub **disables scheduled workflows after 60 days without repo activity**.
-  If the workflow stops running, trigger it manually once (Actions tab →
+- GitHub **disables scheduled workflows after 60 days without repo activity**
+  and may occasionally delay/drop individual scheduled runs. If several days
+  pass with no keep-alive success, trigger it manually once (Actions tab →
   Run workflow) or make any commit — the schedule resumes.
 - The schedule alone does not consume meaningful Actions minutes (~10 s/day).
 - The repo `.env` is gitignored; the workflow uses repository secrets instead.
