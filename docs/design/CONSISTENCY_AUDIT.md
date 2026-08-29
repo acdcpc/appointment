@@ -5,7 +5,7 @@ Severity: HIGH = brand/product-level inconsistency · MED = visible drift ·
 LOW = polish. Per the task brief: **flagged, not built** (except where a
 finding is documentation-only).
 
-## F1 · HIGH — Brand color split (teal vs navy)
+## F1 · HIGH — Brand color split (teal vs navy) — ✅ RESOLVED 2026-08-29 (canonical: navy `#092C4C`; docs, PWA theme-color, charts synced; teal = supporting clinical accent token)
 
 - `design.md:57` and `docs/NEPALI_PARENT_USABILITY_GAP_REPORT.md:11` document
   **teal `#0E7490`** as brand primary; the task brief repeats it.
@@ -21,7 +21,7 @@ finding is documentation-only).
   Figma tokens file records code-truth (navy) and keeps teal as a named
   chart accent so nothing is silently lost.
 
-## F2 · MED — Radius fragmentation
+## F2 · MED — Radius fragmentation — ✅ RESOLVED for booking.tsx (now 12/14/16/18/20 + 36 circle)
 
 - `design.md` (Visual System): cards 16–24, chips 12, buttons 14.
 - Measured: `app/booking.tsx` uses **10 distinct radii** (10, 11, 12, 13, 14,
@@ -31,7 +31,7 @@ finding is documentation-only).
   (chip 12 · button 14 · card 18 · cardLg 20 · pill 36) at the next
   code-touch; no functional change.
 
-## F3 · MED — Micro text below legibility floor
+## F3 · MED — Micro text below legibility floor — ✅ RESOLVED (8pt/9pt/10pt labels raised to 11–12pt)
 
 - `app/about.tsx` (styles `closedMark`) **fontSize 8** "Closed" mark;
   `app/booking.tsx` (`available`) **fontSize 9** slot-availability label;
@@ -42,7 +42,7 @@ finding is documentation-only).
 - **Flag:** lift micro text to an 11pt floor (12 for anything Devanagari or
   action-adjacent).
 
-## F4 · MED — Accent + surface tints are hardcoded, not tokenized
+## F4 · MED — Accent + surface tints hardcoded — ✅ RESOLVED (semantic tokens in theme.config.js; parent screens migrated, dark-mode safe)
 
 - Coral accent `#F97360` (design.md "Accent") exists only as literals —
   `app/(tabs)/index.tsx` primaryButton/bookingEmpty, `app/booking.tsx`.
@@ -55,7 +55,7 @@ finding is documentation-only).
 - **Flag:** promote these to extended tokens (already modeled in
   `color-extended`) and migrate literals.
 
-## F5 · LOW/MED — Touch targets below 44px
+## F5 · LOW/MED — Touch targets below 44px — ✅ RESOLVED (all raised to 44 incl. back links)
 
 - `app/booking.tsx`: `previewToggle` minHeight 42 · `contactCheck` 42 ·
   `optionalToggle` 38 · `suggestButton` 40 · `topicChip` 36.
@@ -66,7 +66,7 @@ finding is documentation-only).
   `primaryButton`).
 - **Flag:** lift the six spots above to 44 (padding, not visual size).
 
-## F6 · DOC/CODE MISMATCH — Phone+OTP mockup is gone from main
+## F6 · DOC/CODE MISMATCH — Phone+OTP mockup gone from main — ✅ RESOLVED (docs retired; design.md/todo.md no longer claim the mockup; no SMS)
 
 - `todo.md` ("Add discoverable parent phone-plus-OTP frontend mockup entry
   point from the home screen" `[x]`) and `design.md` (Parent phone-plus-OTP
@@ -80,7 +80,7 @@ finding is documentation-only).
   the no-paid-SMS rule), **or** update `todo.md`/`design.md` to retire the
   claim. Current state silently contradicts the docs.
 
-## F7 · LOW — Trust-banner coverage gaps
+## F7 · LOW — Trust-banner coverage gaps — ✅ RESOLVED (banner added to onboarding + parent-auth using booking's pattern)
 
 - Banner (name + "Associate Professor Dr. Anil Ojha, MBBS, MD, FCCH")
   present: booking, home, find, about, clinician, weekly-capacity export.

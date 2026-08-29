@@ -91,15 +91,25 @@ export default function ParentAuth() {
         <Pressable onPress={() => router.back()} accessibilityRole="button">
           <Text style={[styles.back, { color: colors.primary }]}>‹ {bilingualText(language, "Back", "पछाडि")}</Text>
         </Pressable>
-        <View style={[styles.brandMark, { backgroundColor: colors.primary }]}><Text style={styles.brandText}>R</Text></View>
+        <View style={[styles.brandMark, { backgroundColor: colors.primary }]}><Text style={[styles.brandText, { color: colors.textInverse }]}>R</Text></View>
         <Text style={[styles.eyebrow, { color: colors.primary }]}>RAINBOW CHILD DEVELOPMENT CLINIC</Text>
         <Text style={[styles.title, { color: colors.foreground }]}>{title}</Text>
         <Text style={[styles.subtitle, { color: colors.muted }]}>
           {bilingualText(language, "Use the email you gave the clinic. Your account keeps your child's records safe with clinic-approved access only.", "क्लिनिकलाई दिनुभएको इमेल प्रयोग गर्नुहोस्। तपाईंको खाताले बच्चाको अभिलेख सुरक्षित राख्छ।")}
         </Text>
 
+        <View style={[styles.doctorBanner, { backgroundColor: colors.tealSurface, borderColor: colors.primary }]}>
+          <View style={[styles.doctorBadge, { backgroundColor: colors.primary }]}>
+            <Text style={[styles.doctorBadgeText, { color: colors.textInverse }]}>Dr</Text>
+          </View>
+          <View style={styles.flexCopy}>
+            <Text style={[styles.doctorName, { color: colors.foreground }]}>Associate Professor Dr. Anil Ojha</Text>
+            <Text style={[styles.doctorMeta, { color: colors.muted }]}>MBBS, MD, FCCH · Developmental Pediatrician</Text>
+          </View>
+        </View>
+
         {!isSupabaseConfigured ? (
-          <View style={[styles.notice, { backgroundColor: "#FDECEC", borderColor: colors.warning }]}>
+          <View style={[styles.notice, { backgroundColor: colors.dangerSurface, borderColor: colors.warning }]}>
             <Text style={[styles.noticeTitle, { color: colors.warning }]}>{t.notConfigured}</Text>
           </View>
         ) : null}
@@ -131,8 +141,8 @@ export default function ParentAuth() {
               style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.surface }]}
               accessibilityLabel="Parent password"
             />
-            <Pressable onPress={submit} disabled={busy} style={[styles.button, { backgroundColor: "#F97360" }]}>
-              <Text style={styles.buttonText}>
+            <Pressable onPress={submit} disabled={busy} style={[styles.button, { backgroundColor: colors.action }]}>
+              <Text style={[styles.buttonText, { color: colors.textInverse }]}>
                 {busy
                   ? mode === "sign-in" ? t.signingIn : t.creating
                   : mode === "sign-in"
@@ -170,16 +180,46 @@ const styles = StyleSheet.create({
   page: { maxWidth: 520, width: "100%", alignSelf: "center", paddingTop: 8 },
   back: { fontSize: 15, fontWeight: "800", marginBottom: 28 },
   brandMark: { width: 52, height: 52, borderRadius: 18, alignItems: "center", justifyContent: "center", marginBottom: 16 },
-  brandText: { color: "#FFFFFF", fontSize: 28, fontWeight: "900" },
+  brandText: { fontSize: 28, fontWeight: "900" },
   eyebrow: { fontSize: 11, fontWeight: "900", letterSpacing: 1, marginBottom: 10 },
   title: { fontSize: 32, fontWeight: "900", lineHeight: 40 },
   subtitle: { fontSize: 16, lineHeight: 24, marginTop: 10 },
+  doctorBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderWidth: 1,
+    borderRadius: 18,
+    padding: 14,
+  },
+  doctorBadge: {
+    width: 38,
+    height: 38,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  doctorBadgeText: {
+    fontWeight: "900",
+    fontSize: 13,
+  },
+  flexCopy: {
+    flex: 1,
+  },
+  doctorName: {
+    fontSize: 14,
+    fontWeight: "900",
+  },
+  doctorMeta: {
+    fontSize: 12,
+    lineHeight: 17,
+  },
   notice: { borderWidth: 1, borderRadius: 16, padding: 14, marginTop: 22 },
   noticeTitle: { fontSize: 13, fontWeight: "900" },
   label: { fontSize: 13, fontWeight: "800", marginTop: 26, marginBottom: 8 },
   input: { borderWidth: 1, borderRadius: 14, minHeight: 50, paddingHorizontal: 14, fontSize: 17 },
   button: { minHeight: 50, borderRadius: 14, alignItems: "center", justifyContent: "center", marginTop: 16 },
-  buttonText: { color: "#FFFFFF", fontSize: 15, fontWeight: "900" },
+  buttonText: { fontSize: 15, fontWeight: "900" },
   link: { textAlign: "center", marginTop: 18, fontSize: 14, fontWeight: "900" },
   preview: { borderWidth: 1, borderRadius: 16, padding: 16, marginTop: 26 },
   previewTitle: { fontSize: 17, fontWeight: "900" },

@@ -59,6 +59,16 @@ export default function Onboarding() {
         </Text>
       </View>
 
+      <View style={[styles.doctorBanner, { backgroundColor: colors.tealSurface, borderColor: colors.primary }]}>
+        <View style={[styles.doctorBadge, { backgroundColor: colors.primary }]}>
+          <Text style={[styles.doctorBadgeText, { color: colors.textInverse }]}>Dr</Text>
+        </View>
+        <View style={styles.flexCopy}>
+          <Text style={[styles.doctorName, { color: colors.foreground }]}>Associate Professor Dr. Anil Ojha</Text>
+          <Text style={[styles.doctorMeta, { color: colors.muted }]}>MBBS, MD, FCCH · Developmental Pediatrician</Text>
+        </View>
+      </View>
+
       <View style={styles.features}>
         {features.map((f) => (
           <View key={f.icon} style={[styles.featureRow, { borderColor: colors.border }]}>
@@ -82,8 +92,8 @@ export default function Onboarding() {
           accessibilityRole="button"
           accessibilityLabel={t("Get started with a guardian account", "अभिभावक खातासँग सुरु गर्नुहोस्")}
         >
-          <Text style={styles.primaryButtonText}>{t("Get started", "सुरु गरौँ")}</Text>
-          <Text style={styles.primaryButtonNepali}>
+          <Text style={[styles.primaryButtonText, { color: colors.textInverse }]}>{t("Get started", "सुरु गरौँ")}</Text>
+          <Text style={[styles.primaryButtonNepali, { color: colors.textInverseMuted }]}>
             {t("Create an account or sign in", "खाता बनाउनुहोस् वा लग इन गर्नुहोस्")}
           </Text>
         </Pressable>
@@ -141,6 +151,36 @@ const styles = StyleSheet.create({
   features: {
     gap: 10,
   },
+  doctorBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderWidth: 1,
+    borderRadius: 18,
+    padding: 14,
+  },
+  doctorBadge: {
+    width: 38,
+    height: 38,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  doctorBadgeText: {
+    fontWeight: "900",
+    fontSize: 13,
+  },
+  flexCopy: {
+    flex: 1,
+  },
+  doctorName: {
+    fontSize: 14,
+    fontWeight: "900",
+  },
+  doctorMeta: {
+    fontSize: 12,
+    lineHeight: 17,
+  },
   featureRow: {
     flexDirection: "row",
     gap: 12,
@@ -169,12 +209,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   primaryButtonText: {
-    color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "900",
   },
   primaryButtonNepali: {
-    color: "#FFFFFF",
     opacity: 0.85,
     fontSize: 12,
     marginTop: 2,
