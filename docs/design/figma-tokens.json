@@ -1,0 +1,82 @@
+{
+  "$metadata": {
+    "tokenSetOrder": ["color-light", "color-dark", "color-extended", "typography", "radius", "spacing", "sizing"]
+  },
+  "$themes": [
+    { "id": "light", "name": "Light", "selectedTokenSets": { "color-light": "enabled", "color-extended": "enabled", "typography": "enabled", "radius": "enabled", "spacing": "enabled", "sizing": "enabled" } },
+    { "id": "dark", "name": "Dark", "selectedTokenSets": { "color-dark": "enabled", "color-extended": "enabled", "typography": "enabled", "radius": "enabled", "spacing": "enabled", "sizing": "enabled" } }
+  ],
+  "color-light": {
+    "primary":       { "value": "#092C4C", "type": "color", "description": "Brand navy — runtime token (theme.config.js). Replaced documented teal in rebrand 675950e. See audit F1." },
+    "background":    { "value": "#F7FAFC", "type": "color", "description": "Cool ivory canvas" },
+    "surface":       { "value": "#FFFFFF", "type": "color", "description": "Card surface" },
+    "foreground":    { "value": "#102A43", "type": "color", "description": "Ink navy text" },
+    "muted":         { "value": "#627D98", "type": "color", "description": "Secondary text" },
+    "border":        { "value": "#D9E2EC", "type": "color", "description": "Subtle slate border" },
+    "success":       { "value": "#2F855A", "type": "color" },
+    "warning":       { "value": "#C27C0E", "type": "color" },
+    "error":         { "value": "#C53030", "type": "color" }
+  },
+  "color-dark": {
+    "primary":    { "value": "#5BB8D0", "type": "color" },
+    "background": { "value": "#102A43", "type": "color" },
+    "surface":    { "value": "#173B56", "type": "color" },
+    "foreground": { "value": "#F7FAFC", "type": "color" },
+    "muted":      { "value": "#B8C7D8", "type": "color" },
+    "border":     { "value": "#345A73", "type": "color" },
+    "success":    { "value": "#68D391", "type": "color" },
+    "warning":    { "value": "#F6C453", "type": "color" },
+    "error":      { "value": "#FC8181", "type": "color" }
+  },
+  "color-extended": {
+    "accent.coral":        { "value": "#F97360", "type": "color", "description": "Accent — hardcoded in booking/home; not a theme token (audit F4)" },
+    "accent.coralTint":    { "value": "#FFF4F1", "type": "color" },
+    "accent.coralTint2":   { "value": "#FFF5F2", "type": "color" },
+    "teal.chartAccent":    { "value": "#0E7490", "type": "color", "description": "Documented 'brand primary' in design.md; now used only in WHO/growth charts + PWA theme-color (audit F1)" },
+    "teal.tint":           { "value": "#E0F2F3", "type": "color" },
+    "teal.tintText":       { "value": "#BCE7EA", "type": "color" },
+    "teal.tintText2":      { "value": "#D7F2F3", "type": "color" },
+    "success.surface":     { "value": "#EAF7F0", "type": "color", "description": "Success toast/confirm card background" },
+    "warning.surface":     { "value": "#FFF8EB", "type": "color", "description": "Modified-hours / pending card background" },
+    "danger.surface":      { "value": "#FDE7E2", "type": "color", "description": "Closure / expired offer card background" },
+    "danger.surfaceAlt":   { "value": "#FDECEC", "type": "color", "description": "parent-auth not-configured notice" }
+  },
+  "typography": {
+    "fontFamily": { "value": "system-ui", "type": "fontFamilies", "description": "Fonts.sans (system-ui on iOS/web; Roboto on Android)" },
+    "weight.heading": { "value": "Black", "type": "fontWeights", "description": "900 — booking/home headings, primary buttons" },
+    "weight.strong":  { "value": "ExtraBold", "type": "fontWeights", "description": "800 — card titles, secondary buttons, Nepali lines" },
+    "weight.meta":    { "value": "Bold", "type": "fontWeights", "description": "700 — meta/eyebrow text" },
+    "display":   { "value": { "fontSize": "30", "lineHeight": "36", "fontWeight": "900" }, "type": "typography", "description": "Screen titles (booking/index/find)" },
+    "title":     { "value": { "fontSize": "21", "lineHeight": "28", "fontWeight": "800" }, "type": "typography", "description": "Hero title (home)" },
+    "headingLg": { "value": { "fontSize": "19", "lineHeight": "26", "fontWeight": "900" }, "type": "typography", "description": "Section titles" },
+    "heading":   { "value": { "fontSize": "17", "lineHeight": "24", "fontWeight": "800" }, "type": "typography", "description": "Card titles (17pt body baseline per design.md)" },
+    "body":      { "value": { "fontSize": "15", "lineHeight": "22", "fontWeight": "600" }, "type": "typography" },
+    "bodySm":    { "value": { "fontSize": "14", "lineHeight": "21", "fontWeight": "600" }, "type": "typography", "description": "Dominant body size in practice" },
+    "label":     { "value": { "fontSize": "13", "lineHeight": "18", "fontWeight": "800" }, "type": "typography", "description": "Nepali secondary lines live at 13/800" },
+    "caption":   { "value": { "fontSize": "12", "lineHeight": "18", "fontWeight": "600" }, "type": "typography" },
+    "micro":     { "value": { "fontSize": "11", "lineHeight": "16", "fontWeight": "800" }, "type": "typography", "description": "Eyebrows/footnotes — audit F3 floor" },
+    "microXs":   { "value": { "fontSize": "10", "lineHeight": "14", "fontWeight": "800" }, "type": "typography", "description": "audit F3: lift to 11 minimum" }
+  },
+  "radius": {
+    "chip":     { "value": "12", "type": "borderRadius", "description": "design.md chips 12; actual drift 10-12" },
+    "button":   { "value": "14", "type": "borderRadius", "description": "design.md 14; actual 13-17" },
+    "card":     { "value": "18", "type": "borderRadius", "description": "design.md 16-24; dominant card radius 18" },
+    "cardLg":   { "value": "20", "type": "borderRadius", "description": "Review/summary cards 20-22" },
+    "pill":     { "value": "36", "type": "borderRadius", "description": "Success mark / circular badges" }
+  },
+  "spacing": {
+    "xs": { "value": "4",  "type": "spacing" },
+    "sm": { "value": "8",  "type": "spacing" },
+    "md": { "value": "12", "type": "spacing" },
+    "lg": { "value": "16", "type": "spacing" },
+    "xl": { "value": "20", "type": "spacing" },
+    "xxl": { "value": "24", "type": "spacing" }
+  },
+  "sizing": {
+    "touchMin":   { "value": "44", "type": "sizing", "description": "Minimum touch target — violated in 5 spots (audit F5)" },
+    "slotChip":   { "value": "44", "type": "sizing" },
+    "buttonLg":   { "value": "58", "type": "sizing", "description": "Primary CTA with bilingual second line (54-58 observed)" },
+    "avatar":     { "value": "44", "type": "sizing" },
+    "avatarLg":   { "value": "48", "type": "sizing" }
+  }
+}
