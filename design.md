@@ -54,7 +54,7 @@ Dr. Anil Ojha Child Care is a calm, trustworthy scheduling experience for the si
 
 | Element | Choice |
 |---|---|
-| Brand primary | Deep teal `#0E7490`, communicating clinical trust without feeling sterile. |
+| Brand primary | Deep navy `#092C4C` (dark mode `#5BB8D0`), communicating clinical trust without feeling sterile. Replaced the earlier teal `#0E7490` in the clinic rebrand (commit 675950e); teal remains only as the WHO/growth chart accent until it is retokened. |
 | Accent | Warm coral `#F97360`, reserved for important actions and appointment highlights. |
 | Canvas | Cool ivory `#F7FAFC`, keeping cards legible and reducing glare. |
 | Surface | White `#FFFFFF`, with subtle slate borders and restrained shadows. |
@@ -226,9 +226,9 @@ The retention dashboard adds a **Run summary now** action that calculates and sh
 The archive-volume chart provides a clinician-selected start and end month range, with a CSV export that includes only month bucket, archive-run count, archived-record count, and selected range metadata. The dashboard adds a quarterly retention-review control that can enable, pause, or resume a published reminder; each reminder contains aggregate storage and archive information only. While **Run summary now** is executing, its button changes to a progress label and remains disabled. A success card confirms the completed summary period and aggregate result after the action finishes.
 
 
-## Parent phone-plus-OTP mockup
+## Parent phone-plus-OTP mockup (retired)
 
-The parent authentication prototype is a review-only front-end flow. It uses a phone-number entry screen, a request-code action, a six-digit code-entry state, an edit-number action, a resend-preview action, and a completion card. It must always say that no SMS was sent and that no account was authenticated. Real SMS delivery, rate limiting, recovery, verified identity, and account linking require a separately approved production architecture and are not part of this free prototype.
+The review-only phone-plus-OTP mockup was removed during the Supabase email + password migration (2026-08-26). Production guardian authentication is Supabase email + password; no SMS provider is configured anywhere. Phone OTP remains a documented future extension behind `lib/supabase-auth.ts`; connecting real SMS still requires a separately approved production architecture and remains out of the product.
 
 ## Appointment-summary copy interaction
 

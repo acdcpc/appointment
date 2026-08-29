@@ -96,7 +96,7 @@ const config: ExpoConfig = {
     display: "standalone",
     startUrl: "/",
     scope: "/",
-    themeColor: "#0E7490",
+    themeColor: "#092C4C",
     backgroundColor: "#F7FAFC",
     barStyle: "black-translucent",
     // iOS Safari standalone-app meta tags (classic PWA path on iOS).

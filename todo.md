@@ -407,14 +407,14 @@ Note: Figma is not available in the current development workspace; produce a Fig
 - [x] Update reusable workflow for free review-only parent OTP mockups, local clipboard feedback, and design-token templates
 - [x] Create a standard healthcare branding `design.md` with the existing clinic trust palette
 - [x] Apply the healthcare design tokens to the Nepali booking flow without changing canonical data
-- [x] Build a free parent phone-plus-OTP frontend mockup with request-code, code-entry, resend, and edit-number states
+- [x] Build a free parent phone-plus-OTP frontend mockup with request-code, code-entry, resend, and edit-number states *(retired 2026-08-29: mockup was removed during the Supabase email+password migration and no longer exists in main — see design.md)*
 - [x] Add one-click copy-to-clipboard for appointment summaries with a visual success toast
 - [x] Keep OTP as a frontend mockup only; do not connect paid SMS, credentials, or real authentication
 - [x] Validate the mockup, clipboard flow, design-token application, and free-cost safeguards
 
 - [x] Complete bilingual copy-to-clipboard action with success and failure feedback on booking confirmation
-- [x] Add discoverable parent phone-plus-OTP frontend mockup entry point from the home screen
-- [x] Document parent OTP mockup and clipboard privacy safeguards in design.md and reusable workflow skill
+- [x] Add discoverable parent phone-plus-OTP frontend mockup entry point from the home screen *(retired 2026-08-29: entry point removed with the mockup — see design.md)*
+- [x] Document parent OTP mockup and clipboard privacy safeguards in design.md and reusable workflow skill *(OTP mockup documentation retired 2026-08-29 — see design.md; clipboard safeguards remain accurate)*
 - [x] Validate TypeScript, lint, tests, and reusable skill structure
 
 - [x] Inspect all local and remote branches and identify completed work not yet in main

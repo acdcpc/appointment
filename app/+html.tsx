@@ -17,7 +17,7 @@ export default function Root({ children }: PropsWithChildren) {
           content="width=device-width, initial-scale=1, viewport-fit=cover"
         />
         <meta name="description" content="Rainbow Child Development Clinic — pediatric appointments, records, and family care with Dr. Anil Ojha." />
-        <meta name="theme-color" content="#0E7490" />
+        <meta name="theme-color" content="#092C4C" />
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
         {/* iOS classic PWA meta tags (iOS < 16.4 and Share-sheet hints) */}
