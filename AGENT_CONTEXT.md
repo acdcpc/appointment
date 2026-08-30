@@ -102,7 +102,7 @@ records what was added on top of the state described above.
   sample-data mode keeps working.
 - `server/supabase.ts` — service-role client (SUPABASE_URL /
   SUPABASE_SERVICE_ROLE_KEY), server-side only.
-- `app.config.ts` web block — full PWA manifest (standalone, theme `#0E7490`,
+- `app.config.ts` web block — full PWA manifest (standalone, theme `#092C4C`,
   background `#F7FAFC`, iOS `apple-mobile-web-app-*` meta tags); web export is
   `static` → `npx expo export --platform web` produces an installable PWA.
 - `eas.json` — EAS profiles: `preview` (internal APK) and `production` (store AAB).

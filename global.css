@@ -1,3 +1,33 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Motion foundation — web only, calm and fast (design.md / brief section 14).
+   Hover/pressed feedback 100-150ms ease-out; disabled entirely for users who
+   prefer reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  [role="button"], button, a, input, textarea, select {
+    transition:
+      background-color 120ms ease-out,
+      border-color 120ms ease-out,
+      opacity 120ms ease-out;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Visible keyboard focus for every interactive element (WCAG 2.2 AA 2.4.7).
+   Uses the theme's focus-ring token set by the theme provider. */
+:focus-visible {
+  outline: 2px solid var(--color-focus-ring, #38b7c0);
+  outline-offset: 2px;
+  border-radius: 4px;
+}

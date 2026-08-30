@@ -10,6 +10,11 @@ export interface ScreenContainerProps extends ViewProps {
    */
   edges?: Edge[];
   /**
+   * Max content width for comfortable reading on wide screens.
+   * Content is centered; the background still spans the full width.
+   */
+  maxWidth?: number;
+  /**
    * Tailwind className for the content area.
    */
   className?: string;
@@ -45,6 +50,7 @@ export function ScreenContainer({
   containerClassName,
   safeAreaClassName,
   style,
+  maxWidth = 760,
   ...props
 }: ScreenContainerProps) {
   return (
@@ -61,7 +67,12 @@ export function ScreenContainer({
         className={cn("flex-1", safeAreaClassName)}
         style={style}
       >
-        <View className={cn("flex-1", className)}>{children}</View>
+        <View
+          className={cn("flex-1 w-full self-center", className)}
+          style={{ maxWidth }}
+        >
+          {children}
+        </View>
       </SafeAreaView>
     </View>
   );

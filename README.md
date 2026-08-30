@@ -96,7 +96,7 @@ Setup, environment variables, and the live verification checklist are in
 
 ## PWA (web + iOS)
 
-`app.config.ts` emits a full PWA manifest (standalone display, `#0E7490` theme,
+`app.config.ts` emits a full PWA manifest (standalone display, `#092C4C` theme,
 icons, iOS `apple-mobile-web-app-*` meta tags). Export with
 `npx expo export --platform web` and host the `dist/` folder. Android users can
 install the PWA or use the EAS-built APK; iOS starts with the **Add to Home

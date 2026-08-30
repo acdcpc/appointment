@@ -134,7 +134,7 @@ export default function BookingScreen() {
   };
 
   if (success) {
-    return <ScreenContainer className="p-5"><View style={styles.successScreen}>
+    return <ScreenContainer className="p-5" maxWidth={980}><View style={styles.successScreen}>
       <View style={[styles.successMark, { backgroundColor: colors.success }]}><Text style={styles.successMarkText}>✓</Text></View>
       <Text style={[styles.title, { color: colors.foreground, textAlign: "center" }]}>Visit requested</Text>
       <Text style={[styles.nepali, { color: colors.primary, textAlign: "center" }]}>भेट्ने समय अनुरोध भयो</Text>
@@ -153,7 +153,7 @@ export default function BookingScreen() {
     </View></ScreenContainer>;
   }
 
-  return <ScreenContainer className="p-5"><ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+  return <ScreenContainer className="p-5" maxWidth={980}><ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
     <Pressable onPress={() => reviewing ? setReviewing(false) : router.back()} accessibilityRole="button"><Text style={[styles.back, { color: colors.primary }]}>‹ {reviewing ? "Edit choices / सच्याउनुहोस्" : "Back / फर्कनुहोस्"}</Text></Pressable>
     <View style={[styles.doctorBanner, { backgroundColor: colors.tealSurface, borderColor: colors.primary }]}><View style={[styles.doctorBadge, { backgroundColor: colors.primary }]}><Text style={[styles.doctorBadgeText, { color: colors.textInverse }]}>Dr</Text></View><View style={styles.flexCopy}><Text style={[styles.doctorName, { color: colors.foreground }]}>Associate Professor Dr. Anil Ojha</Text><Text style={[styles.doctorMeta, { color: colors.muted }]}>MBBS, MD, FCCH · Developmental Pediatrician</Text></View></View>
     <Text style={[styles.eyebrow, { color: colors.primary }]}>RAINBOW CHILD DEVELOPMENT CLINIC</Text>
