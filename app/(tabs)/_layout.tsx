@@ -1,4 +1,4 @@
-import { Tabs, usePathname, useRouter } from "expo-router";
+import { Tabs, usePathname, useRouter, type Href } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Platform, Pressable, Text, View, useWindowDimensions } from "react-native";
 import { HapticTab } from "@/components/haptic-tab";
@@ -14,12 +14,12 @@ function DesktopTopNav({ colors, language, setLanguage }: { colors: ReturnType<t
   const router = useRouter();
   const pathname = usePathname() ?? "/";
   const segment = pathname.replace("/(tabs)", "");
-  const items: Array<{ path: string; label: string }> = [
+  const items: Array<{ path: Href; label: string }> = [
     { path: "/", label: language === "ne" ? "गृहपृष्ठ" : "Home" },
-    { path: "/find", label: language === "ne" ? "समय लिनुहोस्" : "Book visit" },
-    { path: "/appointments", label: language === "ne" ? "भेटहरू" : "Visits" },
-    { path: "/records", label: language === "ne" ? "अभिलेख" : "Records" },
-    { path: "/profile", label: language === "ne" ? "प्रोफाइल" : "Profile" },
+    { path: "/(tabs)/find", label: language === "ne" ? "समय लिनुहोस्" : "Book visit" },
+    { path: "/(tabs)/appointments", label: language === "ne" ? "भेटहरू" : "Visits" },
+    { path: "/(tabs)/records", label: language === "ne" ? "अभिलेख" : "Records" },
+    { path: "/(tabs)/profile", label: language === "ne" ? "प्रोफाइल" : "Profile" },
   ];
   return (
     <View style={{ backgroundColor: colors.background, borderBottomWidth: 0.5, borderBottomColor: colors.border }}>
@@ -37,7 +37,7 @@ function DesktopTopNav({ colors, language, setLanguage }: { colors: ReturnType<t
             const active = segment === item.path;
             return (
               <Pressable
-                key={item.path}
+                key={String(item.path)}
                 onPress={() => router.push(item.path)}
                 accessibilityRole="link"
                 aria-current={active ? "page" : undefined}

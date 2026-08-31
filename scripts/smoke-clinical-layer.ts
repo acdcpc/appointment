@@ -89,7 +89,7 @@ console.log(`\n${pass.length} passed, ${fail.length} failed`);
 
 // cleanup test rows (service-role direct deletes)
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
-const service = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const service = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
 const H = { apikey: service, Authorization: `Bearer ${service}`, "Content-Type": "application/json" };
 const del = async (table: string, col: string, value: string) => { await fetch(`${url}/rest/v1/${table}?${col}=eq.${encodeURIComponent(value)}`, { method: "DELETE", headers: H }); };
 await del("clinic_appointments", "appointmentId", `smoke-appt-${stamp}`);

@@ -1,5 +1,13 @@
-import "react-native-url-polyfill/auto";
+import { Platform } from "react-native";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+
+// The URL polyfill is only needed on native runtimes. Importing it on web
+// overrides the browser's native URL implementation and can break hydration
+// (static HTML renders, but nothing is interactive). Web browsers ship a
+// complete URL implementation, so web skips it entirely.
+if (Platform.OS !== "web") {
+  require("react-native-url-polyfill/auto");
+}
 
 /**
  * App-side Supabase client (anon key only — never put the service-role key
