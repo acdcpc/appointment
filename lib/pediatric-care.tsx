@@ -90,7 +90,20 @@ const validRange = (start: string, end: string) => { const from = timeToMinutes(
 const PediatricCareContext = createContext<PediatricCareContextValue | null>(null);
 
 export function PediatricCareProvider({ children: content }: { children: ReactNode }) {
-  const [childProfiles, setChildProfiles] = useState<ChildProfile[]>(initialChildProfiles);
+  const [childProfiles, setChildProfiles] = useState<ChildProfile[]>(() => {
+    // Persist guardian-edited child details across reloads (web localStorage;
+    // native keeps the in-memory demo defaults). Prototype-scoped by design.
+    try {
+      if (typeof window !== "undefined" && window.localStorage) {
+        const stored = window.localStorage.getItem("rainbow-child-profiles");
+        if (stored) {
+          const parsed = JSON.parse(stored) as ChildProfile[];
+          if (Array.isArray(parsed) && parsed.length) return parsed;
+        }
+      }
+    } catch { /* ignore storage errors */ }
+    return initialChildProfiles;
+  });
   const [selectedChildId, setSelectedChildId] = useState(initialChildProfiles[0].id); const [appointments, setAppointments] = useState<PediatricAppointment[]>(initialAppointments); const [clinicHours, setClinicHours] = useState<ClinicOperatingHour[]>(initialHours); const [clinicBreaks, setClinicBreaks] = useState<ClinicBreak[]>([]); const [clinicHolidays, setClinicHolidays] = useState<ClinicHoliday[]>([]); const [clinicDayHourOverrides, setClinicDayHourOverrides] = useState<ClinicDayHourOverride[]>([]); const [services, setServices] = useState<ServiceConfig[]>(initialServices); const [preparationChecklists, setPreparationChecklists] = useState<ServicePreparationChecklist[]>(initialPreparationChecklists); const [earlierSlotRequests, setEarlierSlotRequests] = useState<EarlierSlotRequest[]>([]); const [waitlistOfferDurationHours, setWaitlistOfferDurationHours] = useState(24); const [prescriptions, setPrescriptions] = useState<PrescriptionRecord[]>(initialPrescriptions); const [history, setHistory] = useState<MedicalHistoryEntry[]>(initialHistory); const [referralServices, setReferralServices] = useState<ReferralService[]>([]); const [auditEvents, setAuditEvents] = useState<PatientAuditEvent[]>([]); const [referralLetterSettings, setReferralLetterSettings] = useState<ReferralLetterSettings>({ clinicName: "Rainbow Child Development Clinic", clinicContact: "Phone: 9765002862 · rainbowclinic25@gmail.com", signatureName: "Associate Professor Dr. Anil Ojha, MBBS, MD, FCCH", signatureTitle: "Developmental Pediatrician" }); const [clinicLocation, setClinicLocation] = useState<ClinicLocationSettings>({ address: "Gokul Awas Rd, Karyabinayak 44700", mapUrl: "https://www.google.com.au/search?client=safari&hs=ORpV&sca_esv=79a7fd24df7232ff&hl=en-au&kgmid=/g/11zhz76ycx&q=Rainbow+Child+Development+Clinic&shem=epsd1,ltae,rimspwouoe&shndl=30&source=sh/x/loc/act/m1/3&kgs=21ca31c1d4d885a7&utm_source=epsd1,ltae,rimspwouoe,sh/x/loc/act/m1/3", clinicEmail: "rainbowclinic25@gmail.com", isProvisional: false }); const [staffMembers, setStaffMembers] = useState<StaffMember[]>([{ id: "staff-ojha", name: "Associate Professor Dr. Anil Ojha, MBBS, MD, FCCH", role: "clinician" }]); const [staffInvitations, setStaffInvitations] = useState<StaffInvitation[]>([]);
   const value = useMemo<PediatricCareContextValue>(() => {
     const durationFor = (service: string) => services.find((item) => item.name === service)?.durationMinutes ?? 30;
@@ -121,7 +134,15 @@ export function PediatricCareProvider({ children: content }: { children: ReactNo
     const updateChildProfile = (childId: string, changes: Partial<Pick<ChildProfile, "name" | "allergies">>): Result => {
       const name = changes.name?.trim();
       if (changes.name !== undefined && (!name || name.length < 2)) return { ok: false, message: "Enter the child's full name (at least 2 characters)." };
-      setChildProfiles((current) => current.map((child) => child.id === childId ? { ...child, ...changes, ...(name ? { name } : {}) } : child));
+      setChildProfiles((current) => {
+        const updated = current.map((child) => child.id === childId ? { ...child, ...changes, ...(name ? { name } : {}) } : child);
+        try {
+          if (typeof window !== "undefined" && window.localStorage) {
+            window.localStorage.setItem("rainbow-child-profiles", JSON.stringify(updated));
+          }
+        } catch { /* ignore storage errors */ }
+        return updated;
+      });
       return { ok: true };
     };
     return {
