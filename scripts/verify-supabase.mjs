@@ -131,6 +131,36 @@ check(
   challengeRes.status === 200 && verifyRes.status === 200 && typeof verified?.accessToken === "string" && verified.accessToken.length > 0,
   `issue=${challengeRes.status}, verify=${verifyRes.status}`
 );
+
+// ---- 13/14. clinic_children: guardian-scoped RLS round trip ----
+{
+  const stamp = Date.now();
+  const childId = `verify-child-${stamp}`;
+  const email = `verify-child-guardian-${stamp}@example.com`;
+  const H = { apikey: service, Authorization: `Bearer ${service}`, "Content-Type": "application/json" };
+  try {
+    const user = await (await fetch(`${url}/auth/v1/admin/users`, { method: "POST", headers: H, body: JSON.stringify({ email, password: "Verify-123456", email_confirm: true }) })).json();
+    await fetch(`${url}/rest/v1/guardians`, { method: "POST", headers: H, body: JSON.stringify({ auth_user_id: user.id, child_id: childId, phone: "+9779000000003", full_name: "Verify Guardian", relationship: "Parent", verified_at: new Date().toISOString() }) });
+    await fetch(`${url}/rest/v1/clinic_children`, { method: "POST", headers: H, body: JSON.stringify({ childId, name: "Verify Child", dateOfBirth: "01 Jan 2021", sex: "male", allergies: "", parentName: "Verify Guardian" }) });
+
+    const signIn = await (await fetch(`${url}/auth/v1/token?grant_type=password`, { method: "POST", headers: { apikey: anon, "Content-Type": "application/json" }, body: JSON.stringify({ email, password: "Verify-123456" }) })).json();
+    const gh = { apikey: anon, Authorization: `Bearer ${signIn.access_token}`, "Content-Type": "application/json" };
+
+    const seen = await (await fetch(`${url}/rest/v1/clinic_children?select=childId,name`, { headers: gh })).json();
+    check("13. guardian reads own linked child (clinic_children RLS)", seen?.length === 1 && seen[0]?.childId === childId && seen[0]?.name === "Verify Child", `rows=${seen?.length ?? "n/a"}`);
+
+    const upd = await fetch(`${url}/rest/v1/clinic_children?childId=eq.${childId}`, { method: "PATCH", headers: { ...gh, Prefer: "return=representation" }, body: JSON.stringify({ name: "Verify Child Updated", updatedAt: new Date().toISOString() }) });
+    const updBody = await (upd.clone()).json().catch(() => null);
+    check("14. guardian updates own child name (column-granted)", upd.status === 200 && Array.isArray(updBody) && updBody[0]?.name === "Verify Child Updated", `status=${upd.status}`);
+
+    await fetch(`${url}/rest/v1/clinic_children?childId=eq.${childId}`, { method: "DELETE", headers: H });
+    await fetch(`${url}/rest/v1/guardians?auth_user_id=eq.${user.id}`, { method: "DELETE", headers: H });
+    await fetch(`${url}/auth/v1/admin/users/${user.id}`, { method: "DELETE", headers: H });
+  } catch (err) {
+    check("13/14. clinic_children round trip", false, String(err));
+  }
+}
+
 console.log("\n" + [...pass, ...fail].join("\n"));
 console.log(`\n${pass.length} passed, ${fail.length} failed`);
 process.exit(fail.length ? 1 : 0);

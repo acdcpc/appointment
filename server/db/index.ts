@@ -132,3 +132,6 @@ export const updatePostDeploymentFeedbackStatus = impl.updatePostDeploymentFeedb
 export const upsertUser = impl.upsertUser;
 export const validateGuardianRecordAccess = impl.validateGuardianRecordAccess;
 export const verifyGuardianRecordAccess = impl.verifyGuardianRecordAccess;
+export const listClinicChildren = impl.listClinicChildren;
+export const upsertClinicChild = impl.upsertClinicChild;
+export const linkGuardianToChild = impl.linkGuardianToChild;

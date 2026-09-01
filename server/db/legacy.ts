@@ -898,3 +898,17 @@ export async function validateGuardianRecordAccess(accessToken: string) {
   const challenge = rows[0];
   return challenge && challenge.verifiedAt && !challenge.revokedAt && challenge.accessExpiresAt && challenge.accessExpiresAt > new Date() ? { childId: challenge.childId, accessExpiresAt: challenge.accessExpiresAt } : null;
 }
+
+// ---------- Server-scoped child records (require the Supabase backend) ----------
+
+export async function listClinicChildren(_clinicianUserId: number) {
+  throw new Error("Child records require the Supabase backend.");
+}
+
+export async function upsertClinicChild(_clinicianUserId: number, child: { id: string; name: string; dateOfBirth: string; sex: string; allergies: string; parentName: string; createdBy?: number }) {
+  throw new Error("Child records require the Supabase backend.");
+}
+
+export async function linkGuardianToChild(_clinicianUserId: number, input: { authUserId: string; childId: string; fullName?: string; relationship?: string }) {
+  throw new Error("Guardian linking requires the Supabase backend.");
+}

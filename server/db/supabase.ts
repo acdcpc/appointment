@@ -1697,3 +1697,59 @@ export async function validateGuardianRecordAccess(accessToken: string) {
   const expiresAt = new Date(String(row.accessExpiresAt));
   return expiresAt > new Date() ? { childId: String(row.childId), accessExpiresAt: expiresAt } : null;
 }
+
+// ---------- Server-scoped child records (clinic_children) ----------
+
+export type ClinicChildRecord = {
+  id: string;
+  name: string;
+  dateOfBirth: string;
+  sex: string;
+  allergies: string;
+  parentName: string;
+};
+
+function normalizeClinicChildRow(row: Record<string, unknown>): ClinicChildRecord {
+  return {
+    id: String(row.childId ?? ""),
+    name: String(row.name ?? ""),
+    dateOfBirth: String(row.dateOfBirth ?? ""),
+    sex: String(row.sex ?? ""),
+    allergies: String(row.allergies ?? ""),
+    parentName: String(row.parentName ?? ""),
+  };
+}
+
+export async function listClinicChildren(_clinicianUserId: number) {
+  const { data, error } = await sb().from("clinic_children").select("*").order("id");
+  if (error) throw error;
+  return (data ?? []).map((row) => normalizeClinicChildRow(row as Record<string, unknown>));
+}
+
+export async function upsertClinicChild(_clinicianUserId: number, child: ClinicChildRecord & { createdBy?: number }) {
+  const payload = {
+    childId: child.id,
+    name: child.name,
+    dateOfBirth: child.dateOfBirth || null,
+    sex: child.sex === "male" || child.sex === "female" ? child.sex : null,
+    allergies: child.allergies || "",
+    parentName: child.parentName || null,
+    updatedAt: new Date().toISOString(),
+  };
+  const { data, error } = await sb().from("clinic_children").upsert(payload, { onConflict: "childId" }).select("*");
+  if (error) throw error;
+  return normalizeClinicChildRow((data ?? [])[0] as Record<string, unknown>);
+}
+
+export async function linkGuardianToChild(_clinicianUserId: number, input: { authUserId: string; childId: string; fullName?: string; relationship?: string }) {
+  const payload = {
+    auth_user_id: input.authUserId,
+    child_id: input.childId,
+    full_name: input.fullName ?? null,
+    relationship: input.relationship ?? "Parent",
+    verified_at: new Date().toISOString(),
+  };
+  const { error } = await sb().from("guardians").upsert(payload, { onConflict: "auth_user_id,child_id" });
+  if (error) throw error;
+  return { ok: true };
+}

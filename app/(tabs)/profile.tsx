@@ -46,8 +46,8 @@ export default function ProfileTab() {
     ? guardianEmail.slice(0, 2).toUpperCase()
     : activeChild.name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase();
 
-  const saveChild = () => {
-    const result = updateChildProfile(activeChild.id, { name: nameDraft, allergies: allergiesDraft });
+  const saveChild = async () => {
+    const result = await updateChildProfile(activeChild.id, { name: nameDraft, allergies: allergiesDraft });
     setSaveMessage(result.ok
       ? { ok: true, text: t("Child details saved.", "बच्चाको विवरण सुरक्षित भयो।") }
       : { ok: false, text: result.message });
