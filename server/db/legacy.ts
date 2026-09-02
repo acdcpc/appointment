@@ -901,14 +901,28 @@ export async function validateGuardianRecordAccess(accessToken: string) {
 
 // ---------- Server-scoped child records (require the Supabase backend) ----------
 
-export async function listClinicChildren(_clinicianUserId: number) {
+export async function listClinicChildren(_clinicianUserId: number): Promise<Array<{ id: string; name: string; dateOfBirth: string; sex: string; allergies: string; parentName: string }>> {
   throw new Error("Child records require the Supabase backend.");
 }
 
-export async function upsertClinicChild(_clinicianUserId: number, child: { id: string; name: string; dateOfBirth: string; sex: string; allergies: string; parentName: string; createdBy?: number }) {
+export async function upsertClinicChild(_clinicianUserId: number, child: { id: string; name: string; dateOfBirth: string; sex: string; allergies: string; parentName: string; createdBy?: number }): Promise<{ id: string; name: string; dateOfBirth: string; sex: string; allergies: string; parentName: string }> {
   throw new Error("Child records require the Supabase backend.");
 }
 
-export async function linkGuardianToChild(_clinicianUserId: number, input: { authUserId: string; childId: string; fullName?: string; relationship?: string }) {
+export async function linkGuardianToChild(_clinicianUserId: number, input: { authUserId: string; childId: string; fullName?: string; relationship?: string }): Promise<{ ok: true }> {
+  throw new Error("Guardian linking requires the Supabase backend.");
+}
+
+export type GuardianLinkRow = { linkId: number; authUserId: string; email: string; childId: string; fullName: string; relationship: string; verified: boolean; verifiedAt: Date | null };
+
+export async function listGuardianLinks(_clinicianUserId: number): Promise<GuardianLinkRow[]> {
+  throw new Error("Guardian linking requires the Supabase backend.");
+}
+
+export async function unlinkGuardianLink(_clinicianUserId: number, linkId: number): Promise<{ ok: true }> {
+  throw new Error("Guardian linking requires the Supabase backend.");
+}
+
+export async function findAuthUserIdByEmail(_email: string): Promise<{ id: string; email: string } | null> {
   throw new Error("Guardian linking requires the Supabase backend.");
 }

@@ -135,3 +135,6 @@ export const verifyGuardianRecordAccess = impl.verifyGuardianRecordAccess;
 export const listClinicChildren = impl.listClinicChildren;
 export const upsertClinicChild = impl.upsertClinicChild;
 export const linkGuardianToChild = impl.linkGuardianToChild;
+export const listGuardianLinks = impl.listGuardianLinks;
+export const unlinkGuardianLink = impl.unlinkGuardianLink;
+export const findAuthUserIdByEmail = impl.findAuthUserIdByEmail;

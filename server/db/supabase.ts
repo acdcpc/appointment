@@ -1753,3 +1753,31 @@ export async function linkGuardianToChild(_clinicianUserId: number, input: { aut
   if (error) throw error;
   return { ok: true };
 }
+
+export async function listGuardianLinks(_clinicianUserId: number) {
+  const { data, error } = await sb().rpc("list_guardian_links");
+  if (error) throw error;
+  return (data ?? []).map((row: Record<string, unknown>) => ({
+    linkId: Number(row.link_id),
+    authUserId: String(row.auth_user_id),
+    email: String(row.email ?? ""),
+    childId: String(row.child_id),
+    fullName: String(row.full_name ?? ""),
+    relationship: String(row.relationship ?? ""),
+    verified: Boolean(row.verified),
+    verifiedAt: row.verified_at ? new Date(String(row.verified_at)) : null,
+  }));
+}
+
+export async function unlinkGuardianLink(_clinicianUserId: number, linkId: number) {
+  const { error } = await sb().from("guardians").delete().eq("id", linkId);
+  if (error) throw error;
+  return { ok: true };
+}
+
+export async function findAuthUserIdByEmail(email: string) {
+  const { data, error } = await sb().rpc("find_auth_user_by_email", { p_email: email });
+  if (error) throw error;
+  const row = (data ?? [])[0] as Record<string, unknown> | undefined;
+  return row ? { id: String(row.id), email: String(row.email) } : null;
+}

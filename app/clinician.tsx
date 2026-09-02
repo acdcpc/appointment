@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
+import { GuardianLinkingCard } from "@/components/guardian-linking-card";
 import { useColors } from "@/hooks/use-colors";
 import { type ClinicOperatingHour, usePediatricCare } from "@/lib/pediatric-care";
 import { useAuth } from "@/hooks/use-auth";
@@ -94,7 +95,7 @@ function Dashboard({ focus, reportId }: { focus?: "contacts" | "staff" | "email-
     <StaffInvitationExpiryReminders onOpenStaff={() => router.push({ pathname: "/clinician", params: { focus: "staff" } })} />
     <WeeklyCapacityReportExpiryReminders />
     {reportId ? <WeeklyCapacityReportReference internalReportId={reportId} /> : null}
-    <View onLayout={(event) => saveSectionOffset("operations", event.nativeEvent.layout.y)}><Text style={[styles.sectionTitle, { color: colors.foreground }]}>Operational work</Text><DailyWaitlistTriage />
+    <View onLayout={(event) => saveSectionOffset("operations", event.nativeEvent.layout.y)}><Text style={[styles.sectionTitle, { color: colors.foreground }]}>Operational work</Text><GuardianLinkingCard /><DailyWaitlistTriage />
     <TriageCapacitySettings />
     <CapacityTargetAlerts />
     <CapacityAlertOperationsSettings />

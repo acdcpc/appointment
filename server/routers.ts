@@ -486,6 +486,42 @@ export const appRouter = router({
       }),
   }),
 
+  guardianLinking: router({
+    listChildren: adminProcedure.query(async ({ ctx }) => referralDb.listClinicChildren(ctx.user.id)),
+    listLinks: adminProcedure.query(async ({ ctx }) => referralDb.listGuardianLinks(ctx.user.id)),
+    link: adminProcedure.input(z.object({
+      guardianEmail: z.string().trim().email(),
+      childId: z.string().trim().min(1).optional(),
+      newChild: z.object({
+        name: z.string().trim().min(2).max(80),
+        dateOfBirth: z.string().trim().max(40).optional(),
+        sex: z.enum(["male", "female"]).optional(),
+        allergies: z.string().trim().max(400).optional(),
+      }).optional(),
+      fullName: z.string().trim().max(120).optional(),
+      relationship: z.string().trim().max(40).optional(),
+    })).mutation(async ({ ctx, input }) => {
+      const authUser = await referralDb.findAuthUserIdByEmail(input.guardianEmail);
+      if (!authUser) throw new TRPCError({ code: "NOT_FOUND", message: "No account exists with that email yet. Ask the parent to sign up in the app first." });
+      let childId = input.childId?.trim() ?? "";
+      if (!childId && input.newChild) {
+        const created = await referralDb.upsertClinicChild(ctx.user.id, {
+          id: `child-${randomUUID()}`,
+          name: input.newChild.name,
+          dateOfBirth: input.newChild.dateOfBirth ?? "",
+          sex: input.newChild.sex ?? "male",
+          allergies: input.newChild.allergies ?? "",
+          parentName: input.fullName ?? "",
+        });
+        childId = created.id;
+      }
+      if (!childId) throw new TRPCError({ code: "BAD_REQUEST", message: "Select an existing child or provide the new child's details." });
+      await referralDb.linkGuardianToChild(ctx.user.id, { authUserId: authUser.id, childId, fullName: input.fullName, relationship: input.relationship });
+      return { ok: true, childId, guardianEmail: authUser.email };
+    }),
+    unlink: adminProcedure.input(z.object({ linkId: z.number().int().positive() })).mutation(async ({ ctx, input }) => referralDb.unlinkGuardianLink(ctx.user.id, input.linkId)),
+  }),
+
   // TODO: add feature routers here, e.g.
   // todo: router({
   //   list: protectedProcedure.query(({ ctx }) =>
