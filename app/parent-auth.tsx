@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useRouter } from "expo-router";
 
 import { ScreenContainer } from "@/components/screen-container";
@@ -91,7 +91,7 @@ export default function ParentAuth() {
         <Pressable onPress={() => router.back()} accessibilityRole="button">
           <Text style={[styles.back, { color: colors.primary }]}>‹ {bilingualText(language, "Back", "पछाडि")}</Text>
         </Pressable>
-        <View style={[styles.brandMark, { backgroundColor: colors.primary }]}><Text style={[styles.brandText, { color: colors.textInverse }]}>R</Text></View>
+        <Image source={require("../assets/images/icon.png")} style={styles.brandImage} />
         <Text style={[styles.eyebrow, { color: colors.primary }]}>RAINBOW CHILD DEVELOPMENT CLINIC</Text>
         <Text style={[styles.title, { color: colors.foreground }]}>{title}</Text>
         <Text style={[styles.subtitle, { color: colors.muted }]}>
@@ -179,7 +179,7 @@ export default function ParentAuth() {
 const styles = StyleSheet.create({
   page: { maxWidth: 520, width: "100%", alignSelf: "center", paddingTop: 8 },
   back: { fontSize: 15, fontWeight: "800", marginBottom: 28 },
-  brandMark: { width: 52, height: 52, borderRadius: 18, alignItems: "center", justifyContent: "center", marginBottom: 16 },
+  brandImage: { width: 56, height: 56, borderRadius: 14, marginBottom: 16 },
   brandText: { fontSize: 28, fontWeight: "900" },
   eyebrow: { fontSize: 11, fontWeight: "900", letterSpacing: 1, marginBottom: 10 },
   title: { fontSize: 32, fontWeight: "900", lineHeight: 40 },

@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 
 import { ScreenContainer } from "@/components/screen-container";
@@ -45,9 +45,7 @@ export default function Onboarding() {
   return (
     <ScreenContainer style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.hero}>
-        <View style={[styles.logo, { backgroundColor: colors.primary }]}>
-          <Text style={styles.logoText}>🌈</Text>
-        </View>
+        <Image source={require("../assets/images/icon.png")} style={styles.logoImage} />
         <Text style={[styles.title, { color: colors.foreground }]}>
           {t("Rainbow Child Development Clinic", "रेन्बो चाइल्ड डेभलपमेन्ट क्लिनिक")}
         </Text>
@@ -128,15 +126,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
   },
-  logo: {
-    width: 72,
-    height: 72,
-    borderRadius: 24,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  logoText: {
-    fontSize: 36,
+  logoImage: {
+    width: 76,
+    height: 76,
+    borderRadius: 19,
   },
   title: {
     fontSize: 22,

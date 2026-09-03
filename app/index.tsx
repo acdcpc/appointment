@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Image, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 
 import { useColors } from "@/hooks/use-colors";
@@ -36,9 +36,7 @@ export default function Index() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.logo, { backgroundColor: colors.primary }]}>
-        <Text style={styles.logoText}>🌈</Text>
-      </View>
+      <Image source={require("../assets/images/icon.png")} style={styles.logoImage} />
       <Text style={[styles.title, { color: colors.foreground }]}>Rainbow Child Development Clinic</Text>
       <ActivityIndicator color={colors.primary} />
     </View>
@@ -52,15 +50,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 14,
   },
-  logo: {
-    width: 64,
-    height: 64,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  logoText: {
-    fontSize: 32,
+  logoImage: {
+    width: 68,
+    height: 68,
+    borderRadius: 17,
   },
   title: {
     fontSize: 16,
