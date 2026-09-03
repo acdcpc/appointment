@@ -1,38 +1,41 @@
 /** @type {const} */
+// Warm "clay & parchment" design language (matches Kapoori Ka's professional
+// caregiver aesthetic): terracotta brand, warm parchment backgrounds, and a
+// warm charcoal dark mode with the same terracotta accents.
 const themeColors = {
   // Brand + structure
-  primary: { light: '#092C4C', dark: '#5BB8D0' },
-  background: { light: '#F7FAFC', dark: '#102A43' },
-  surface: { light: '#FFFFFF', dark: '#173B56' },
-  foreground: { light: '#102A43', dark: '#F7FAFC' },
-  muted: { light: '#627D98', dark: '#B8C7D8' },
-  border: { light: '#D9E2EC', dark: '#345A73' },
+  primary: { light: '#B85C38', dark: '#E8602C' },
+  background: { light: '#F7F1EB', dark: '#171310' },
+  surface: { light: '#FDF8F2', dark: '#241C18' },
+  foreground: { light: '#1A1A2E', dark: '#F0E7DE' },
+  muted: { light: '#7A6E65', dark: '#B5A69B' },
+  border: { light: '#EDE0D4', dark: '#3E322A' },
   // Status
-  success: { light: '#2F855A', dark: '#68D391' },
-  warning: { light: '#C27C0E', dark: '#F6C453' },
-  error: { light: '#C53030', dark: '#FC8181' },
-  // Action (coral) — reserved for important parent-facing actions
-  action: { light: '#F97360', dark: '#F98B78' },
-  actionHover: { light: '#E85F4C', dark: '#FAA08F' },
-  actionPressed: { light: '#D14F3C', dark: '#F8B3A6' },
-  actionSurface: { light: '#FFF4F1', dark: '#3A2430' },
+  success: { light: '#2E7D32', dark: '#5DBE8B' },
+  warning: { light: '#B26A00', dark: '#F2C879' },
+  error: { light: '#C0392B', dark: '#E06B5B' },
+  // Action (terracotta CTA) — reserved for important parent-facing actions
+  action: { light: '#C4501F', dark: '#E8602C' },
+  actionHover: { light: '#A84519', dark: '#F0874A' },
+  actionPressed: { light: '#8F3A12', dark: '#F5A284' },
+  actionSurface: { light: '#FCECE2', dark: '#3A241C' },
   // Brand interactive states
-  brandHover: { light: '#0B3A63', dark: '#74C6DB' },
-  brandPressed: { light: '#082239', dark: '#8ED4E5' },
-  // Supporting clinical teal — charts, links, selected states
-  teal: { light: '#0E7490', dark: '#38B7C0' },
-  tealSurface: { light: '#E0F2F3', dark: '#143D44' },
+  brandHover: { light: '#9E4E2E', dark: '#F0874A' },
+  brandPressed: { light: '#84401F', dark: '#F5A284' },
+  // Supporting accent — links, selected states, clinical highlights
+  teal: { light: '#1565C0', dark: '#8AB4F8' },
+  tealSurface: { light: '#E3F2FD', dark: '#1B2740' },
   // Status surfaces
-  successSurface: { light: '#EAF7F0', dark: '#1C3A2E' },
-  warningSurface: { light: '#FFF8EB', dark: '#3C331C' },
-  dangerSurface: { light: '#FDE7E2', dark: '#46232A' },
+  successSurface: { light: '#D1FAE5', dark: '#173B2C' },
+  warningSurface: { light: '#FEF3C7', dark: '#3B2F14' },
+  dangerSurface: { light: '#FEE2E2', dark: '#3F1D18' },
   // Inverse text on brand/action fills
-  textInverse: { light: '#FFFFFF', dark: '#FFFFFF' },
-  textInverseMuted: { light: '#CFE3ED', dark: '#DCEBF2' },
+  textInverse: { light: '#FFFFFF', dark: '#1A1A2E' },
+  textInverseMuted: { light: '#F5E6DC', dark: '#4A2B20' },
   // Accessibility + disabled
-  focusRing: { light: '#38B7C0', dark: '#5BB8D0' },
-  disabledSurface: { light: '#EEF2F7', dark: '#24425C' },
-  disabledText: { light: '#9FB3C8', dark: '#64809A' },
+  focusRing: { light: '#1565C0', dark: '#8AB4F8' },
+  disabledSurface: { light: '#EDE0D4', dark: '#2B211C' },
+  disabledText: { light: '#A99B8F', dark: '#6D5A52' },
 };
 
 module.exports = { themeColors };

@@ -20,6 +20,7 @@ import { trpc, createTRPCClient } from "@/lib/trpc";
 import { initManusRuntime, subscribeSafeAreaInsets } from "@/lib/_core/manus-runtime";
 import { PediatricCareProvider } from "@/lib/pediatric-care";
 import { LanguageProvider } from "@/lib/language-preference";
+import { TextSizeProvider } from "@/lib/text-size";
 import { MaintenanceModeBanner } from "@/components/maintenance-mode-banner";
 import { SuperAdminServiceSuggestionWorkspace } from "@/components/super-admin-service-suggestion-workspace";
 
@@ -86,7 +87,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <trpc.Provider client={trpcClient} queryClient={queryClient}>
         <QueryClientProvider client={queryClient}>
-          <LanguageProvider><PediatricCareProvider>
+          <TextSizeProvider><LanguageProvider><PediatricCareProvider>
           {/* Default to hiding native headers so raw route segments don't appear (e.g. "(tabs)", "products/[id]"). */}
           {/* If a screen needs the native header, explicitly enable it and set a human title via Stack.Screen options. */}
           {/* in order for ios apps tab switching to work properly, use presentation: "fullScreenModal" for login page, whenever you decide to use presentation: "modal*/}
@@ -99,7 +100,7 @@ export default function RootLayout() {
           <MaintenanceModeBanner />
           <SuperAdminServiceSuggestionWorkspace />
           <StatusBar style="auto" />
-          </PediatricCareProvider></LanguageProvider>
+          </PediatricCareProvider></LanguageProvider></TextSizeProvider>
         </QueryClientProvider>
       </trpc.Provider>
     </GestureHandlerRootView>

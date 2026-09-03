@@ -5,7 +5,7 @@ import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { useLanguagePreference, bilingualText } from "@/lib/language-preference";
-import { isSupabaseConfigured } from "@/lib/supabase";
+import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
 import {
   getGuardianSession,
   signInGuardianWithEmail,
@@ -22,7 +22,9 @@ export default function ParentAuth() {
   const colors = useColors();
   const router = useRouter();
   const { language } = useLanguagePreference();
-  const [mode, setMode] = useState<"sign-in" | "sign-up">("sign-in");
+  const [mode, setMode] = useState<"sign-in" | "sign-up" | "forgot">("sign-in");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [resetSent, setResetSent] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -44,6 +46,12 @@ export default function ParentAuth() {
     signOut: bilingualText(language, "Sign out", "लग आउट"),
     emailLabel: bilingualText(language, "Email address", "इमेल ठेगाना"),
     passwordLabel: bilingualText(language, "Password", "पासवर्ड"),
+    confirmPasswordLabel: bilingualText(language, "Confirm password", "पासवर्ड पुनः लेख्नुहोस्"),
+    passwordMismatch: bilingualText(language, "Passwords do not match.", "पासवर्ड मिलेन।"),
+    forgotPassword: bilingualText(language, "Forgot password?", "पासवर्ड बिर्सनुभयो?"),
+    backToSignIn: bilingualText(language, "Back to sign in", "लग इन मा फर्कनुहोस्"),
+    resetSentTitle: bilingualText(language, "Reset link sent!", "रिसेट लिंक पठाइयो!"),
+    resetSentText: bilingualText(language, "Check your email inbox for the password reset link, then sign in with your new password.", "इमेलमा पठाइएको लिंकबाट पासवर्ड रिसेट गर्नुहोस्, त्यसपछि नयाँ पासवर्डले लग इन गर्नुहोस्।"),
   };
 
   const show = (text: string, kind: "info" | "error" | "success") => {
@@ -51,10 +59,31 @@ export default function ParentAuth() {
     setMessageKind(kind);
   };
 
+  const sendReset = async () => {
+    if (!isSupabaseConfigured) { show(t.notConfigured, "error"); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())) { show(t.invalidEmail, "error"); return; }
+    setBusy(true); setMessage(""); setMessageKind("info");
+    try {
+      const client = getSupabase();
+      if (!client) throw new Error(t.notConfigured);
+      const { error: resetError } = await client.auth.resetPasswordForEmail(email.trim());
+      if (resetError) throw resetError;
+      setResetSent(true);
+      setMessageKind("success"); setMessage(t.resetSentText);
+    } catch (error) {
+      const raw = error instanceof Error ? error.message : "";
+      show(raw || t.notConfigured, "error");
+      setResetSent(true);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const submit = async () => {
     if (!isSupabaseConfigured) { show(t.notConfigured, "error"); return; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())) { show(t.invalidEmail, "error"); return; }
     if (password.length < 6) { show(t.shortPassword, "error"); return; }
+    if (mode === "sign-up" && password !== confirmPassword) { show(t.passwordMismatch, "error"); return; }
     setBusy(true);
     show(mode === "sign-in" ? t.signingIn : t.creating, "info");
     try {
@@ -129,32 +158,70 @@ export default function ParentAuth() {
               style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.surface }]}
               accessibilityLabel="Parent email address"
             />
-            <Text style={[styles.label, { color: colors.muted }]}>{t.passwordLabel}</Text>
-            <TextInput
-              value={password}
-              onChangeText={setPassword}
-              placeholder="••••••••"
-              placeholderTextColor={colors.muted}
-              secureTextEntry
-              autoCapitalize="none"
-              autoComplete="current-password"
-              style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.surface }]}
-              accessibilityLabel="Parent password"
-            />
-            <Pressable onPress={submit} disabled={busy} style={[styles.button, { backgroundColor: colors.action }]}>
-              <Text style={[styles.buttonText, { color: colors.textInverse }]}>
-                {busy
-                  ? mode === "sign-in" ? t.signingIn : t.creating
-                  : mode === "sign-in"
-                    ? bilingualText(language, "Sign in", "लग इन")
-                    : bilingualText(language, "Create account", "खाता बनाउनुहोस्")}
-              </Text>
-            </Pressable>
-            <Pressable onPress={() => { setMode(mode === "sign-in" ? "sign-up" : "sign-in"); setMessage(""); }} disabled={busy}>
-              <Text style={[styles.link, { color: colors.primary }]}>
-                {mode === "sign-in" ? t.switchToSignUp : t.switchToSignIn}
-              </Text>
-            </Pressable>
+            {mode === "forgot" ? (
+              resetSent ? (
+                <>
+                  <Text style={{ color: colors.success, fontWeight: "800", fontSize: 13, lineHeight: 18 }}>{t.resetSentText}</Text>
+                  <Pressable onPress={() => { setMode("sign-in"); setResetSent(false); }} accessibilityRole="link">
+                    <Text style={{ color: colors.primary, fontWeight: "800", fontSize: 13 }}>{t.backToSignIn}</Text>
+                  </Pressable>
+                </>
+              ) : (
+                <Pressable onPress={sendReset} disabled={busy} style={[styles.button, { backgroundColor: colors.primary, opacity: busy ? 0.6 : 1 }]}>
+                  <Text style={[styles.buttonText, { color: colors.textInverse }]}>{busy ? t.signingIn : t.resetSentTitle}</Text>
+                </Pressable>
+              )
+            ) : (
+              <>
+                <Text style={[styles.label, { color: colors.muted }]}>{t.passwordLabel}</Text>
+                <TextInput
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder="••••••••"
+                  placeholderTextColor={colors.muted}
+                  secureTextEntry
+                  autoCapitalize="none"
+                  autoComplete="current-password"
+                  style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.surface }]}
+                  accessibilityLabel="Parent password"
+                />
+                {mode === "sign-up" ? (
+                  <>
+                    <Text style={[styles.label, { color: colors.muted }]}>{t.confirmPasswordLabel}</Text>
+                    <TextInput
+                      value={confirmPassword}
+                      onChangeText={setConfirmPassword}
+                      placeholder="••••••••"
+                      placeholderTextColor={colors.muted}
+                      secureTextEntry
+                      autoCapitalize="none"
+                      autoComplete="new-password"
+                      style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.surface }]}
+                      accessibilityLabel="Confirm parent password"
+                    />
+                  </>
+                ) : null}
+                {mode === "sign-in" ? (
+                  <Pressable onPress={() => { setMode("forgot"); setResetSent(false); setMessage(""); setMessageKind("info"); }} accessibilityRole="link">
+                    <Text style={[styles.link, { color: colors.primary }]}>{t.forgotPassword}</Text>
+                  </Pressable>
+                ) : null}
+                <Pressable onPress={submit} disabled={busy} style={[styles.button, { backgroundColor: colors.action }]}>
+                  <Text style={[styles.buttonText, { color: colors.textInverse }]}>
+                    {busy
+                      ? mode === "sign-in" ? t.signingIn : t.creating
+                      : mode === "sign-in"
+                        ? bilingualText(language, "Sign in", "लग इन")
+                        : bilingualText(language, "Create account", "खाता बनाउनुहोस्")}
+                  </Text>
+                </Pressable>
+                <Pressable onPress={() => { setMode(mode === "sign-in" ? "sign-up" : "sign-in"); setMessage(""); }}>
+                  <Text style={[styles.link, { color: colors.primary }]}>
+                    {mode === "sign-in" ? t.switchToSignUp : t.switchToSignIn}
+                  </Text>
+                </Pressable>
+              </>
+            )}
           </>
         ) : (
           <View style={[styles.preview, { backgroundColor: colors.surface, borderColor: colors.success }]}>
@@ -167,10 +234,6 @@ export default function ParentAuth() {
             </Pressable>
           </View>
         )}
-
-        {message ? (
-          <Text style={[styles.message, { color: messageKind === "error" ? colors.warning : messageKind === "success" ? colors.success : colors.muted }]}>{message}</Text>
-        ) : null}
       </View>
     </ScreenContainer>
   );

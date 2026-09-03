@@ -926,3 +926,7 @@ export async function unlinkGuardianLink(_clinicianUserId: number, linkId: numbe
 export async function findAuthUserIdByEmail(_email: string): Promise<{ id: string; email: string } | null> {
   throw new Error("Guardian linking requires the Supabase backend.");
 }
+
+export async function listGuardianDeletions(_clinicianUserId: number): Promise<Array<{ deletionId: number; email: string; childIds: string[]; snapshot: Record<string, unknown>; deletedAt: Date }>> {
+  throw new Error("Account deletions require the Supabase backend.");
+}

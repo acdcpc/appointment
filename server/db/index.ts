@@ -138,3 +138,4 @@ export const linkGuardianToChild = impl.linkGuardianToChild;
 export const listGuardianLinks = impl.listGuardianLinks;
 export const unlinkGuardianLink = impl.unlinkGuardianLink;
 export const findAuthUserIdByEmail = impl.findAuthUserIdByEmail;
+export const listGuardianDeletions = impl.listGuardianDeletions;

@@ -520,6 +520,7 @@ export const appRouter = router({
       return { ok: true, childId, guardianEmail: authUser.email };
     }),
     unlink: adminProcedure.input(z.object({ linkId: z.number().int().positive() })).mutation(async ({ ctx, input }) => referralDb.unlinkGuardianLink(ctx.user.id, input.linkId)),
+    listDeletions: superAdminProcedure.query(async ({ ctx }) => referralDb.listGuardianDeletions(ctx.user.id)),
   }),
 
   // TODO: add feature routers here, e.g.

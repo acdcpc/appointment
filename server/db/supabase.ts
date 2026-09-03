@@ -1781,3 +1781,15 @@ export async function findAuthUserIdByEmail(email: string) {
   const row = (data ?? [])[0] as Record<string, unknown> | undefined;
   return row ? { id: String(row.id), email: String(row.email) } : null;
 }
+
+export async function listGuardianDeletions(_clinicianUserId: number) {
+  const { data, error } = await sb().from("guardian_account_deletions").select("*").order("deletedAt", { ascending: false }).limit(100);
+  if (error) throw error;
+  return (data ?? []).map((row) => ({
+    deletionId: Number((row as Record<string, unknown>).id),
+    email: String((row as Record<string, unknown>).email ?? ""),
+    childIds: (row as Record<string, unknown>).child_ids ?? [],
+    snapshot: (row as Record<string, unknown>).snapshot ?? {},
+    deletedAt: new Date(String((row as Record<string, unknown>).deleted_at)),
+  }));
+}

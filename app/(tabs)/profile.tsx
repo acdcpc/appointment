@@ -7,6 +7,9 @@ import { useColors } from "@/hooks/use-colors";
 import { usePediatricCare } from "@/lib/pediatric-care";
 import { bilingualText, useLanguagePreference } from "@/lib/language-preference";
 import { getGuardianSession, signOutGuardian, type GuardianSession } from "@/lib/supabase-auth";
+import { getSupabase, signOutSupabase } from "@/lib/supabase";
+import { useThemeContext } from "@/lib/theme-provider";
+import { useTextSize, type TextSizeLevel } from "@/lib/text-size";
 
 /**
  * Guardian profile. Shows the real signed-in account (Supabase email +
@@ -18,6 +21,9 @@ export default function ProfileTab() {
   const { language } = useLanguagePreference();
   const t = (english: string, nepali: string) => bilingualText(language, english, nepali);
   const { children, activeChild, setActiveChild, updateChildProfile } = usePediatricCare();
+  const { colorScheme, setColorScheme } = useThemeContext();
+  const { level: textSize, setLevel: setTextSize } = useTextSize();
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const [session, setSession] = useState<GuardianSession | null>(null);
   const [sessionLoaded, setSessionLoaded] = useState(false);
@@ -99,6 +105,30 @@ export default function ProfileTab() {
           ) : null}
         </View>
 
+        <Text style={[styles.section, { color: colors.foreground }]}>{t("Appearance & text size", "देखावट र अक्षरको आकार")}</Text>
+        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.cardTitle, { color: colors.foreground }]}>{t("Night mode", "रात्री मोड")}</Text>
+          <View style={styles.choiceRow}>
+            {(["light", "dark", "system"] as const).map((option) => (
+              <Pressable key={option} onPress={() => setColorScheme(option === "system" ? (typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light") : option)} style={[styles.choiceChip, { borderColor: colorScheme === option ? colors.primary : colors.border, backgroundColor: colorScheme === option ? colors.tealSurface : colors.surface }]} accessibilityRole="button">
+                <Text style={{ color: colorScheme === option ? colors.primary : colors.muted, fontWeight: "800", fontSize: 13 }}>
+                  {option === "light" ? t("Light", "उज्यालो") : option === "dark" ? t("Dark", "अँध्यारो") : t("System", "प्रणाली")}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          <Text style={[styles.cardTitle, { color: colors.foreground, marginTop: 12 }]}>{t("Text size", "अक्षरको आकार")}</Text>
+          <View style={styles.choiceRow}>
+            {(["small", "normal", "large"] as TextSizeLevel[]).map((option) => (
+              <Pressable key={option} onPress={() => setTextSize(option)} style={[styles.choiceChip, { borderColor: textSize === option ? colors.primary : colors.border, backgroundColor: textSize === option ? colors.tealSurface : colors.surface }]} accessibilityRole="button">
+                <Text style={{ color: textSize === option ? colors.primary : colors.muted, fontWeight: "800", fontSize: 13 }}>
+                  {option === "small" ? "A−" : option === "normal" ? "A" : "A+"}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+
         <Text style={[styles.section, { color: colors.foreground }]}>{t("Children & dependents", "बच्चाहरू")}</Text>
         <View style={styles.childPicker}>
           {children.map((child) => {
@@ -150,6 +180,40 @@ export default function ProfileTab() {
           </View>
         </View>
 
+        <Text style={[styles.section, { color: colors.foreground }]}>{t("Danger zone", "जोखिम क्षेत्र")}</Text>
+        <View style={[styles.card, { backgroundColor: colors.dangerSurface, borderColor: colors.error }]}>
+          <Text style={[styles.cardTitle, { color: colors.foreground }]}>{t("Delete my account", "मेरो खाता मेटाउनुहोस्")}</Text>
+          <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 18 }}>
+            {t("Removes your account and child profile from the app. A record is kept for the super-admin.", "खाता र बच्चाको प्रोफाइल एपबाट हट्छ। रेकर्ड सुपर-एडमिनकहाँ सुरक्षित रहन्छ।")}
+          </Text>
+          {confirmDelete ? (
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              <Pressable onPress={async () => {
+                setConfirmDelete(false);
+                try {
+                  const client = getSupabase();
+                  if (!client) throw new Error(t("Supabase is not configured on this build.", "यस बिल्डमा Supabase कन्फिगर छैन।"));
+                  const { error: deleteError } = await client.rpc("delete_own_guardian_account");
+                  if (deleteError) throw deleteError;
+                  await signOutGuardian(); await signOutSupabase();
+                  router.replace("/parent-auth");
+                } catch (e) {
+                  setSaveMessage({ ok: false, text: e instanceof Error ? e.message : t("Could not delete the account.", "खाता मेट्न सकिएन।") });
+                }
+              }} style={[styles.actionButton, { backgroundColor: colors.error }]} accessibilityRole="button">
+                <Text style={{ color: colors.textInverse, fontWeight: "800", fontSize: 13 }}>{t("Yes, delete permanently", "हो, मेटाउनुहोस्")}</Text>
+              </Pressable>
+              <Pressable onPress={() => setConfirmDelete(false)} style={[styles.actionButton, { borderColor: colors.border }]} accessibilityRole="button">
+                <Text style={{ color: colors.muted, fontWeight: "800", fontSize: 13 }}>{t("Cancel", "रद्द")}</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <Pressable onPress={() => setConfirmDelete(true)} style={[styles.actionButton, { borderColor: colors.error }]} accessibilityRole="button">
+              <Text style={{ color: colors.error, fontWeight: "800", fontSize: 13 }}>{t("Delete my account", "मेरो खाता मेटाउनुहोस्")}</Text>
+            </Pressable>
+          )}
+        </View>
+
         <Text style={[styles.section, { color: colors.foreground }]}>{t("Practice information", "क्लिनिक जानकारी")}</Text>
         <Pressable onPress={() => router.push("/about")} accessibilityRole="link" style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Text style={[styles.cardTitle, { color: colors.foreground }]}>{t("Dr. Anil Ojha's Practice", "डा. अनिल ओझाको क्लिनिक")}</Text>
@@ -188,4 +252,6 @@ const styles = StyleSheet.create({
   input: { minHeight: 48, borderRadius: 12, borderWidth: 1, paddingHorizontal: 12, fontSize: 15 },
   inputMultiline: { minHeight: 72, textAlignVertical: "top", paddingVertical: 10 },
   section: { fontSize: 18, fontWeight: "800", marginTop: 24, marginBottom: 12 },
+  choiceRow: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
+  choiceChip: { minHeight: 44, paddingHorizontal: 14, borderRadius: 12, borderWidth: 1, justifyContent: "center" },
 });
