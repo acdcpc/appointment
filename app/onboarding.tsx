@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   primaryButton: {
-    borderRadius: 14,
+    borderRadius: 30,
     paddingVertical: 14,
     alignItems: "center",
   },
@@ -207,11 +207,12 @@ const styles = StyleSheet.create({
   },
   primaryButtonNepali: {
     opacity: 0.85,
+    lineHeight: 20,
     fontSize: 12,
     marginTop: 2,
   },
   secondaryButton: {
-    borderRadius: 14,
+    borderRadius: 30,
     paddingVertical: 12,
     alignItems: "center",
     borderWidth: 1,

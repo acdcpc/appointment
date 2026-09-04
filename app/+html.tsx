@@ -26,6 +26,17 @@ export default function Root({ children }: PropsWithChildren) {
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Rainbow Clinic" />
         <meta name="format-detection" content="telephone=yes" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;700;800&family=Noto+Sans+Devanagari:wght@400;500;700;800&family=Inter:wght@400;500;700;800;900&display=swap"
+        />
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `body { font-family: 'Mukta', 'Noto Sans Devanagari', 'Inter', system-ui, sans-serif; }`,
+          }}
+        />
         <ScrollViewStyleReset />
       </head>
       <body>{children}</body>

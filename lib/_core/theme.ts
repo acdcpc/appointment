@@ -62,7 +62,7 @@ export type ThemeColorPalette = (typeof Colors)[ColorScheme];
 export const Fonts = Platform.select({
   ios: {
     /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: "system-ui",
+    sans: "'Mukta', 'Noto Sans Devanagari', 'Inter', system-ui, sans-serif",
     /** iOS `UIFontDescriptorSystemDesignSerif` */
     serif: "ui-serif",
     /** iOS `UIFontDescriptorSystemDesignRounded` */

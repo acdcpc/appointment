@@ -281,7 +281,7 @@ const styles = StyleSheet.create({
   noticeTitle: { fontSize: 13, fontWeight: "900" },
   label: { fontSize: 13, fontWeight: "800", marginTop: 26, marginBottom: 8 },
   input: { borderWidth: 1, borderRadius: 14, minHeight: 50, paddingHorizontal: 14, fontSize: 17 },
-  button: { minHeight: 50, borderRadius: 14, alignItems: "center", justifyContent: "center", marginTop: 16 },
+  button: { minHeight: 52, borderRadius: 30, alignItems: "center", justifyContent: "center", marginTop: 16 },
   buttonText: { fontSize: 15, fontWeight: "900" },
   link: { textAlign: "center", marginTop: 18, fontSize: 14, fontWeight: "900" },
   preview: { borderWidth: 1, borderRadius: 16, padding: 16, marginTop: 26 },

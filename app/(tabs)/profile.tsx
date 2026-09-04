@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
   profile: { borderWidth: 1, borderRadius: 18, padding: 16, flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 8, flexWrap: "wrap" },
   avatar: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
   avatarText: { fontWeight: "800" },
-  actionButton: { minHeight: 44, paddingHorizontal: 14, borderRadius: 12, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "transparent" },
+  actionButton: { minHeight: 44, paddingHorizontal: 14, borderRadius: 30, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "transparent" },
   actionButtonText: { fontWeight: "800", fontSize: 13 },
   cardTitle: { fontSize: 15, fontWeight: "800" },
   card: { borderWidth: 1, borderRadius: 18, padding: 16, gap: 8, marginBottom: 10 },

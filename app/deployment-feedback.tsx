@@ -5,7 +5,7 @@ import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { BlurView } from "expo-blur";
-import ViewShot, { type ViewShotRef } from "react-native-view-shot";
+import ViewShot from "react-native-view-shot";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { useAuth } from "@/hooks/use-auth";
@@ -40,7 +40,7 @@ export default function DeploymentFeedbackScreen() {
   const [dontShowBrushGuideAgain, setDontShowBrushGuideAgain] = useState(false);
   const [redoAreas, setRedoAreas] = useState<BlurRectangle[]>([]);
   const [message, setMessage] = useState("");
-  const previewCapture = useRef<ViewShotRef>(null);
+  const previewCapture = useRef<InstanceType<typeof ViewShot>>(null);
 
   const canvasHeight = screenshot && canvas.width ? Math.max(180, Math.min(340, Math.round(canvas.width * (screenshot.sourceHeight / screenshot.sourceWidth)))) : 220;
   const resetViewport = () => { setZoom(1); setPan({ x: 0, y: 0 }); setInteractionMode("brush"); };
@@ -73,7 +73,8 @@ export default function DeploymentFeedbackScreen() {
     const originalZoom = zoom; const originalPan = pan; setRedacting(true); resetViewport();
     try {
       await new Promise((resolve) => setTimeout(resolve, 70));
-      const capturedUri = await previewCapture.current.capture();
+      const capturedUri = await previewCapture.current?.capture?.();
+      if (!capturedUri) throw new Error("Screenshot capture was unavailable. Try again.");
       const redacted = await ImageManipulator.manipulateAsync(capturedUri, [{ resize: { width: 800 } }], { base64: true, compress: 0.42, format: ImageManipulator.SaveFormat.JPEG });
       if (!redacted.base64) throw new Error("Redacted screenshot data was unavailable.");
       setScreenshot({ uri: redacted.uri, base64: redacted.base64, contentType: "image/jpeg", sourceWidth: redacted.width, sourceHeight: redacted.height, isAutoRedacted: false, manualAreas: [] });
