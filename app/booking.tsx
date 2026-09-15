@@ -6,6 +6,8 @@ import * as FileSystem from "expo-file-system/legacy";
 import { useRouter } from "expo-router";
 
 import { ScreenContainer } from "@/components/screen-container";
+import { LanguageNavigationToggle } from "@/components/language-navigation-toggle";
+import { clearBookingDraft, loadBookingDraft, saveBookingDraft } from "@/lib/booking-draft";
 import { useColors } from "@/hooks/use-colors";
 import { usePediatricCare } from "@/lib/pediatric-care";
 import { trpc } from "@/lib/trpc";
@@ -38,11 +40,12 @@ export default function BookingScreen() {
   const router = useRouter();
   const { activeChild, services, getAvailableSlots, bookAppointment } = usePediatricCare();
   const { language } = useLanguagePreference();
-  const [service, setService] = useState(services[0]?.name ?? "");
-  const [date, setDate] = useState(dates[0]);
-  const [time, setTime] = useState("");
-  const [reason, setReason] = useState("");
-  const [showReason, setShowReason] = useState(false);
+  const draft = useMemo(() => loadBookingDraft(), []);
+  const [service, setService] = useState(() => draft?.service && services.some((item) => item.name === draft.service) ? draft.service : services[0]?.name ?? "");
+  const [date, setDate] = useState(() => dates.includes(draft?.date ?? "") ? (draft?.date as string) : dates[0]);
+  const [time, setTime] = useState(() => draft?.time ?? "");
+  const [reason, setReason] = useState(() => draft?.reason ?? "");
+  const [showReason, setShowReason] = useState(() => Boolean(draft?.reason));
   const [reviewing, setReviewing] = useState(false);
   const [success, setSuccess] = useState(false);
   const [message, setMessage] = useState("");
@@ -75,8 +78,8 @@ export default function BookingScreen() {
     return queryMatches && topicMatches;
   }), [serviceFilter, serviceSearch, services]);
 
-  const selectService = (name: string) => { setService(name); setTime(""); setReviewing(false); setMessage(""); };
-  const selectDate = (value: string) => { setDate(value); setTime(""); setReviewing(false); setMessage(""); };
+  const selectService = (name: string) => { setService(name); setTime(""); setReviewing(false); setMessage(""); saveBookingDraft({ service: name, date, time: "", reason }); };
+  const selectDate = (value: string) => { setDate(value); setTime(""); setReviewing(false); setMessage(""); saveBookingDraft({ service, date: value, time: "", reason }); };
   const reviewBooking = () => {
     if (!time) { setMessage("Choose an available appointment time / उपलब्ध समय छान्नुहोस्।"); return; }
     setReviewing(true); setMessage("");
@@ -84,6 +87,7 @@ export default function BookingScreen() {
   const confirmBooking = () => {
     const result = bookAppointment({ childId: activeChild.id, service, date, time, reason: reason.trim() || "Parent requested appointment" });
     if (!result.ok) { setMessage(result.message); return; }
+    clearBookingDraft();
     setSuccess(true);
   };
 
@@ -183,14 +187,14 @@ export default function BookingScreen() {
       <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Choose an available day</Text><Text style={[styles.sectionHint, { color: colors.muted }]}>हरियो दिनमा समय उपलब्ध छ</Text>
       <View style={styles.dateRow}>{dates.map((item) => <Pressable key={item} onPress={() => selectDate(item)} accessibilityRole="radio" accessibilityState={{ selected: date === item }} style={[styles.date, { borderColor: date === item ? colors.success : colors.border, backgroundColor: date === item ? colors.tealSurface : colors.surface }]}><Text style={[styles.dateDay, { color: date === item ? colors.success : colors.muted }]}>{item.split(", ")[0]}</Text><Text style={[styles.dateNumber, { color: colors.foreground }]}>{item.split(" ").at(-1)}</Text><Text style={[styles.available, { color: colors.success }]}>Available</Text></Pressable>)}</View>
       <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Choose a time</Text><Text style={[styles.sectionHint, { color: colors.muted }]}>उपलब्ध समय छान्नुहोस्</Text>
-      {slotGroups.length ? slotGroups.map((group) => <View key={group.label} style={styles.slotGroup}><Text style={[styles.groupTitle, { color: colors.muted }]}>{group.label}</Text><View style={styles.slotRow}>{group.slots.map((slot) => <Pressable key={slot} onPress={() => { setTime(slot); setReviewing(false); setMessage(""); }} accessibilityRole="radio" accessibilityState={{ selected: time === slot }} style={[styles.slot, { borderColor: time === slot ? colors.primary : colors.border, backgroundColor: time === slot ? colors.primary : colors.surface }]}><Text style={{ color: time === slot ? colors.textInverse : colors.foreground, fontWeight: "900" }}>{slot}</Text></Pressable>)}</View></View>) : <View style={[styles.empty, { borderColor: colors.border }]}><Text style={[styles.serviceTitle, { color: colors.foreground }]}>No open times on this day</Text><Text style={[styles.serviceMeta, { color: colors.muted }]}>Choose another available day or call 9765002862 for help.</Text></View>}
+      {slotGroups.length ? slotGroups.map((group) => <View key={group.label} style={styles.slotGroup}><Text style={[styles.groupTitle, { color: colors.muted }]}>{group.label}</Text><View style={styles.slotRow}>{group.slots.map((slot) => <Pressable key={slot} onPress={() => { setTime(slot); setReviewing(false); setMessage(""); saveBookingDraft({ service, date, time: slot, reason }); }} accessibilityRole="radio" accessibilityState={{ selected: time === slot }} style={[styles.slot, { borderColor: time === slot ? colors.primary : colors.border, backgroundColor: time === slot ? colors.primary : colors.surface }]}><Text style={{ color: time === slot ? colors.textInverse : colors.foreground, fontWeight: "900" }}>{slot}</Text></Pressable>)}</View></View>) : <View style={[styles.empty, { borderColor: colors.border }]}><Text style={[styles.serviceTitle, { color: colors.foreground }]}>No open times on this day</Text><Text style={[styles.serviceMeta, { color: colors.muted }]}>Choose another available day or call 9765002862 for help.</Text></View>}
       <Pressable onPress={() => setShowReason((value) => !value)} style={styles.optionalToggle}><Text style={{ color: colors.primary, fontWeight: "900" }}>{showReason ? "Hide optional note" : "Add an optional note"}</Text></Pressable>
-      {showReason ? <TextInput value={reason} onChangeText={setReason} placeholder="Optional note for Dr. Ojha’s team" placeholderTextColor={colors.muted} multiline maxLength={240} style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.surface }]} accessibilityLabel="Optional visit note" /> : null}
+      {showReason ? <TextInput value={reason} onChangeText={(value) => { setReason(value); saveBookingDraft({ service, date, time, reason: value }); }} placeholder="Optional note for Dr. Ojha’s team" placeholderTextColor={colors.muted} multiline maxLength={240} style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.surface }]} accessibilityLabel="Optional visit note" /> : null}
       {message ? <Text style={[styles.message, { color: colors.error }]}>{message}</Text> : null}
       <Pressable onPress={reviewBooking} style={[styles.primaryButton, { backgroundColor: colors.action }]} accessibilityRole="button"><Text style={styles.primaryButtonText}>Review visit / समय जाँच गर्नुहोस्</Text></Pressable>
       <Text style={[styles.privacy, { color: colors.muted }]}>Need help? Call 9765002862. Avoid entering clinical details, passwords, verification codes, or patient identifiers in an optional note.</Text>
     </>}
-  </ScrollView></ScreenContainer>;
+  </ScrollView><LanguageNavigationToggle /></ScreenContainer>;
 }
 
 const styles = StyleSheet.create({
