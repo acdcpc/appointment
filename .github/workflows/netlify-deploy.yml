@@ -1,0 +1,43 @@
+name: netlify-deploy (manual fallback)
+
+# Fallback publisher: builds the Expo web export here (in GitHub's runners, the
+# same pipeline the repo already proves) and pushes dist/ straight to Netlify.
+# Use this when Netlify's own build system misbehaves or shows "Skipped".
+#
+# Required repository secrets:
+#   NETLIFY_AUTH_TOKEN  – Netlify → User settings → Applications → Personal access tokens
+#   NETLIFY_SITE_ID     – Netlify → Site configuration → Site information → API ID
+#   (EXPO_PUBLIC_SUPABASE_URL / EXPO_PUBLIC_SUPABASE_ANON_KEY are reused from the
+#    existing SUPABASE_URL / SUPABASE_ANON_KEY secrets added for the keep-alive job.)
+#
+# Runs only when started by hand so it never adds noise on normal pushes.
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build the web export
+        run: |
+          mkdir -p node_modules/react-native-css-interop/.cache
+          touch node_modules/react-native-css-interop/.cache/web.css
+          npx expo export --platform web
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: *** secrets.SUPABASE_ANON_KEY }}
+      - name: Deploy dist/ to Netlify
+        run: npx netlify-cli deploy --prod --dir dist --site "$NETLIFY_SITE_ID" --auth "$NETLIFY_AUTH_TOKEN"
+        env:
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+          NETLIFY_AUTH_TOKEN: *** secrets.NETLIFY_AUTH_TOKEN }}
