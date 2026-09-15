@@ -10,10 +10,10 @@ const themeColors = {
   background: { light: '#F7FAFC', dark: '#102A43' },
   surface: { light: '#FFFFFF', dark: '#173B56' },
   foreground: { light: '#102A43', dark: '#F7FAFC' },
-  muted: { light: '#627D98', dark: '#B8C7D8' },
+  muted: { light: '#526A80', dark: '#B8C7D8' },
   border: { light: '#D9E2EC', dark: '#345A73' },
   // Status — factual only, never decoration
-  success: { light: '#2F855A', dark: '#68D391' },
+  success: { light: '#25714C', dark: '#68D391' },
   warning: { light: '#C27C0E', dark: '#F6C453' },
   error: { light: '#C53030', dark: '#FC8181' },
   // Action (coral) — the main booking action

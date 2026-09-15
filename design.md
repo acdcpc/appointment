@@ -61,8 +61,8 @@ Dr. Anil Ojha Child Care is a calm, trustworthy scheduling experience for the si
 | Accent | Warm coral `#F97360`, reserved for important actions and appointment highlights. |
 | Canvas | Cool ivory `#F7FAFC`, keeping cards legible and reducing glare. |
 | Surface | White `#FFFFFF`, with subtle slate borders and restrained shadows. |
-| Primary text | Ink navy `#102A43`; secondary text `#627D98`. |
-| Positive state | Fresh green `#2F855A`; warning `#C27C0E`; error `#C53030`. |
+| Primary text | Ink navy `#102A43`; secondary text `#526A80` (AA-adjusted from `#627D98`, which measured 4.3:1 on the canvas — the classic muted-on-light failure). |
+| Positive state | Green `#25714C` (AA-adjusted from `#2F855A`); warning `#C27C0E` (large/bold status text only); error `#C53030`. Contrast for every pair is enforced by `tests/design-tokens.test.ts`. |
 | Typography | iOS-style system sans with large title hierarchy, 17pt body baseline, and generous line height. |
 | Shape language | 16–24pt rounded cards, 12pt chips, and 14pt primary buttons for comfortable touch targets. |
 
