@@ -52,3 +52,37 @@ Netlify's manual deploy, or `npx netlify deploy --prod --dir dist`.
 Open the site root — the Rainbow Child Development Clinic home should render.
 Routes like `/parent-auth` are client-side; the SPA fallback serves the app
 shell for them.
+
+## Current status (checked 2026-09-15)
+
+- The site URL <https://bright-treacle-c89577.netlify.app> answers **HTTP 404 "Not Found"** → **no published deploy exists yet**. Nothing is broken in the build; the publish step has simply never completed.
+- `netlify.toml` is correct: build command (with the NativeWind cache bootstrap), publish dir `dist`, Node 22, SPA fallback.
+- The build is proven: a cold `pnpm install` → bootstrap → `expo export --platform web` produces `dist/index.html` containing the clinic app.
+- `public/_redirects` (`/* /index.html 200`) is now committed, so the SPA fallback also works for the manual-upload path where `netlify.toml` is not present.
+
+## Option A — link the repository (recommended; auto-deploys on every push)
+
+1. Open <https://app.netlify.com> → select the site (`bright-treacle-c89577`).
+2. **Site configuration → Build & deploy → Link repository** → GitHub → authorize → pick `acdcpc/appointment`, branch `main`.
+3. Before the first build, add the two environment variables (Site configuration → Environment variables):
+   - `EXPO_PUBLIC_SUPABASE_URL` = `https://bpocsorqstqfessdclfh.supabase.co`
+   - `EXPO_PUBLIC_SUPABASE_ANON_KEY` = the anon/publishable key (Supabase → Project Settings → API, or `.env` line `EXPO_PUBLIC_SUPABASE_ANON_KEY`)
+4. Deploys → **Trigger deploy → Deploy site** (linking usually triggers it).
+5. Success looks like: Deploys list shows **Published**, and the site URL renders the clinic app.
+
+If the variables were added *after* a build, redeploy once with **Clear cache and deploy site** so the new values are inlined into the bundle.
+
+## Option B — manual upload (fastest, no repository link)
+
+1. Build locally: `pnpm install && npx expo export --platform web` (produces `dist/`).
+2. Netlify → the site → **Deploys → Deploy manually**, then drag the **contents of `dist/`** (it contains `index.html` and `_redirects`).
+3. Manual deploys do not rebuild on push — re-drag after changes.
+
+## Verify a deploy (any machine)
+
+```bash
+curl -s -o /dev/null -w "%{http_code}\n" https://bright-treacle-c89577.netlify.app/   # expect 200
+curl -s https://bright-treacle-c89577.netlify.app/ | grep -c "Rainbow Child Development Clinic"  # expect 1+
+```
+
+Note: parent flows are fully static-capable; the **clinician dashboard needs the tRPC server**, which is a separate hosting task (see `docs/KNOWN_GAPS_AND_DECISIONS.md`).
