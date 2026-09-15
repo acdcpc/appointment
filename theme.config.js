@@ -1,42 +1,44 @@
 /** @type {const} */
-// Kapoori Ka Design System — Nepal Edition (v2): warm "clay & parchment"
-// language. ink #1A1A2E for reading text, clay #E8602C for actions (ink text
-// on clay fills per v2), pine #3D8B5E strictly for trust/success, gold as the
-// sparing highlight. Warm charcoal dark mode keeps the terracotta identity.
+// Rainbow Child Development Clinic — canonical palette.
+// Deep navy = primary trust surface/hero (F1 decision: navy is canonical).
+// Teal = healthcare action, links, selected states, availability.
+// Coral = the main booking action and success/milestone accents.
+// Ink navy/slate = text hierarchy. Green/amber/red = factual status only.
 const themeColors = {
   // Brand + structure
-  primary: { light: '#B85C38', dark: '#E8602C' },
-  background: { light: '#FBF7F0', dark: '#171310' },
-  surface: { light: '#FFFDF9', dark: '#241C18' },
-  foreground: { light: '#1A1A2E', dark: '#F0E7DE' },
-  muted: { light: '#7A6E65', dark: '#B5A69B' },
-  border: { light: '#F0E4D9', dark: '#3E322A' },
-  // Status — pine is trust/success only; danger never decorative
-  success: { light: '#3D8B5E', dark: '#5DBE8B' },
-  warning: { light: '#92400E', dark: '#F2C879' },
-  error: { light: '#C0392B', dark: '#E06B5B' },
-  // Action (clay CTA) — ink text on clay fills (v2 button-primary pattern)
-  action: { light: '#E8602C', dark: '#E8602C' },
-  actionHover: { light: '#D14E1C', dark: '#F0874A' },
-  actionPressed: { light: '#B84315', dark: '#F5A284' },
-  actionSurface: { light: '#F2D2B5', dark: '#3A241C' },
-  // Brand interactive states
-  brandHover: { light: '#A84519', dark: '#F0874A' },
-  brandPressed: { light: '#8F3A12', dark: '#F5A284' },
-  // Supporting accent — gold highlight + sage calm wash (selected/link states)
-  teal: { light: '#3D8B5E', dark: '#5DBE8B' },
-  tealSurface: { light: '#EAF2E7', dark: '#1F2A20' },
-  // Status surfaces (v2 washes)
-  successSurface: { light: '#D1FAE5', dark: '#173B2C' },
-  warningSurface: { light: '#FEF3C7', dark: '#3B2F14' },
-  dangerSurface: { light: '#FEE2E2', dark: '#3F1D18' },
-  // Inverse text on warm fills — ink per v2 (never white on clay)
-  textInverse: { light: '#1A1A2E', dark: '#1A1A2E' },
-  textInverseMuted: { light: '#F5E6DC', dark: '#4A2B20' },
+  primary: { light: '#092C4C', dark: '#5BB8D0' },
+  background: { light: '#F7FAFC', dark: '#102A43' },
+  surface: { light: '#FFFFFF', dark: '#173B56' },
+  foreground: { light: '#102A43', dark: '#F7FAFC' },
+  muted: { light: '#627D98', dark: '#B8C7D8' },
+  border: { light: '#D9E2EC', dark: '#345A73' },
+  // Status — factual only, never decoration
+  success: { light: '#2F855A', dark: '#68D391' },
+  warning: { light: '#C27C0E', dark: '#F6C453' },
+  error: { light: '#C53030', dark: '#FC8181' },
+  // Action (coral) — the main booking action
+  action: { light: '#F97360', dark: '#F98B78' },
+  actionHover: { light: '#E85F4C', dark: '#FAA08F' },
+  actionPressed: { light: '#D14F3C', dark: '#F8B3A6' },
+  actionSurface: { light: '#FFF4F1', dark: '#3A2430' },
+  // Brand interactive states (navy)
+  brandHover: { light: '#0B3A63', dark: '#74C6DB' },
+  brandPressed: { light: '#082239', dark: '#8ED4E5' },
+  // Healthcare teal — links, selected/availability states, clinical accents
+  teal: { light: '#0E7490', dark: '#38B7C0' },
+  tealSurface: { light: '#E0F2F3', dark: '#143D44' },
+  // Status surfaces
+  successSurface: { light: '#EAF7F0', dark: '#1C3A2E' },
+  warningSurface: { light: '#FFF8EB', dark: '#3C331C' },
+  dangerSurface: { light: '#FDE7E2', dark: '#46232A' },
+  // Text on fills: white on navy brand surfaces, ink on coral actions
+  textInverse: { light: '#FFFFFF', dark: '#102A43' },
+  textInverseMuted: { light: '#CFE3ED', dark: '#1E4E63' },
+  onAction: { light: '#102A43', dark: '#102A43' },
   // Accessibility + disabled
-  focusRing: { light: '#1565C0', dark: '#8AB4F8' },
-  disabledSurface: { light: '#F0E4D9', dark: '#2B211C' },
-  disabledText: { light: '#A99B8F', dark: '#6D5A52' },
+  focusRing: { light: '#0E7490', dark: '#38B7C0' },
+  disabledSurface: { light: '#EEF2F7', dark: '#24425C' },
+  disabledText: { light: '#9FB3C8', dark: '#64809A' },
 };
 
 module.exports = { themeColors };

@@ -168,7 +168,7 @@ export default function ParentAuth() {
                 </>
               ) : (
                 <Pressable onPress={sendReset} disabled={busy} style={[styles.button, { backgroundColor: colors.primary, opacity: busy ? 0.6 : 1 }]}>
-                  <Text style={[styles.buttonText, { color: colors.textInverse }]}>{busy ? t.signingIn : t.resetSentTitle}</Text>
+                  <Text style={[styles.buttonText, { color: colors.onAction }, { color: colors.textInverse }]}>{busy ? t.signingIn : t.resetSentTitle}</Text>
                 </Pressable>
               )
             ) : (

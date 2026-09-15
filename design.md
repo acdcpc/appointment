@@ -54,7 +54,10 @@ Dr. Anil Ojha Child Care is a calm, trustworthy scheduling experience for the si
 
 | Element | Choice |
 |---|---|
-| Brand primary | Deep navy `#092C4C` (dark mode `#5BB8D0`), communicating clinical trust without feeling sterile. Replaced the earlier teal `#0E7490` in the clinic rebrand (commit 675950e); teal remains only as the WHO/growth chart accent until it is retokened. |
+| Brand primary | **Deep navy `#092C4C`** (dark mode `#5BB8D0`) — the single canonical primary trust surface and hero colour. **F1 decision (2026-09-15):** navy is canonical; the earlier teal `#0E7490` is retained only as the *secondary* healthcare token (links, selected/availability states, chart accents). `theme.config.js`, the PWA theme-color, and the WHO growth chart all follow this split. |
+| Healthcare action (secondary) | Teal `#0E7490` (dark `#38B7C0`) — links, selected and availability states, clinical accents, growth-chart series. Never used as the primary brand surface. |
+| Booking action | Coral `#F97360` (dark `#F98B78`) — the dominant booking CTA, success and milestone moments. Ink text (`#102A43`) sits on coral fills for AA contrast. |
+| Signature motif | Growth-chart curve with developmental milestone markers (`components/growth-motif.tsx`), used sparingly in onboarding, hero and empty states only. It never implies a percentile, diagnosis, or clinical interpretation. |
 | Accent | Warm coral `#F97360`, reserved for important actions and appointment highlights. |
 | Canvas | Cool ivory `#F7FAFC`, keeping cards legible and reducing glare. |
 | Surface | White `#FFFFFF`, with subtle slate borders and restrained shadows. |
@@ -226,9 +229,9 @@ The retention dashboard adds a **Run summary now** action that calculates and sh
 The archive-volume chart provides a clinician-selected start and end month range, with a CSV export that includes only month bucket, archive-run count, archived-record count, and selected range metadata. The dashboard adds a quarterly retention-review control that can enable, pause, or resume a published reminder; each reminder contains aggregate storage and archive information only. While **Run summary now** is executing, its button changes to a progress label and remains disabled. A success card confirms the completed summary period and aggregate result after the action finishes.
 
 
-## Parent phone-plus-OTP mockup (retired)
+## Parent phone-plus-OTP — documented future direction (no live mockup)
 
-The review-only phone-plus-OTP mockup was removed during the Supabase email + password migration (2026-08-26). Production guardian authentication is Supabase email + password; no SMS provider is configured anywhere. Phone OTP remains a documented future extension behind `lib/supabase-auth.ts`; connecting real SMS still requires a separately approved production architecture and remains out of the product.
+**F6 decision (2026-09-15):** the documentation-only option was chosen over restoring the mockup. There is **no phone-or-OTP UI in the product today** and none is claimed: the review-only mockup that briefly existed was removed during the Supabase email + password migration (2026-08-26), and the parent sign-in screen is email + password only. Phone OTP is recorded here as a *documented future direction* behind the `lib/supabase-auth.ts` seam; connecting real SMS would require a separately approved paid provider and production architecture, and remains out of scope. Any future restoration must ship as a clearly separate "preview" entry point that states no SMS was sent and no account was authenticated.
 
 ## Appointment-summary copy interaction
 

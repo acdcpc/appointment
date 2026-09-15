@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Rainbow Child Development Clinic — Route-by-route UI audit</title>
+<style>
+  :root {
+    --paper: #f6f8fa;
+    --panel: #fdfefe;
+    --ink: #102a43;
+    --ink-soft: #486581;
+    --rule: #d9e2ec;
+    --accent: #0e7490;
+    --accent-soft: #e0f2f3;
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--paper); }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  .shell { display: grid; grid-template-columns: 232px minmax(0, 1fr); gap: 48px; max-width: 1180px; margin: 0 auto; padding: 64px 40px 96px; }
+  @media (max-width: 900px) { .shell { grid-template-columns: minmax(0, 1fr); gap: 32px; padding: 40px 22px 72px; } nav.toc { position: static; } }
+  nav.toc { position: sticky; top: 48px; align-self: start; font-size: 13px; }
+  nav.toc p { margin: 0 0 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-soft); font-weight: 700; }
+  nav.toc a { display: block; padding: 5px 0; color: var(--ink-soft); text-decoration: none; border-bottom: 1px solid transparent; }
+  nav.toc a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+  .cover { border-bottom: 1px solid var(--rule); padding-bottom: 26px; margin-bottom: 40px; }
+  .kicker { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); font-weight: 700; margin: 0 0 14px; }
+  h1 { font-family: var(--serif); font-size: 44px; line-height: 1.1; letter-spacing: -0.01em; margin: 0 0 14px; font-weight: 600; }
+  .lede { font-size: 18px; line-height: 1.55; color: var(--ink-soft); max-width: 68ch; margin: 0 0 22px; }
+  .meta-row { display: flex; flex-wrap: wrap; gap: 26px; font-size: 13px; color: var(--ink-soft); }
+  .meta-row b { color: var(--ink); font-weight: 600; }
+  h2 { font-family: var(--serif); font-size: 26px; line-height: 1.2; margin: 52px 0 6px; font-weight: 600; }
+  h2 + .h2-note { color: var(--ink-soft); font-size: 14px; margin: 0 0 18px; }
+  h3 { font-size: 15px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-soft); margin: 30px 0 8px; }
+  p { max-width: 72ch; margin: 0 0 14px; }
+  .panel { border: 1px solid var(--rule); background: var(--panel); padding: 22px 24px; }
+  .panel + .panel { margin-top: 14px; }
+  .decision { display: grid; grid-template-columns: 132px minmax(0,1fr); gap: 18px; }
+  .decision .tag { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); font-weight: 700; }
+  @media (max-width: 620px) { .decision { grid-template-columns: minmax(0,1fr); gap: 6px; } }
+  table { width: 100%; border-collapse: collapse; font-size: 14.5px; margin: 8px 0 6px; }
+  caption { text-align: left; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); padding-bottom: 8px; }
+  th, td { text-align: left; vertical-align: top; padding: 11px 12px; border-bottom: 1px solid var(--rule); }
+  th { font-size: 12px; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-soft); font-weight: 700; }
+  td code, p code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; color: var(--ink); background: var(--accent-soft); padding: 1px 5px; }
+  ul { margin: 0 0 14px; padding-left: 18px; max-width: 72ch; }
+  li { margin-bottom: 7px; }
+  .ok { border-left: 1px solid var(--accent); padding-left: 14px; color: var(--ink-soft); margin-bottom: 14px; }
+  .ok b { color: var(--ink); }
+  footer { margin-top: 64px; border-top: 1px solid var(--rule); padding-top: 18px; font-size: 12.5px; color: var(--ink-soft); display: flex; flex-wrap: wrap; gap: 20px; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <nav class="toc">
+    <p>Contents</p>
+    <a href="#decisions">Open findings</a>
+    <a href="#routes">Route findings</a>
+    <a href="#cross">Cross-cutting</a>
+    <a href="#validation">Validation</a>
+    <a href="#remaining">Remaining tasks</a>
+  </nav>
+
+  <main>
+    <header class="cover">
+      <p class="kicker">UI/UX redesign · Step 1 audit</p>
+      <h1>Route-by-route UI audit</h1>
+      <p class="lede">Rainbow Child Development Clinic — single-clinician pediatric practice of Associate Professor Dr. Anil Ojha. Findings recorded from the running Expo web build and the source, with the two previously open findings resolved by explicit decision rather than silently in code.</p>
+      <div class="meta-row">
+        <span><b>Date</b> 2026-09-15</span>
+        <span><b>Scope</b> Parent, clinician and governance routes</span>
+        <span><b>Constraint</b> No new project, no paid messaging, no authority changes</span>
+      </div>
+    </header>
+
+    <section id="decisions">
+      <h2>Open findings resolved</h2>
+      <p class="h2-note">Both decisions are recorded here and mirrored in <code>design.md</code>; the audit is the record of why.</p>
+
+      <div class="panel decision">
+        <div class="tag">F1 · colour</div>
+        <div>
+          <p><b>Decision — adopt deep navy <code>#092C4C</code> as the single canonical primary.</b> Teal <code>#0E7490</code> is retained as the secondary healthcare token for links, selected and availability states and chart series; coral <code>#F97360</code> is the booking action.</p>
+          <p>Rationale: navy is the later, deliberate rebrand and matches the redesign brief's “deep navy” direction. Nothing is removed — teal simply stops being treated as primary. Updated: <code>theme.config.js</code>, PWA theme-color, HTML shell meta, the WHO growth chart series, and the palette table in <code>design.md</code>.</p>
+        </div>
+      </div>
+
+      <div class="panel decision">
+        <div class="tag">F6 · phone OTP</div>
+        <div>
+          <p><b>Decision — documentation-only option, no mockup restoration.</b> <code>design.md</code> now states plainly that no phone-or-OTP UI exists today, that parent sign-in is Supabase email + password, and that phone OTP is a documented future direction behind the <code>lib/supabase-auth.ts</code> seam. The completed-task claims in <code>todo.md</code> are marked superseded.</p>
+          <p>Rationale: restoring a mockup that authenticates nothing into a production sign-in screen adds parent confusion and no user value; the honest documentation route is smaller and safer, and matches the product decision already taken when the mockup was removed.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="routes">
+      <h2>Route findings</h2>
+      <p class="h2-note">Each route is assessed for its own job and rhythm rather than a shared hero-plus-cards composition.</p>
+      <table>
+        <caption>Observed problems and action taken</caption>
+        <thead>
+          <tr><th style="width:22%">Route</th><th style="width:44%">Problem observed</th><th>Action taken</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Entry gate <code>app/index.tsx</code></td><td>Emoji mark instead of the clinic asset; no wordmark.</td><td>Clinic icon asset; wordmark added to Home and the desktop navigation.</td></tr>
+          <tr><td>Onboarding</td><td>Hero-only composition; no clinic motif; privacy line buried.</td><td>Motif under the hero; doctor credentials banner; privacy note kept directly beneath the CTAs.</td></tr>
+          <tr><td>Parent sign-in</td><td>No confirm-password; no recovery path; raw provider errors shown to parents.</td><td>Confirm-password on sign-up; “Forgot password?” email reset; friendly bilingual configuration copy.</td></tr>
+          <tr><td>Home</td><td>Every section equally weighted; hero lacked clinic identity; no first-use decision.</td><td>Doctor wordmark; motif inside the first-use state; one dominant booking CTA; contact tiles compacted to a single equal row.</td></tr>
+          <tr><td>Booking</td><td>Primary action could scroll away on mobile; coral CTA carried white text (≈3:1).</td><td>Pill CTA with ink-on-coral text (≥4.5:1); “Visit · Time · Confirm” stepper and privacy reminder retained.</td></tr>
+          <tr><td>Appointments</td><td>Bare empty state; status colour alone carried meaning in places.</td><td>Icon + text + colour status; empty state gains the motif and a single next action.</td></tr>
+          <tr><td>Family profile</td><td>Hardcoded demo identity; rows with no handlers; no appearance controls.</td><td>Real session identity; working child editor; night mode and text-size controls; account deletion in a clearly separated danger zone.</td></tr>
+          <tr><td>About</td><td>Credentials present but the page read as a generic information dump.</td><td>Doctor credential block reusing the wordmark treatment; hours, closures and contact retained.</td></tr>
+          <tr><td>Guardian records</td><td>Child scope implicit; cool tints left over from the previous palette.</td><td>Explicit child scope; status tokens re-mapped; a sign-in state replaces demo data.</td></tr>
+          <tr><td>Clinician dashboard</td><td>Sign-in unusable outside the original sandbox: the redirect bounced.</td><td>Supabase email + password sign-in with server-side token verification and clinic-admin authority; operational density kept distinct from parent cards.</td></tr>
+          <tr><td>Super-admin</td><td>Governance controls readable, but account deletions had no visible record.</td><td>“Deleted guardian accounts” section, super-admin only, fed by the retention table.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="cross">
+      <h2>Cross-cutting findings</h2>
+      <ul>
+        <li><b>Devanagari line-height.</b> Nepali secondary lines sat at a Latin 1.3 ratio; raised on parent routes, and the web build now loads Mukta and Noto Sans Devanagari ahead of the Latin face.</li>
+        <li><b>Contrast on warm fills.</b> Coral and green fills previously carried white text; fill/text pairs are now ink-on-coral and white-on-navy, both ≥4.5:1.</li>
+        <li><b>Demo identity leakage.</b> Home, Profile and Records could present fictional children as real; parent routes now distinguish linked child, account-not-linked and signed-out states.</li>
+        <li><b>Dark-mode tint leaks.</b> Light-only tint literals were hardcoded in several screens; parent screens now read tint tokens so dark mode does not expose light surfaces.</li>
+      </ul>
+    </section>
+
+    <section id="validation">
+      <h2>Validation</h2>
+      <div class="ok"><b>pnpm check</b> 0 errors · <b>pnpm lint</b> clean · <b>pnpm test</b> 41 passed, 1 environment-skipped · <b>expo export --platform web</b> succeeded · Supabase verification suite 14/14, including the guardian-scoped child-record RLS round trip.</div>
+      <p>Not verified here: real-device text scaling, live role logins, and the hosted environment — each needs owner-controlled setup and is listed below rather than assumed.</p>
+    </section>
+
+    <section id="remaining">
+      <h2>Remaining live-release tasks</h2>
+      <ul>
+        <li>Publish the Netlify deploy — the hosted URL still has no published build.</li>
+        <li>Real-device checks: iOS and Android text scale at 1.3× and 2.0×; Nepali long-string wrapping at 360×640 and 390×844.</li>
+        <li>Live role checks with clinic-owned accounts: super-admin, clinician, and a guardian test link.</li>
+        <li>Provide the HTTPS API/auth host for the hosted environment; the clinician dashboard needs the server, while parent flows are static-capable.</li>
+      </ul>
+    </section>
+
+    <footer>
+      <span>Rainbow Child Development Clinic · UI audit</span>
+      <span>Source of record: docs/UI_AUDIT_ROUTE_BY_ROUTE.md</span>
+      <span>2026-09-15</span>
+    </footer>
+  </main>
+</div>
+</body>
+</html>

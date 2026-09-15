@@ -95,7 +95,7 @@ export default function ProfileTab() {
           </View>
           {sessionLoaded && !session ? (
             <Pressable onPress={() => router.push("/parent-auth")} style={[styles.actionButton, { backgroundColor: colors.action }]} accessibilityRole="button">
-              <Text style={[styles.actionButtonText, { color: colors.textInverse }]}>{t("Sign in", "लग इन")}</Text>
+              <Text style={[styles.actionButtonText, { color: colors.onAction }, { color: colors.textInverse }]}>{t("Sign in", "लग इन")}</Text>
             </Pressable>
           ) : null}
           {session ? (

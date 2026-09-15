@@ -28,9 +28,14 @@ function DesktopTopNav({ colors, language, setLanguage }: { colors: ReturnType<t
           <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: colors.primary, alignItems: "center", justifyContent: "center" }}>
             <Text style={{ color: colors.textInverse, fontWeight: "900", fontSize: 14 }}>R</Text>
           </View>
-          <Text style={{ color: colors.foreground, fontWeight: "900", fontSize: 14 }} numberOfLines={1}>
-            Rainbow Child Development Clinic
-          </Text>
+          <View>
+            <Text style={{ color: colors.foreground, fontWeight: "900", fontSize: 14 }} numberOfLines={1}>
+              Rainbow Child Development Clinic
+            </Text>
+            <Text style={{ color: colors.muted, fontWeight: "700", fontSize: 10, marginTop: 1 }} numberOfLines={1}>
+              Associate Professor Dr. Anil Ojha, MBBS, MD, FCCH
+            </Text>
+          </View>
         </View>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
           {items.map((item) => {

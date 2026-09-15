@@ -2,6 +2,7 @@ import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 
 import { ScreenContainer } from "@/components/screen-container";
+import { GrowthMotif } from "@/components/growth-motif";
 import { useColors } from "@/hooks/use-colors";
 import { bilingualText, useLanguagePreference } from "@/lib/language-preference";
 
@@ -56,6 +57,8 @@ export default function Onboarding() {
           )}
         </Text>
       </View>
+
+      <GrowthMotif opacity={0.45} />
 
       <View style={[styles.doctorBanner, { backgroundColor: colors.tealSurface, borderColor: colors.primary }]}>
         <View style={[styles.doctorBadge, { backgroundColor: colors.primary }]}>

@@ -20,6 +20,7 @@ export const themeColors: {
   warningSurface: { light: string; dark: string };
   dangerSurface: { light: string; dark: string };
   textInverse: { light: string; dark: string };
+  onAction: { light: string; dark: string };
   textInverseMuted: { light: string; dark: string };
   focusRing: { light: string; dark: string };
   disabledSurface: { light: string; dark: string };
