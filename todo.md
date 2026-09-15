@@ -404,7 +404,7 @@ Note: Figma is not available in the current development workspace; produce a Fig
 
 ### Parent OTP mockup and healthcare design template
 
-- [x] Update reusable workflow for free review-only parent OTP mockups, local clipboard feedback, and design-token templates
+- [x] Update reusable workflow for free review-only parent OTP mockups, local clipboard feedback, and design-token templates *(the OTP part is historical only — F6 2026-09-15: no parent OTP UI exists in the product; clipboard feedback and design-token templates remain current)*
 - [x] Create a standard healthcare branding `design.md` with the existing clinic trust palette
 - [x] Apply the healthcare design tokens to the Nepali booking flow without changing canonical data
 - [x] Build a free parent phone-plus-OTP frontend mockup with request-code, code-entry, resend, and edit-number states *(superseded — F6 2026-09-15: no live mockup exists; phone+OTP is a documented future direction only, see design.md)*

@@ -15,7 +15,7 @@ export default function HomeScreen() {
   const wide = useWindowDimensions().width >= 1024;
   const colors = useColors();
   const router = useRouter();
-  const { children, activeChild, appointments, earlierSlotRequests, history, preparationChecklists, confirmGuardianAttendance, acknowledgeAppointmentChange, requestEarlierSlot, withdrawEarlierSlotRequest, respondToEarlierSlotOffer, childrenSource } = usePediatricCare();
+  const { children, activeChild, appointments, earlierSlotRequests, history, preparationChecklists, confirmGuardianAttendance, acknowledgeAppointmentChange, requestEarlierSlot, withdrawEarlierSlotRequest, respondToEarlierSlotOffer, childrenSource, pendingReports } = usePediatricCare();
   const { language } = useLanguagePreference();
   const t = (english: string, nepali: string) => bilingualText(language, english, nepali);
   const nextAppointment = appointments.find((appointment) => appointment.status !== "completed");
