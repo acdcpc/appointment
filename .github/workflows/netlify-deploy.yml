@@ -35,9 +35,9 @@ jobs:
           npx expo export --platform web
         env:
           EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          EXPO_PUBLIC_SUPABASE_ANON_KEY: *** secrets.SUPABASE_ANON_KEY }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
       - name: Deploy dist/ to Netlify
         run: npx netlify-cli deploy --prod --dir dist --site "$NETLIFY_SITE_ID" --auth "$NETLIFY_AUTH_TOKEN"
         env:
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
-          NETLIFY_AUTH_TOKEN: *** secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
