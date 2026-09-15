@@ -86,3 +86,28 @@ curl -s https://bright-treacle-c89577.netlify.app/ | grep -c "Rainbow Child Deve
 ```
 
 Note: parent flows are fully static-capable; the **clinician dashboard needs the tRPC server**, which is a separate hosting task (see `docs/KNOWN_GAPS_AND_DECISIONS.md`).
+
+## When Netlify skips builds: "account credit usage exceeded"
+
+Observed 2026-09-15: the site's deploys show **Skipped** because the account's
+included **build minutes/credits are exhausted**. Netlify stops running builds
+when that happens; the last published deploy keeps being served, but no new
+build is started until the allowance resets (start of the billing month) or the
+plan is upgraded.
+
+Important distinction:
+
+| Action | Consumes Netlify build minutes? | Works while credits are exhausted? |
+|---|---|---|
+| Netlify builds from the repository (`netlify.toml`) | **Yes** | No — builds are skipped |
+| Deploying prebuilt files via CLI/API (`netlify deploy --prod --dir dist`) | **No** — it is an upload, not a build | **Yes** |
+
+So the credit limit does not block publishing: build in GitHub Actions (free on
+public repositories, 2000 minutes/month on private) and let Netlify only host.
+That is exactly what `.github/workflows/netlify-deploy.yml` does — see the
+"manual fallback" section above for the two secrets it needs.
+
+Longer term, if Netlify's build allowance keeps being the bottleneck, the same
+`dist/` folder can be served by any root-hosted static host (Cloudflare Pages,
+for example) with no change to the export, because the app is built to be served
+from the site root.
