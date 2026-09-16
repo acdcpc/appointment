@@ -111,3 +111,30 @@ Longer term, if Netlify's build allowance keeps being the bottleneck, the same
 `dist/` folder can be served by any root-hosted static host (Cloudflare Pages,
 for example) with no change to the export, because the app is built to be served
 from the site root.
+
+### Correction (verified 2026-09-16): the credit lock blocks uploads too
+
+An earlier note in this file said CLI/API uploads still work while build credits
+are exhausted. **That is wrong for Netlify's current credit model**, and it was
+verified against the live account:
+
+| Evidence | Result |
+|---|---|
+| `netlify api getSite --data '{"site_id":"ecc8b151-…"}'` | **Succeeds** — site `rainbowclinic`, account `prakashthapa-paed`, with an existing published deploy |
+| `netlify deploy --prod --dir dist` (linked site) | **`JSONHTTPError: Forbidden`** |
+| `netlify api createSiteDeploy` (raw deploy create) | **`JSONHTTPError: Forbidden`** |
+
+Reads succeed with the same token while every write is refused, so this is an
+**account-level deploy block caused by exhausted credits**, not a token-scope
+problem. While the account is in that state, *no* deploy route works on Netlify —
+not repository builds and not CLI/API uploads.
+
+Consequences:
+
+1. Publishing on this Netlify account requires either the credit reset (start of
+   the billing cycle) or adding a payment method / upgrading.
+2. A second Netlify account would work, but starts the same metre over again.
+3. A different static host is not affected by the Netlify lock: build here, upload
+   there (see `.github/workflows/cloudflare-pages-deploy.yml`).
+4. The currently published deploy is still served, so turning off visitor access
+   makes the *existing* (older) build usable immediately without any new deploy.
