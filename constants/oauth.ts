@@ -30,9 +30,17 @@ export const API_BASE_URL = env.apiBaseUrl;
  * URL pattern: https://PORT-sandboxid.region.domain
  */
 export function getApiBaseUrl(): string {
-  // If API_BASE_URL is set, use it
+  // If API_BASE_URL is set, use it — but never from a deployed page. A value
+  // pointing at a developer machine (localhost/127.0.0.1) must not leak into a
+  // published build: the visitor's browser would try its own machine and every
+  // API call would fail. In that case fall through to relative URLs.
   if (API_BASE_URL) {
-    return API_BASE_URL.replace(/\/$/, "");
+    const pointsAtDevMachine = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(API_BASE_URL);
+    const pageIsDevMachine =
+      typeof window !== "undefined" && !!window.location && /^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
+    if (!pointsAtDevMachine || pageIsDevMachine) {
+      return API_BASE_URL.replace(/\/$/, "");
+    }
   }
 
   // On web, derive from current hostname by replacing port 8081 with 3000

@@ -22,13 +22,16 @@ import { PediatricCareProvider } from "@/lib/pediatric-care";
 import { LanguageProvider } from "@/lib/language-preference";
 import { TextSizeProvider } from "@/lib/text-size";
 import { MaintenanceModeBanner } from "@/components/maintenance-mode-banner";
-import { SuperAdminServiceSuggestionWorkspace } from "@/components/super-admin-service-suggestion-workspace";
 
 const DEFAULT_WEB_INSETS: EdgeInsets = { top: 0, right: 0, bottom: 0, left: 0 };
 const DEFAULT_WEB_FRAME: Rect = { x: 0, y: 0, width: 0, height: 0 };
 
+// The previous value ("index") made the root gate the anchor for every deep
+// link, so links such as /report-acknowledgement?token=… booted the gate and
+// were redirected to onboarding. "(tabs)" keeps back-navigation sensible
+// without hijacking deep links.
 export const unstable_settings = {
-  anchor: "index",
+  anchor: "(tabs)",
 };
 
 export default function RootLayout() {
@@ -98,7 +101,6 @@ export default function RootLayout() {
             <Stack.Screen name="oauth/callback" />
           </Stack>
           <MaintenanceModeBanner />
-          <SuperAdminServiceSuggestionWorkspace />
           <StatusBar style="auto" />
           </PediatricCareProvider></LanguageProvider></TextSizeProvider>
         </QueryClientProvider>

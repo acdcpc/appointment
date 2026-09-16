@@ -36,8 +36,21 @@ export function createTRPCClient() {
           } catch { /* supabase session unavailable */ }
           return headers;
         },
-        // Custom fetch to include credentials for cookie-based auth
+        // Custom fetch: include credentials for cookie-based auth, and
+        // short-circuit when the deployment has no API backend. A static host
+        // has no tRPC server, so without this guard every query fires at the
+        // page's own origin, fails, and logs a network error — noisy for
+        // parents and misleading in the console. Screens then fall back to
+        // their built-in defaults instead.
         fetch(url, options) {
+          if (!getApiBaseUrl()) {
+            return Promise.resolve(
+              new Response(
+                JSON.stringify([{ error: { json: { message: "This feature needs the clinic server, which is not connected on this deployment." } } }]),
+                { status: 503, headers: { "content-type": "application/json" } },
+              ),
+            );
+          }
           return fetch(url, {
             ...options,
             credentials: "include",

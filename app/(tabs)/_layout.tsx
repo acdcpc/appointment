@@ -8,6 +8,7 @@ import { useLargeTextLayout } from "@/lib/large-text-accessibility";
 import { AuthorityNavigationBadge } from "@/components/authority-navigation-badge";
 import { EnvironmentNavigationBadge } from "@/components/environment-navigation-badge";
 import { LanguageNavigationToggle } from "@/components/language-navigation-toggle";
+import { SuperAdminServiceSuggestionWorkspace } from "@/components/super-admin-service-suggestion-workspace";
 import { useLanguagePreference } from "@/lib/language-preference";
 
 function DesktopTopNav({ colors, language, setLanguage }: { colors: ReturnType<typeof useColors>; language: string; setLanguage: (l: "en" | "ne") => void }) {
@@ -87,7 +88,7 @@ export default function TabLayout() {
       <Tabs.Screen name="appointments" options={{ title: language === "ne" ? "भेटहरू" : "Visits", tabBarIcon: ({ color }) => <IconSymbol size={24} name="calendar" color={color} /> }} />
       <Tabs.Screen name="records" options={{ title: language === "ne" ? "अभिलेख" : "Records", tabBarIcon: ({ color }) => <IconSymbol size={24} name="doc.text" color={color} /> }} />
       <Tabs.Screen name="profile" options={{ title: language === "ne" ? "प्रोफाइल" : "Profile", tabBarIcon: ({ color }) => <IconSymbol size={24} name="person.fill" color={color} /> }} />
-    </Tabs><LanguageNavigationToggle /><EnvironmentNavigationBadge /><AuthorityNavigationBadge />
+    </Tabs><LanguageNavigationToggle /><SuperAdminServiceSuggestionWorkspace /><EnvironmentNavigationBadge /><AuthorityNavigationBadge />
     </>
   );
 }

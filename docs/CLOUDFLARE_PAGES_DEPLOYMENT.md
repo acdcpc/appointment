@@ -56,3 +56,29 @@ issued automatically and free.
 
 The clinician dashboard needs the tRPC server hosted separately; the static site
 serves the parent experience only. See `docs/KNOWN_GAPS_AND_DECISIONS.md`.
+
+## Blank-page incident and fixes (2026-09-16)
+
+The first deploys rendered a blank page. Diagnosed with a headless browser
+(Playwright) capturing page errors, then fixed:
+
+| Symptom | Root cause | Fix |
+|---|---|---|
+| `#root` empty, `Error: Couldn't find a LinkingContext context.` | **Two copies of `@react-navigation/native`** installed — a top-level 7.1.8 (pinned by an earlier `expo install --fix`) alongside expo-router's own 7.1.25. Two React Navigation instances cannot share the linking context, so the root Stack threw on first render. | Direct dependencies aligned to the versions expo-router resolves (`@react-navigation/native@7.1.25`, `@react-navigation/bottom-tabs@7.8.12`) → a single instance. |
+| `localhost:3000` baked into the published bundle | `EXPO_PUBLIC_API_BASE_URL` (a developer-machine value) was inlined at build time, so every deployed visitor called their own machine. | `getApiBaseUrl()` now ignores a dev-machine base when the page itself is not localhost. |
+| Deep links landed on onboarding | `unstable_settings.anchor = "index"` made the root gate the anchor for every deep link; `/report-acknowledgement?token=…` booted the gate and was redirected. | Anchor restored to `"(tabs)"`. |
+| Every path served the root shell | Cloudflare serves a route's HTML only at a directory index. | `scripts/expand-static-routes.mjs` copies each `route.html` to `route/index.html`; wired into `pnpm deploy:web`. |
+| Console `NetworkError` on every route | The app called tRPC/`apiCall` endpoints that do not exist on a static host. | Both clients short-circuit with an offline response when no API base is configured; screens use their built-in defaults. |
+
+Verification after the fixes (headless browser, live URL):
+
+- `/` → onboarding screen; `/parent-auth` → sign-in screen (Nepali password label present); `/booking` → booking flow
+- No fatal page errors on any route; all image/font/JS assets return 200
+- Known residue: a React hydration warning (#418, prerendered dates differ from client) and a stackless react-native-web `NetworkError` message in the console — both non-fatal, neither affects rendering.
+
+## Deploy command (current)
+
+```bash
+pnpm deploy:web          # expo export + expand static routes
+npx wrangler pages deploy dist --project-name=rainbowclinic --branch=main
+```

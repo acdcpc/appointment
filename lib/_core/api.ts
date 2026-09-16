@@ -39,6 +39,12 @@ export async function apiCall<T>(endpoint: string, options: RequestInit = {}): P
   const url = baseUrl ? `${cleanBaseUrl}${cleanEndpoint}` : endpoint;
   console.log("[API] Full URL:", url);
 
+  // No API backend on this deployment (static hosting): return an offline
+  // result instead of firing a doomed request at the page's own origin.
+  if (!url.startsWith("http")) {
+    return { error: "This feature needs the clinic server, which is not connected on this deployment." } as unknown as T;
+  }
+
   try {
     console.log("[API] Making request...");
     const response = await fetch(url, {
