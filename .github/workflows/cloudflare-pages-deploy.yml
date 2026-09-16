@@ -1,0 +1,46 @@
+name: cloudflare-pages-deploy (manual alternative host)
+
+# Zero-build-credit alternative: GitHub builds the Expo web export, Cloudflare
+# Pages only hosts it. Cloudflare's free tier does not meter build minutes the
+# way Netlify does, and it serves from the site root, so the export needs no
+# path changes.
+#
+# Required repository secrets:
+#   CLOUDFLARE_API_TOKEN   – Cloudflare → My Profile → API Tokens → Create Token
+#                            (template: "Edit Cloudflare Workers" is sufficient)
+#   CLOUDFLARE_ACCOUNT_ID  – Cloudflare dashboard → Account ID (right-hand sidebar)
+#   CLOUDFLARE_PROJECT     – the Pages project name to create/update
+#   (Supabase values are reused from the existing SUPABASE_URL / SUPABASE_ANON_KEY secrets.)
+#
+# Runs only when started by hand.
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build the web export
+        run: |
+          mkdir -p node_modules/react-native-css-interop/.cache
+          touch node_modules/react-native-css-interop/.cache/web.css
+          npx expo export --platform web
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      - name: Publish dist/ to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=${{ secrets.CLOUDFLARE_PROJECT }} --branch=main
