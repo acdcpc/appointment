@@ -7,7 +7,7 @@ import { useColors } from "@/hooks/use-colors";
 import { type ClinicOperatingHour, usePediatricCare } from "@/lib/pediatric-care";
 import { useAuth } from "@/hooks/use-auth";
 import { signInWithSupabaseEmail, signOutSupabase, getSupabaseSession } from "@/lib/supabase";
-import { isClinicAdministratorEmail } from "../server/clinic-authority";
+import { isClinicAdministratorEmail, isSuperAdminEmail } from "../server/clinic-authority";
 import { trpc } from "@/lib/trpc";
 import { ClinicianIntelligence } from "@/components/clinician-intelligence";
 import { ActiveGrowthReference } from "@/components/active-growth-reference";
@@ -57,7 +57,7 @@ import { ClinicianDeploymentFeedbackLink } from "@/components/clinician-deployme
 const durations = [20, 30, 45, 60];
 const weekdays: ClinicOperatingHour["weekday"][] = ["Mon", "Tue", "Wed", "Thu", "Fri"];
 
-function ClinicianLogin({ onBack, onSignedIn }: { onBack: () => void; onSignedIn: () => void }) {
+function ClinicianLogin({ onBack, onSignedIn }: { onBack: () => void; onSignedIn: (signedInEmail: string) => void }) {
   const colors = useColors();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -73,7 +73,7 @@ function ClinicianLogin({ onBack, onSignedIn }: { onBack: () => void; onSignedIn
         setError("This account does not have clinician access. Ask the practice owner to grant it.");
         return;
       }
-      onSignedIn();
+      onSignedIn(result.user.email ?? "");
     } catch (e) {
       const raw = e instanceof Error ? e.message : "";
       if (/invalid api key/i.test(raw)) setError("The app configuration is out of date. Restart the dev server and try again.");
@@ -86,13 +86,28 @@ function ClinicianLogin({ onBack, onSignedIn }: { onBack: () => void; onSignedIn
 }
 
 export default function ClinicianDashboard() {
-  const colors = useColors(); const router = useRouter(); const { focus, reportId } = useLocalSearchParams<{ focus?: "contacts" | "staff" | "email-shares"; reportId?: string }>(); const cookieAuth = useAuth(); const [supabaseAuthed, setSupabaseAuthed] = useState<boolean | undefined>(undefined);
-  useEffect(() => { let c = false; getSupabaseSession().then((s) => { if (!c) setSupabaseAuthed(Boolean(s)); }).catch(() => { if (!c) setSupabaseAuthed(false); }); return () => { c = true; }; }, []);
+  const colors = useColors(); const router = useRouter(); const { focus, reportId } = useLocalSearchParams<{ focus?: "contacts" | "staff" | "email-shares"; reportId?: string }>(); const cookieAuth = useAuth(); const [supabaseAuthed, setSupabaseAuthed] = useState<boolean | undefined>(undefined); const [accountEmail, setAccountEmail] = useState("");
+  useEffect(() => { let c = false; getSupabaseSession().then((s) => { if (!c) { setSupabaseAuthed(Boolean(s)); setAccountEmail(s?.user?.email ?? ""); } }).catch(() => { if (!c) setSupabaseAuthed(false); }); return () => { c = true; }; }, []);
   const isAuthenticated = cookieAuth.isAuthenticated || Boolean(supabaseAuthed); const authLoading = cookieAuth.loading || supabaseAuthed === undefined; const logout = async () => { await cookieAuth.logout?.(); await signOutSupabase(); setSupabaseAuthed(false); }; const access = trpc.clinician.access.useQuery(undefined, { enabled: isAuthenticated, retry: false });
-  if (authLoading || (isAuthenticated && access.isLoading)) return <ScreenContainer className="items-center justify-center"><ActivityIndicator color={colors.primary} size="large" /><Text style={[styles.loadingText, { color: colors.muted }]}>Verifying clinician access…</Text></ScreenContainer>;
-  if (!isAuthenticated) return <ClinicianLogin onBack={() => router.back()} onSignedIn={() => { setSupabaseAuthed(true); }} />;
-  if (access.error || !access.data?.allowed) return <ScreenContainer className="p-5"><View style={styles.loginWrap}><Pressable onPress={() => router.back()}><Text style={[styles.back, { color: colors.primary }]}>‹  Back</Text></Pressable><View style={[styles.loginCard, { backgroundColor: colors.surface, borderColor: colors.border }]}><Text style={[styles.loginTitle, { color: colors.foreground }]}>Clinic access required</Text><Text style={[styles.loginText, { color: colors.muted }]}>{access.data?.reason ?? "This signed-in account is not assigned to the clinic. Ask the practice owner to create an invitation matching your account email."}</Text><Pressable onPress={logout} style={[styles.secondaryButton, { borderColor: colors.primary }]}><Text style={{ color: colors.primary, fontWeight: "800" }}>Sign out</Text></Pressable></View></View></ScreenContainer>;
-  if (!access.data.isOwner) return <StaffCapacityAlertWorkspace role={access.data.staffRole ?? "receptionist"} onSignOut={logout} />;
+  // Who may enter is decided by the clinic server. When the server cannot be
+  // reached at all — the static web build has no API host — the client-side
+  // authority list decides instead, so the owner is never locked out of their own
+  // dashboard by an absent backend. Dashboard data still comes from the server
+  // and RLS, so this is an entry check, not a data boundary.
+  const serverAnswered = Boolean(access.data);
+  const locallyAuthorised = isClinicAdministratorEmail(accountEmail);
+  const accessAllowed = serverAnswered ? Boolean(access.data?.allowed) : locallyAuthorised;
+  const isOwner = serverAnswered
+    ? Boolean(access.data?.isOwner)
+    : isClinicAdministratorEmail(accountEmail) || isSuperAdminEmail(accountEmail);
+  const awaitingServer = isAuthenticated && !serverAnswered && !locallyAuthorised && access.isLoading;
+  const denialReason = serverAnswered
+    ? access.data?.reason
+    : "No clinic server is connected to this build, so the dashboard is limited to the clinic administrator and super-admin accounts. Connect the API server to manage staff invitations and data.";
+  if (authLoading || awaitingServer) return <ScreenContainer className="items-center justify-center"><ActivityIndicator color={colors.primary} size="large" /><Text style={[styles.loadingText, { color: colors.muted }]}>Verifying clinician access…</Text></ScreenContainer>;
+  if (!isAuthenticated) return <ClinicianLogin onBack={() => router.back()} onSignedIn={(signedInEmail) => { setSupabaseAuthed(true); setAccountEmail(signedInEmail); }} />;
+  if (!accessAllowed) return <ScreenContainer className="p-5"><View style={styles.loginWrap}><Pressable onPress={() => router.back()}><Text style={[styles.back, { color: colors.primary }]}>‹  Back</Text></Pressable><View style={[styles.loginCard, { backgroundColor: colors.surface, borderColor: colors.border }]}><Text style={[styles.loginTitle, { color: colors.foreground }]}>Clinic access required</Text><Text style={[styles.loginText, { color: colors.muted }]}>{denialReason ?? "This signed-in account is not assigned to the clinic. Ask the practice owner to create an invitation matching your account email."}</Text><Pressable onPress={logout} style={[styles.secondaryButton, { borderColor: colors.primary }]}><Text style={{ color: colors.primary, fontWeight: "800" }}>Sign out</Text></Pressable></View></View></ScreenContainer>;
+  if (!isOwner) return <StaffCapacityAlertWorkspace role={access.data?.staffRole ?? "receptionist"} onSignOut={logout} />;
   return <Dashboard focus={focus} reportId={reportId} />;
 }
 
