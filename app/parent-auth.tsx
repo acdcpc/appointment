@@ -1,106 +1,141 @@
-import { useMemo, useState } from "react";
-import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useRouter } from "expo-router";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
-import { useLanguagePreference, bilingualText } from "@/lib/language-preference";
-import { isSupabaseConfigured } from "@/lib/supabase";
-import { friendlyAuthError, sendGuardianPasswordReset } from "@/lib/supabase-auth";
+import { bilingualText, useLanguagePreference } from "@/lib/language-preference";
 import {
   getGuardianSession,
+  resendGuardianVerificationEmail,
+  sendGuardianPasswordReset,
   signInGuardianWithEmail,
   signOutGuardian,
   signUpGuardianWithEmail,
+  type GuardianSession,
 } from "@/lib/supabase-auth";
+import { getAuthErrorMessage, isAlreadyRegisteredError, passwordProblem } from "@/lib/auth-errors";
 
 /**
- * Parent (guardian) account screen — production path is Supabase Auth with
- * EMAIL + PASSWORD (no SMS provider anywhere). Phone OTP can be added later
- * behind the same lib/supabase-auth.ts seam without touching this screen.
+ * Parent sign-in / sign-up.
+ *
+ * Flow copied from the clinic's Kapoori Ka app: every outcome is stated
+ * explicitly — account created and signed in, confirmation email sent (with a
+ * resend action), email already registered (which switches back to sign-in), or
+ * a specific error — instead of leaving the parent guessing.
  */
-export default function ParentAuth() {
+export default function ParentAuthScreen() {
   const colors = useColors();
   const router = useRouter();
   const { language } = useLanguagePreference();
-  const [mode, setMode] = useState<"sign-in" | "sign-up" | "forgot">("sign-in");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [resetSent, setResetSent] = useState(false);
+  const t = (english: string, nepali: string) => bilingualText(language, english, nepali);
+
+  const [session, setSession] = useState<GuardianSession | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetSent, setResetSent] = useState(false);
+  const [verificationSent, setVerificationSent] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState("");
-  const [messageKind, setMessageKind] = useState<"info" | "error" | "success">("info");
-  const [sessionEmail, setSessionEmail] = useState<string | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
-  const title = useMemo(() => bilingualText(language, "Parent sign in", "अभिभावक लग इन"), [language]);
-  const t = {
-    notConfigured: bilingualText(language, "Sign-in is not available on this build because Supabase is not configured.", "यस बिल्डमा Supabase कन्फिगर नभएकाले लग इन उपलब्ध छैन।"),
-    invalidEmail: bilingualText(language, "Enter a valid email address.", "मान्य इमेल ठेगाना लेख्नुहोस्।"),
-    shortPassword: bilingualText(language, "Password must be at least 6 characters.", "पासवर्ड कम्तीमा ६ क्यारेक्टर हुनुपर्छ।"),
-    signingIn: bilingualText(language, "Signing in…", "लग इन गर्दै…"),
-    creating: bilingualText(language, "Creating your account…", "खाता खोल्दै…"),
-    signedIn: bilingualText(language, "You are signed in as a parent guardian.", "तपाईं अभिभावकको रूपमा लग इन हुनुभयो।"),
-    confirmEmail: bilingualText(language, "Almost done — confirm your email from the message we just sent, then sign in.", "लगभग सकियो — हामीले पठाएको सन्देशबाट इमेल पुष्टि गर्नुहोस्, त्यसपछि लग इन गर्नुहोस्।"),
-    switchToSignUp: bilingualText(language, "No account yet? Create one", "खाता छैन? नयाँ खाता बनाउनुहोस्"),
-    switchToSignIn: bilingualText(language, "Already have an account? Sign in", "खाता छ? लग इन गर्नुहोस्"),
-    signOut: bilingualText(language, "Sign out", "लग आउट"),
-    emailLabel: bilingualText(language, "Email address", "इमेल ठेगाना"),
-    passwordLabel: bilingualText(language, "Password", "पासवर्ड"),
-    confirmPasswordLabel: bilingualText(language, "Confirm password", "पासवर्ड पुनः लेख्नुहोस्"),
-    passwordMismatch: bilingualText(language, "Passwords do not match.", "पासवर्ड मिलेन।"),
-    forgotPassword: bilingualText(language, "Forgot password?", "पासवर्ड बिर्सनुभयो?"),
-    backToSignIn: bilingualText(language, "Back to sign in", "लग इन मा फर्कनुहोस्"),
-    resetSentTitle: bilingualText(language, "Reset link sent!", "रिसेट लिंक पठाइयो!"),
-    resetSentText: bilingualText(language, "Check your email inbox for the password reset link, then sign in with your new password.", "इमेलमा पठाइएको लिंकबाट पासवर्ड रिसेट गर्नुहोस्, त्यसपछि नयाँ पासवर्डले लग इन गर्नुहोस्।"),
-  };
+  useEffect(() => {
+    getGuardianSession().then(setSession).catch(() => setSession(null));
+  }, []);
 
-  const show = (text: string, kind: "info" | "error" | "success") => {
-    setMessage(text);
-    setMessageKind(kind);
-  };
+  const validateEmail = (value: string) => /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(value.trim());
 
-  const sendReset = async () => {
-    if (!isSupabaseConfigured) { show(t.notConfigured, "error"); return; }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())) { show(t.invalidEmail, "error"); return; }
-    setBusy(true); setMessage(""); setMessageKind("info");
+  const submit = async () => {
+    setAuthError(null);
+    setSuccess(null);
+    if (!email || !password) {
+      setAuthError(t("Please enter both email and password.", "कृपया इमेल र पासवर्ड दुवै भर्नुहोस्।"));
+      return;
+    }
+    if (!validateEmail(email)) {
+      setAuthError(t("Please enter a valid email address.", "कृपया वैध इमेल ठेगाना लेख्नुहोस्।"));
+      return;
+    }
+    if (isRegistering) {
+      const problem = passwordProblem(password, language === "ne" ? "ne" : "en");
+      if (problem) { setAuthError(problem); return; }
+      if (password !== confirmPassword) {
+        setAuthError(t("Passwords do not match.", "पासवर्ड मिलेन।"));
+        return;
+      }
+    }
+    setBusy(true);
     try {
-      await sendGuardianPasswordReset(email.trim());
-      setResetSent(true);
-      setMessageKind("success"); setMessage(t.resetSentText);
+      if (isRegistering) {
+        const result = await signUpGuardianWithEmail(email.trim(), password);
+        setPassword("");
+        setConfirmPassword("");
+        if (result.needsEmailConfirmation) {
+          // Confirmation is required on this project — say so and offer a resend.
+          setVerificationSent(true);
+        } else {
+          setSuccess(t("Account created — you are signed in.", "खाता बनियो — तपाईं लग इन हुनुभयो।"));
+          const next = await getGuardianSession();
+          setSession(next);
+          setTimeout(() => router.replace("/(tabs)"), 1200);
+        }
+      } else {
+        const signedIn = await signInGuardianWithEmail(email.trim(), password);
+        setSession(signedIn);
+        setSuccess(t("Signed in. Loading your child's details…", "लग इन भयो। बच्चाको विवरण खोल्दै…"));
+        setPassword("");
+        setTimeout(() => router.replace("/(tabs)"), 900);
+      }
     } catch (error) {
-      const raw = error instanceof Error ? error.message : "";
-      show(raw || t.notConfigured, "error");
-      setResetSent(true);
+      if (isRegistering && isAlreadyRegisteredError(error)) {
+        setPassword("");
+        setConfirmPassword("");
+        setIsRegistering(false);
+        setAuthError(
+          t(
+            "This email already has an account — so no new account was created. Sign in with that email and password, or tap “Forgot password?”.",
+            "यो इमेलमा पहिले नै खाता छ — त्यसैले नयाँ खाता बनिएन। सोही इमेल र पासवर्डले लग इन गर्नुहोस्, वा “पासवर्ड बिर्सनुभयो?” थिच्नुहोस्।"
+          )
+        );
+        return;
+      }
+      setAuthError(getAuthErrorMessage(error, language === "ne" ? "ne" : "en"));
     } finally {
       setBusy(false);
     }
   };
 
-  const submit = async () => {
-    if (!isSupabaseConfigured) { show(t.notConfigured, "error"); return; }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())) { show(t.invalidEmail, "error"); return; }
-    if (password.length < 6) { show(t.shortPassword, "error"); return; }
-    if (mode === "sign-up" && password !== confirmPassword) { show(t.passwordMismatch, "error"); return; }
+  const resendVerification = async () => {
     setBusy(true);
-    show(mode === "sign-in" ? t.signingIn : t.creating, "info");
+    setAuthError(null);
     try {
-      if (mode === "sign-in") {
-        const session = await signInGuardianWithEmail(email, password);
-        setSessionEmail(session.email);
-        show(t.signedIn, "success");
-      } else {
-        const created = await signUpGuardianWithEmail(email, password);
-        if (created.needsEmailConfirmation) {
-          show(t.confirmEmail, "success");
-          setMode("sign-in");
-        } else {
-          setSessionEmail(created.email);
-          show(t.signedIn, "success");
-        }
-      }
+      await resendGuardianVerificationEmail(email.trim());
+      setSuccess(t("Confirmation email sent again — please check your inbox.", "पुष्टिकरण इमेल फेरि पठाइयो — कृपया इनबक्स हेर्नुहोस्।"));
     } catch (error) {
-      show(error instanceof Error ? error.message : t.notConfigured, "error");
+      setAuthError(getAuthErrorMessage(error, language === "ne" ? "ne" : "en"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const sendReset = async () => {
+    setAuthError(null);
+    if (!validateEmail(resetEmail)) {
+      setAuthError(t("Please enter a valid email address.", "कृपया वैध इमेल ठेगाना लेख्नुहोस्।"));
+      return;
+    }
+    setBusy(true);
+    try {
+      await sendGuardianPasswordReset(resetEmail.trim());
+      setResetSent(true);
+    } catch (error) {
+      setAuthError(getAuthErrorMessage(error, language === "ne" ? "ne" : "en"));
     } finally {
       setBusy(false);
     }
@@ -108,181 +143,223 @@ export default function ParentAuth() {
 
   const handleSignOut = async () => {
     await signOutGuardian();
-    setSessionEmail(null);
-    setMessage("");
+    setSession(null);
+    setSuccess(t("Signed out.", "लग आउट भयो।"));
   };
 
   return (
     <ScreenContainer className="p-5">
-      <View style={styles.page}>
-        <Pressable onPress={() => router.back()} accessibilityRole="button">
-          <Text style={[styles.back, { color: colors.primary }]}>‹ {bilingualText(language, "Back", "पछाडि")}</Text>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <Pressable onPress={() => router.replace("/")} accessibilityRole="button">
+          <Text style={[styles.back, { color: colors.primary }]}>‹ {t("Back", "पछाडि")}</Text>
         </Pressable>
-        <Image source={require("../assets/images/icon.png")} style={styles.brandImage} />
-        <Text style={[styles.eyebrow, { color: colors.primary }]}>RAINBOW CHILD DEVELOPMENT CLINIC</Text>
-        <Text style={[styles.title, { color: colors.foreground }]}>{title}</Text>
-        <Text style={[styles.subtitle, { color: colors.muted }]}>
-          {bilingualText(language, "Use the email you gave the clinic. Your account keeps your child's records safe with clinic-approved access only.", "क्लिनिकलाई दिनुभएको इमेल प्रयोग गर्नुहोस्। तपाईंको खाताले बच्चाको अभिलेख सुरक्षित राख्छ।")}
-        </Text>
+
+        <View style={styles.hero}>
+          <Image source={require("../assets/images/icon.png")} style={styles.logo} />
+          <Text style={[styles.eyebrow, { color: colors.primary }]}>{t("RAINBOW CHILD DEVELOPMENT CLINIC", "रेन्बो चाइल्ड डेभलपमेन्ट क्लिनिक")}</Text>
+          <Text style={[styles.title, { color: colors.foreground }]}>
+            {showForgot ? t("Reset your password", "पासवर्ड रिसेट गर्नुहोस्") : isRegistering ? t("Create a parent account", "अभिभावक खाता बनाउनुहोस्") : t("Parent sign in", "अभिभावक लग इन")}
+          </Text>
+          <Text style={[styles.subtitle, { color: colors.muted }]}>
+            {showForgot
+              ? t("We will email you a link to choose a new password.", "नयाँ पासवर्ड छान्न लिंक इमेलमा पठाउँछौँ।")
+              : t("Use the email you gave the clinic. It keeps your child's record private to you.", "क्लिनिकलाई दिनुभएको इमेल प्रयोग गर्नुहोस्। यसले बच्चाको रेकर्ड सुरक्षित राख्छ।")}
+          </Text>
+        </View>
 
         <View style={[styles.doctorBanner, { backgroundColor: colors.tealSurface, borderColor: colors.primary }]}>
           <View style={[styles.doctorBadge, { backgroundColor: colors.primary }]}>
             <Text style={[styles.doctorBadgeText, { color: colors.textInverse }]}>Dr</Text>
           </View>
-          <View style={styles.flexCopy}>
+          <View style={{ flex: 1 }}>
             <Text style={[styles.doctorName, { color: colors.foreground }]}>Associate Professor Dr. Anil Ojha</Text>
             <Text style={[styles.doctorMeta, { color: colors.muted }]}>MBBS, MD, FCCH · Developmental Pediatrician</Text>
           </View>
         </View>
 
-        {!isSupabaseConfigured ? (
-          <View style={[styles.notice, { backgroundColor: colors.dangerSurface, borderColor: colors.warning }]}>
-            <Text style={[styles.noticeTitle, { color: colors.warning }]}>{t.notConfigured}</Text>
+        {session ? (
+          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.success }]}>
+            <Text style={[styles.cardTitle, { color: colors.success }]}>{t("You are signed in as a parent guardian", "तपाईं अभिभावकको रूपमा लग इन हुनुहुन्छ")}</Text>
+            <Text style={{ color: colors.muted }}>{session.email}</Text>
+            <Pressable onPress={() => router.replace("/(tabs)")} style={[styles.button, { backgroundColor: colors.action }]} accessibilityRole="button">
+              <Text style={[styles.buttonText, { color: colors.onAction }]}>{t("Open the app", "एप खोल्नुहोस्")}</Text>
+            </Pressable>
+            <Pressable onPress={handleSignOut} accessibilityRole="button">
+              <Text style={[styles.link, { color: colors.primary }]}>{t("Sign out", "लग आउट")}</Text>
+            </Pressable>
           </View>
-        ) : null}
-
-        {sessionEmail === null ? (
-          <>
-            <Text style={[styles.label, { color: colors.muted }]}>{t.emailLabel}</Text>
-            <TextInput
-              value={email}
-              onChangeText={setEmail}
-              placeholder="parent@example.com"
-              placeholderTextColor={colors.muted}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoComplete="email"
-              textContentType="emailAddress"
-              style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.surface }]}
-              accessibilityLabel="Parent email address"
-            />
-            {mode === "forgot" ? (
-              resetSent ? (
-                <>
-                  <Text style={{ color: colors.success, fontWeight: "800", fontSize: 13, lineHeight: 18 }}>{t.resetSentText}</Text>
-                  <Pressable onPress={() => { setMode("sign-in"); setResetSent(false); }} accessibilityRole="link">
-                    <Text style={{ color: colors.primary, fontWeight: "800", fontSize: 13 }}>{t.backToSignIn}</Text>
-                  </Pressable>
-                </>
-              ) : (
-                <Pressable onPress={sendReset} disabled={busy} style={[styles.button, { backgroundColor: colors.primary, opacity: busy ? 0.6 : 1 }]}>
-                  <Text style={[styles.buttonText, { color: colors.onAction }, { color: colors.textInverse }]}>{busy ? t.signingIn : t.resetSentTitle}</Text>
-                </Pressable>
-              )
+        ) : verificationSent ? (
+          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.cardTitle, { color: colors.foreground }]}>{t("Confirmation email sent", "पुष्टिकरण इमेल पठाइयो")}</Text>
+            <Text style={{ color: colors.muted, lineHeight: 20 }}>
+              {t(
+                `We sent a confirmation link to ${email.trim()}. Open it to activate the account, then sign in. Nothing was created yet.`,
+                `${email.trim()} मा पुष्टिकरण लिंक पठाइयो। खाता सक्रिय गर्न लिंक खोल्नुहोस्, त्यसपछि लग इन गर्नुहोस्। अझै खाता सक्रिय भएको छैन।`
+              )}
+            </Text>
+            <Pressable onPress={resendVerification} disabled={busy} style={[styles.button, { backgroundColor: colors.action, opacity: busy ? 0.6 : 1 }]} accessibilityRole="button">
+              <Text style={[styles.buttonText, { color: colors.onAction }]}>{busy ? t("Sending…", "पठाउँदै…") : t("Resend confirmation email", "पुष्टिकरण इमेल फेरि पठाउनुहोस्")}</Text>
+            </Pressable>
+            <Pressable onPress={() => { setVerificationSent(false); setIsRegistering(false); setAuthError(null); setSuccess(null); }} accessibilityRole="button">
+              <Text style={[styles.link, { color: colors.primary }]}>{t("Back to sign in", "लग इन मा फर्कनुहोस्")}</Text>
+            </Pressable>
+          </View>
+        ) : showForgot ? (
+          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            {resetSent ? (
+              <>
+                <Text style={[styles.cardTitle, { color: colors.success }]}>{t("Reset link sent", "रिसेट लिंक पठाइयो")}</Text>
+                <Text style={{ color: colors.muted, lineHeight: 20 }}>
+                  {t("Open the link in that email to choose a new password. The link opens this app.", "नयाँ पासवर्ड छान्न इमेलको लिंक खोल्नुहोस्। लिंकले यही एप खोल्छ।")}
+                </Text>
+              </>
             ) : (
               <>
-                <Text style={[styles.label, { color: colors.muted }]}>{t.passwordLabel}</Text>
+                <Text style={[styles.label, { color: colors.muted }]}>{t("Email address", "इमेल ठेगाना")}</Text>
                 <TextInput
-                  value={password}
-                  onChangeText={setPassword}
-                  placeholder="••••••••"
-                  placeholderTextColor={colors.muted}
-                  secureTextEntry
+                  value={resetEmail}
+                  onChangeText={setResetEmail}
                   autoCapitalize="none"
-                  autoComplete="current-password"
-                  style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.surface }]}
-                  accessibilityLabel="Parent password"
+                  keyboardType="email-address"
+                  placeholder="parent@example.com"
+                  placeholderTextColor={colors.muted}
+                  style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background }]}
+                  accessibilityLabel={t("Email address", "इमेल ठेगाना")}
                 />
-                {mode === "sign-up" ? (
-                  <>
-                    <Text style={[styles.label, { color: colors.muted }]}>{t.confirmPasswordLabel}</Text>
-                    <TextInput
-                      value={confirmPassword}
-                      onChangeText={setConfirmPassword}
-                      placeholder="••••••••"
-                      placeholderTextColor={colors.muted}
-                      secureTextEntry
-                      autoCapitalize="none"
-                      autoComplete="new-password"
-                      style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.surface }]}
-                      accessibilityLabel="Confirm parent password"
-                    />
-                  </>
-                ) : null}
-                {mode === "sign-in" ? (
-                  <Pressable onPress={() => { setMode("forgot"); setResetSent(false); setMessage(""); setMessageKind("info"); }} accessibilityRole="link">
-                    <Text style={[styles.link, { color: colors.primary }]}>{t.forgotPassword}</Text>
-                  </Pressable>
-                ) : null}
-                <Pressable onPress={submit} disabled={busy} style={[styles.button, { backgroundColor: colors.action }]}>
-                  <Text style={[styles.buttonText, { color: colors.textInverse }]}>
-                    {busy
-                      ? mode === "sign-in" ? t.signingIn : t.creating
-                      : mode === "sign-in"
-                        ? bilingualText(language, "Sign in", "लग इन")
-                        : bilingualText(language, "Create account", "खाता बनाउनुहोस्")}
-                  </Text>
-                </Pressable>
-                <Pressable onPress={() => { setMode(mode === "sign-in" ? "sign-up" : "sign-in"); setMessage(""); }}>
-                  <Text style={[styles.link, { color: colors.primary }]}>
-                    {mode === "sign-in" ? t.switchToSignUp : t.switchToSignIn}
-                  </Text>
+                <Pressable onPress={sendReset} disabled={busy} style={[styles.button, { backgroundColor: colors.action, opacity: busy ? 0.6 : 1 }]} accessibilityRole="button">
+                  <Text style={[styles.buttonText, { color: colors.onAction }]}>{busy ? t("Sending…", "पठाउँदै…") : t("Send reset link", "रिसेट लिंक पठाउनुहोस्")}</Text>
                 </Pressable>
               </>
             )}
-          </>
-        ) : (
-          <View style={[styles.preview, { backgroundColor: colors.surface, borderColor: colors.success }]}>
-            <Text style={[styles.previewTitle, { color: colors.success }]}>{t.signedIn}</Text>
-            <Text style={[styles.subtitle, { color: colors.muted }]}>
-              {bilingualText(language, "Email", "इमेल")}: {sessionEmail}
-            </Text>
-            <Pressable onPress={handleSignOut}>
-              <Text style={[styles.link, { color: colors.primary }]}>{t.signOut}</Text>
+            <Pressable onPress={() => { setShowForgot(false); setResetSent(false); setAuthError(null); setSuccess(null); }} accessibilityRole="button">
+              <Text style={[styles.link, { color: colors.primary }]}>{t("Back to sign in", "लग इन मा फर्कनुहोस्")}</Text>
             </Pressable>
           </View>
+        ) : (
+          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.label, { color: colors.muted }]}>{t("Email address", "इमेल ठेगाना")}</Text>
+            <TextInput
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              autoComplete="email"
+              placeholder="parent@example.com"
+              placeholderTextColor={colors.muted}
+              style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background }]}
+              accessibilityLabel="Parent email address"
+            />
+            <Text style={[styles.label, { color: colors.muted }]}>{t("Password", "पासवर्ड")}</Text>
+            <View style={styles.inputRow}>
+              <TextInput
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                style={[styles.input, styles.inputFlex, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background }]}
+                accessibilityLabel="Parent password"
+              />
+              <Pressable onPress={() => setShowPassword((v) => !v)} style={[styles.reveal, { borderColor: colors.border }]} accessibilityRole="button" accessibilityLabel={t("Show password", "पासवर्ड देखाउनुहोस्")}>
+                <Text style={{ color: colors.primary, fontWeight: "800", fontSize: 12 }}>{showPassword ? t("Hide", "लुकाउनुहोस्") : t("Show", "देखाउनुहोस्")}</Text>
+              </Pressable>
+            </View>
+
+            {isRegistering ? (
+              <>
+                <Text style={[styles.label, { color: colors.muted }]}>{t("Confirm password", "पासवर्ड पुनः लेख्नुहोस्")}</Text>
+                <View style={styles.inputRow}>
+                  <TextInput
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    secureTextEntry={!showConfirmPassword}
+                    autoCapitalize="none"
+                    style={[styles.input, styles.inputFlex, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background }]}
+                    accessibilityLabel="Confirm parent password"
+                  />
+                  <Pressable onPress={() => setShowConfirmPassword((v) => !v)} style={[styles.reveal, { borderColor: colors.border }]} accessibilityRole="button" accessibilityLabel={t("Show password", "पासवर्ड देखाउनुहोस्")}>
+                    <Text style={{ color: colors.primary, fontWeight: "800", fontSize: 12 }}>{showConfirmPassword ? t("Hide", "लुकाउनुहोस्") : t("Show", "देखाउनुहोस्")}</Text>
+                  </Pressable>
+                </View>
+                <Text style={[styles.hint, { color: colors.muted }]}>
+                  {t("At least 8 characters, with one letter and one number.", "कम्तिमा ८ अक्षर, एउटा अक्षर र एउटा अंक सहित।")}
+                </Text>
+              </>
+            ) : (
+              <Pressable onPress={() => { setShowForgot(true); setResetEmail(email); setAuthError(null); setSuccess(null); }} accessibilityRole="link">
+                <Text style={[styles.link, { color: colors.primary }]}>{t("Forgot password?", "पासवर्ड बिर्सनुभयो?")}</Text>
+              </Pressable>
+            )}
+
+            {authError ? (
+              <View style={[styles.banner, { backgroundColor: colors.dangerSurface, borderColor: colors.error }]}>
+                <Text style={[styles.bannerText, { color: colors.error }]}>{authError}</Text>
+              </View>
+            ) : null}
+            {success ? (
+              <View style={[styles.banner, { backgroundColor: colors.successSurface, borderColor: colors.success }]}>
+                <Text style={[styles.bannerText, { color: colors.success }]}>{success}</Text>
+              </View>
+            ) : null}
+
+            <Pressable onPress={submit} disabled={busy} style={[styles.button, { backgroundColor: colors.action, opacity: busy ? 0.6 : 1 }]} accessibilityRole="button" accessibilityLabel={isRegistering ? "Create account" : "Sign in"}>
+              {busy ? (
+                <ActivityIndicator color={colors.onAction} />
+              ) : (
+                <Text style={[styles.buttonText, { color: colors.onAction }]}>
+                  {isRegistering ? t("Create account", "खाता बनाउनुहोस्") : t("Sign in", "लग इन")}
+                </Text>
+              )}
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                setIsRegistering((v) => !v);
+                setAuthError(null);
+                setSuccess(null);
+                setVerificationSent(false);
+              }}
+              accessibilityRole="button"
+            >
+              <Text style={[styles.link, { color: colors.primary }]}>
+                {isRegistering ? t("Already have an account? Sign in", "पहिले नै खाता छ? लग इन गर्नुहोस्") : t("New here? Create an account", "नयाँ हो? खाता बनाउनुहोस्")}
+              </Text>
+            </Pressable>
+            <Text style={[styles.privacy, { color: colors.muted }]}>
+              {t(
+                "Records are visible only to guardian accounts the clinic has linked to a child.",
+                "रेकर्ड क्लिनिकले बच्चासँग जोडेको अभिभावक खाताले मात्र देख्न सक्छ।"
+              )}
+            </Text>
+          </View>
         )}
-      </View>
+      </ScrollView>
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  page: { maxWidth: 520, width: "100%", alignSelf: "center", paddingTop: 8 },
-  back: { fontSize: 15, fontWeight: "800", marginBottom: 28 },
-  brandImage: { width: 56, height: 56, borderRadius: 14, marginBottom: 16 },
-  brandText: { fontSize: 28, fontWeight: "900" },
-  eyebrow: { fontSize: 11, fontWeight: "900", letterSpacing: 1, marginBottom: 10 },
-  title: { fontSize: 32, fontWeight: "900", lineHeight: 40 },
-  subtitle: { fontSize: 16, lineHeight: 24, marginTop: 10 },
-  doctorBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    borderWidth: 1,
-    borderRadius: 18,
-    padding: 14,
-  },
-  doctorBadge: {
-    width: 38,
-    height: 38,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  doctorBadgeText: {
-    fontWeight: "900",
-    fontSize: 13,
-  },
-  flexCopy: {
-    flex: 1,
-  },
-  doctorName: {
-    fontSize: 14,
-    fontWeight: "900",
-  },
-  doctorMeta: {
-    fontSize: 12,
-    lineHeight: 17,
-  },
-  notice: { borderWidth: 1, borderRadius: 16, padding: 14, marginTop: 22 },
-  noticeTitle: { fontSize: 13, fontWeight: "900" },
-  label: { fontSize: 13, fontWeight: "800", marginTop: 26, marginBottom: 8 },
-  input: { borderWidth: 1, borderRadius: 14, minHeight: 50, paddingHorizontal: 14, fontSize: 17 },
-  button: { minHeight: 52, borderRadius: 30, alignItems: "center", justifyContent: "center", marginTop: 16 },
-  buttonText: { fontSize: 15, fontWeight: "900" },
-  link: { textAlign: "center", marginTop: 18, fontSize: 14, fontWeight: "900" },
-  preview: { borderWidth: 1, borderRadius: 16, padding: 16, marginTop: 26 },
-  previewTitle: { fontSize: 17, fontWeight: "900" },
-  message: { textAlign: "center", fontSize: 13, fontWeight: "800", lineHeight: 19, marginTop: 18 },
+  back: { fontSize: 15, fontWeight: "800", marginTop: 4 },
+  hero: { alignItems: "center", gap: 6, marginTop: 8 },
+  logo: { width: 84, height: 84, borderRadius: 20 },
+  eyebrow: { fontSize: 11, letterSpacing: 1.3, fontWeight: "800", marginTop: 10, textAlign: "center" },
+  title: { fontSize: 26, lineHeight: 32, fontWeight: "900", textAlign: "center" },
+  subtitle: { fontSize: 14, lineHeight: 20, textAlign: "center", paddingHorizontal: 8 },
+  doctorBanner: { flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 1, borderRadius: 18, padding: 14, marginTop: 16 },
+  doctorBadge: { width: 38, height: 38, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  doctorBadgeText: { fontWeight: "900", fontSize: 13 },
+  doctorName: { fontSize: 14, fontWeight: "900" },
+  doctorMeta: { fontSize: 12, lineHeight: 17 },
+  card: { borderWidth: 1, borderRadius: 20, padding: 16, gap: 8, marginTop: 16 },
+  cardTitle: { fontSize: 16, fontWeight: "900" },
+  label: { fontSize: 12, fontWeight: "800", marginTop: 6 },
+  inputRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  inputFlex: { flex: 1 },
+  input: { minHeight: 50, borderRadius: 14, borderWidth: 1, paddingHorizontal: 12, fontSize: 15 },
+  reveal: { minHeight: 50, paddingHorizontal: 12, borderWidth: 1, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  hint: { fontSize: 12, lineHeight: 17 },
+  link: { fontSize: 13, fontWeight: "800", marginTop: 6 },
+  button: { minHeight: 54, borderRadius: 30, alignItems: "center", justifyContent: "center", marginTop: 10 },
+  buttonText: { fontWeight: "900", fontSize: 16 },
+  banner: { borderWidth: 1, borderRadius: 14, padding: 12, marginTop: 4 },
+  bannerText: { fontSize: 13, lineHeight: 19, fontWeight: "700" },
+  privacy: { fontSize: 12, lineHeight: 17, marginTop: 10 },
 });

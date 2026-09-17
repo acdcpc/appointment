@@ -145,3 +145,17 @@ export async function updateGuardianPassword(password: string): Promise<void> {
   const { error } = await client.auth.updateUser({ password });
   if (error) throw new Error(friendlyAuthError(error));
 }
+
+/** Re-send the sign-up confirmation email (Kapoori-style "resend verification"). */
+export async function resendGuardianVerificationEmail(email: string): Promise<void> {
+  const client = getSupabase();
+  if (!client) throw new Error("Supabase is not configured on this build.");
+  const normalized = normalizeGuardianEmail(email);
+  const origin = appOrigin();
+  const { error } = await client.auth.resend({
+    type: "signup",
+    email: normalized,
+    ...(origin ? { options: { emailRedirectTo: `${origin}/parent-auth` } } : {}),
+  });
+  if (error) throw new Error(friendlyAuthError(error));
+}
