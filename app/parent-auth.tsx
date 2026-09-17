@@ -83,7 +83,7 @@ export default function ParentAuthScreen() {
           setSuccess(t("Account created — you are signed in.", "खाता बनियो — तपाईं लग इन हुनुभयो।"));
           const next = await getGuardianSession();
           setSession(next);
-          setTimeout(() => router.replace("/(tabs)"), 1200);
+          setTimeout(() => router.replace("/(tabs)"), 1800);
         }
       } else {
         const signedIn = await signInGuardianWithEmail(email.trim(), password);
@@ -180,6 +180,14 @@ export default function ParentAuthScreen() {
         {session ? (
           <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.success }]}>
             <Text style={[styles.cardTitle, { color: colors.success }]}>{t("You are signed in as a parent guardian", "तपाईं अभिभावकको रूपमा लग इन हुनुहुन्छ")}</Text>
+            {/* The success banner lived only inside the form, so it vanished the
+                moment this signed-in card took over — the parent saw no
+                confirmation that a new account had actually been created. */}
+            {success ? (
+              <View style={[styles.banner, { backgroundColor: colors.successSurface, borderColor: colors.success }]}>
+                <Text style={[styles.bannerText, { color: colors.success }]}>{success}</Text>
+              </View>
+            ) : null}
             <Text style={{ color: colors.muted }}>{session.email}</Text>
             <Pressable onPress={() => router.replace("/(tabs)")} style={[styles.button, { backgroundColor: colors.action }]} accessibilityRole="button">
               <Text style={[styles.buttonText, { color: colors.onAction }]}>{t("Open the app", "एप खोल्नुहोस्")}</Text>

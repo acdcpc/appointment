@@ -1,16 +1,22 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { type PediatricAppointment, usePediatricCare } from "@/lib/pediatric-care";
+import { upcomingClinicDays } from "@/lib/clinic-days";
 
-const dates = ["Tue, Aug 20", "Wed, Aug 21", "Thu, Aug 22"];
 export default function AppointmentsTab() {
-  const colors = useColors(); const { appointments, activeChild, getAvailableSlots, rescheduleAppointment, childrenSource, pendingReports } = usePediatricCare();
-  const [editing, setEditing] = useState<string | null>(null); const [selectedDate, setSelectedDate] = useState(dates[2]); const [message, setMessage] = useState("");
+  const colors = useColors(); const { appointments, activeChild, getAvailableSlots, rescheduleAppointment, childrenSource, pendingReports, clinicHours, clinicHolidays } = usePediatricCare();
+  // Reschedule dates come from the real clinic calendar, never a fixed list.
+  const dates = useMemo(() => upcomingClinicDays(3, {
+    closedWeekdays: clinicHours.filter((hour) => !hour.isOpen).map((hour) => hour.weekday),
+    closedDates: clinicHolidays.map((holiday) => holiday.date),
+  }), [clinicHours, clinicHolidays]);
+  const [editing, setEditing] = useState<string | null>(null); const [selectedDate, setSelectedDate] = useState(""); const [message, setMessage] = useState("");
+  useEffect(() => { if (!selectedDate && dates.length) setSelectedDate(dates[0]); }, [dates, selectedDate]);
   const reschedule = (appointment: PediatricAppointment, time: string) => { const result = rescheduleAppointment(appointment.id, selectedDate, time); if (!result.ok) { setMessage(result.message); return; } setMessage("Appointment rescheduled successfully."); setEditing(null); };
   return <ScreenContainer className="p-5"><ScrollView showsVerticalScrollIndicator={false}>
-    <Text style={[styles.eyebrow, { color: colors.primary }]}>DR. ANIL OJHA CHILD CARE</Text><Text style={[styles.title, { color: colors.foreground }]}>Appointments</Text><Text style={[styles.subtitle, { color: colors.muted }]}>{childrenSource === "server" ? `Schedule and manage ${activeChild.name.split(" ")[0]}’s visits with Dr. Ojha` : "Schedule and manage your child’s visits with Dr. Ojha"}jha.</Text>{message ? <Text style={[styles.message, { color: message.includes("successfully") ? colors.success : colors.error }]}>{message}</Text> : null}
+    <Text style={[styles.eyebrow, { color: colors.primary }]}>DR. ANIL OJHA CHILD CARE</Text><Text style={[styles.title, { color: colors.foreground }]}>Appointments</Text><Text style={[styles.subtitle, { color: colors.muted }]}>{childrenSource === "server" ? `Schedule and manage ${activeChild.name.split(" ")[0]}’s visits with Dr. Ojha` : "Schedule and manage your child’s visits with Dr. Ojha"}</Text>{message ? <Text style={[styles.message, { color: message.includes("successfully") ? colors.success : colors.error }]}>{message}</Text> : null}
     {appointments.map((appointment) => { const slots = getAvailableSlots(selectedDate, appointment.service, appointment.id);
       const isPast = appointment.status === "completed" || appointment.status === "cancelled";
       const hasSharedSummary = pendingReports.some((report) => report.childId === appointment.childId);

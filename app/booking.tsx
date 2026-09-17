@@ -1,19 +1,19 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import * as Sharing from "expo-sharing";
 import * as FileSystem from "expo-file-system/legacy";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { LanguageNavigationToggle } from "@/components/language-navigation-toggle";
 import { clearBookingDraft, loadBookingDraft, saveBookingDraft } from "@/lib/booking-draft";
+import { upcomingClinicDays } from "@/lib/clinic-days";
 import { useColors } from "@/hooks/use-colors";
 import { usePediatricCare } from "@/lib/pediatric-care";
 import { trpc } from "@/lib/trpc";
 import { useLanguagePreference } from "@/lib/language-preference";
 
-const dates = ["Tue, Aug 20", "Wed, Aug 21", "Thu, Aug 22"];
 const serviceSymbols = ["☼", "⌁", "✦", "♥"];
 const nepaliServiceLabels: Record<string, string> = {
   "Pediatric consultation": "बालरोग परामर्श",
@@ -38,11 +38,28 @@ function timePeriod(value: string) {
 export default function BookingScreen() {
   const colors = useColors();
   const router = useRouter();
-  const { activeChild, services, getAvailableSlots, bookAppointment } = usePediatricCare();
+  const { activeChild, services, getAvailableSlots, bookAppointment, clinicHours, clinicHolidays } = usePediatricCare();
+  const params = useLocalSearchParams<{ service?: string }>();
   const { language } = useLanguagePreference();
   const draft = useMemo(() => loadBookingDraft(), []);
-  const [service, setService] = useState(() => draft?.service && services.some((item) => item.name === draft.service) ? draft.service : services[0]?.name ?? "");
-  const [date, setDate] = useState(() => dates.includes(draft?.date ?? "") ? (draft?.date as string) : dates[0]);
+  // Real upcoming clinic days instead of a hardcoded list, so a parent is never
+  // offered a date that has already passed.
+  const dates = useMemo(
+    () => upcomingClinicDays(4, {
+      closedWeekdays: clinicHours.filter((hour) => !hour.isOpen).map((hour) => hour.weekday),
+      closedDates: clinicHolidays.map((holiday) => holiday.date),
+    }),
+    [clinicHours, clinicHolidays],
+  );
+  const [service, setService] = useState(() => {
+    const requested = typeof params.service === "string" ? params.service : "";
+    if (requested && services.some((item) => item.name === requested)) return requested;
+    return draft?.service && services.some((item) => item.name === draft.service) ? draft.service : services[0]?.name ?? "";
+  });
+  const [date, setDate] = useState(() => dates.includes(draft?.date ?? "") ? (draft?.date as string) : dates[0] ?? "");
+  useEffect(() => {
+    if (dates.length && !dates.includes(date)) setDate(dates[0]);
+  }, [dates, date]);
   const [time, setTime] = useState(() => draft?.time ?? "");
   const [reason, setReason] = useState(() => draft?.reason ?? "");
   const [showReason, setShowReason] = useState(() => Boolean(draft?.reason));

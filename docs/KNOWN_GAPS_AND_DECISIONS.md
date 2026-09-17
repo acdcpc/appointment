@@ -26,3 +26,16 @@ only in a chat thread. Updated 2026-09-15 (HEAD `aa87f2d` + this pass).
 · `git diff --check` clean · `expo export --platform web` succeeds · Supabase
 verification suite 14/14 (guardian-scoped child records, guardian linking RPCs,
 account-deletion retention).
+
+## Fixed 2026-09-17 — reported by the owner from a real Chrome session
+
+| Report | Root cause | Fix |
+|---|---|---|
+| "Book visit → nothing happens" | The Book visit tab (`app/(tabs)/find.tsx`) was a leftover mockup: its clinician card was a `Pressable` with **no `onPress`** and it never routed to the real booking wizard. | Tab rewritten: live service list, working search/topic filters, working empty state, and a CTA that opens `/booking` with the chosen visit type. |
+| Booking offered stale days | `dates` was hardcoded to `["Tue, Aug 20", "Wed, Aug 21", "Thu, Aug 22"]` — a month in the past — in both the booking screen and the Visits tab. | New `lib/clinic-days.ts` derives real upcoming days from today, honouring closed weekdays and holidays; covered by `tests/clinic-days.test.ts`. |
+| A booked visit disappeared | `bookAppointment` only wrote React state; nothing persisted. | Appointments now write through to storage, so a visit survives a reload and appears in the Visits tab. |
+| "Created a new account does not say anything" | The success banner lived only inside the form, and the signed-in card replaced the form the instant a session existed — so the confirmation was destroyed before it could be read. | The confirmation is rendered on the signed-in card too, and stays on screen ~1.8s before the app opens. |
+| "Forgot password link does not work" | Supabase `site_url` was `https://app.rainbowchildclinic.com` (does not resolve) with an **empty** redirect allow-list, so every emailed link died. | Site URL set to `https://rainbowclinic.pages.dev`, allow-list set, `mailer_autoconfirm` enabled. Verified with a real recovery link. |
+| Visits tab showed a stray `jha.` | A truncated string concatenation in the subtitle. | Removed. |
+
+Still true after these fixes: bookings are confirmed by the clinic by phone/WhatsApp, and the clinician dashboard still needs the tRPC server deployed before appointments reach the clinic electronically.
