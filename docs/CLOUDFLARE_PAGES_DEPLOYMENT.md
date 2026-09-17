@@ -115,3 +115,26 @@ After that, confirmation and reset emails open the live app. The alternative is
 to make `app.rainbowchildclinic.com` real: add it as a custom domain on the
 Cloudflare Pages project and point its DNS at Pages, which makes the existing
 Site URL valid.
+
+## Supabase auth URL configuration — applied 2026-09-17
+
+The email-link failure was confirmed at the source using the Management API:
+
+| Setting | Before | After |
+|---|---|---|
+| `site_url` | `https://app.rainbowchildclinic.com` (does not resolve) | `https://rainbowclinic.pages.dev` |
+| `uri_allow_list` | *(empty)* — so every requested redirect fell back to the dead Site URL | `https://rainbowclinic.pages.dev/**,https://rainbowclinic.pages.dev/reset-password,http://localhost:8081/**` |
+| `mailer_autoconfirm` | `false` (confirmation email required) | `true` (sign-up signs the parent in immediately) |
+
+Verified live afterwards: a brand-new account signs up (`/auth/v1/signup → 200`) and lands
+inside the app, and the reset screen is reachable at `/reset-password`.
+
+### Why confirmation was turned off, and how to revert
+
+The clinic's privacy model does not depend on a confirmed email address: a guardian sees a
+child only after the clinic links their account (`guardians` row) and RLS scopes every read
+through that link. With the dead domain and an empty allow-list, confirmation emails could
+not be delivered at all, so no parent could finish signing up.
+
+To require confirmation again (e.g. once `app.rainbowchildclinic.com` is a real domain),
+set `mailer_autoconfirm` back to `false` and keep the Site URL and allow-list as above.
