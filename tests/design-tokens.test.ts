@@ -32,10 +32,11 @@ describe("design tokens — canonical navy / teal / coral system", () => {
     }
   });
 
-  it("keeps navy as the primary trust surface and coral as the booking action", () => {
-    expect(themeColors.primary.light.toLowerCase()).toBe("#092c4c");
-    expect(themeColors.action.light.toLowerCase()).toBe("#f97360");
-    expect(themeColors.teal.light.toLowerCase()).toBe("#0e7490");
+  it("keeps the warm brand identity: terracotta brand, clay booking action, parchment canvas", () => {
+    expect(themeColors.action.light.toLowerCase()).toBe("#e8602c");
+    expect(themeColors.primary.light.toLowerCase()).toBe("#9a4a2a");
+    expect(themeColors.background.light.toLowerCase()).toBe("#fbf7f0");
+    expect(themeColors.surface.light.toLowerCase()).toBe("#fffdf9");
   });
 });
 

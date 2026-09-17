@@ -82,7 +82,7 @@ export default function TabLayout() {
   return (
     <>
     {desktopNav ? <DesktopTopNav colors={colors} language={language} setLanguage={setLanguage} /> : null}
-    <Tabs screenOptions={{ headerShown: false, tabBarActiveTintColor: colors.primary, tabBarInactiveTintColor: colors.muted, tabBarButton: HapticTab, tabBarStyle: desktopNav ? { display: "none" } : { paddingTop: 8, paddingBottom: bottomPadding, height: tabBarHeight, backgroundColor: colors.background, borderTopColor: colors.border, borderTopWidth: 0.5 } }}>
+    <Tabs screenOptions={{ headerShown: false, tabBarActiveTintColor: colors.primary, tabBarInactiveTintColor: colors.muted, tabBarButton: HapticTab, tabBarStyle: desktopNav ? { display: "none" } : { paddingTop: 9, paddingBottom: bottomPadding, height: tabBarHeight + 4, backgroundColor: colors.surface, borderTopColor: colors.border, borderTopWidth: 1 } }}>
       <Tabs.Screen name="index" options={{ title: language === "ne" ? "गृहपृष्ठ" : "Home", tabBarIcon: ({ color }) => <IconSymbol size={24} name="house.fill" color={color} /> }} />
       <Tabs.Screen name="find" options={{ title: language === "ne" ? "समय लिनुहोस्" : "Book visit", tabBarIcon: ({ color }) => <IconSymbol size={24} name="magnifyingglass" color={color} /> }} />
       <Tabs.Screen name="appointments" options={{ title: language === "ne" ? "भेटहरू" : "Visits", tabBarIcon: ({ color }) => <IconSymbol size={24} name="calendar" color={color} /> }} />

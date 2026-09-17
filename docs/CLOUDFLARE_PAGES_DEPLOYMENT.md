@@ -82,3 +82,36 @@ Verification after the fixes (headless browser, live URL):
 pnpm deploy:web          # expo export + expand static routes
 npx wrangler pages deploy dist --project-name=rainbowclinic --branch=main
 ```
+
+## Password-reset and sign-up email links (2026-09-17)
+
+Symptom reported: a password-reset email arrived, but the link opened
+"app.rainbowchildclinic.com — DNS_PROBE_FINISHED_NXDOMAIN", and new parents could
+not sign in because their confirmation link was also unreachable.
+
+Root cause: **Supabase Auth's Site URL is set to `app.rainbowchildclinic.com`**,
+a domain that does not resolve. Supabase sends confirmation and recovery links to
+that host whenever the requested redirect target is not in its allow-list — so
+every such email pointed at a dead domain, and unconfirmed accounts can never
+sign in.
+
+Fixed in the app (committed):
+
+- `lib/supabase-auth.ts` now sends an explicit `emailRedirectTo` on sign-up and an
+  explicit `redirectTo` on password reset, both computed from the running app
+  origin, and maps Supabase errors to parent-readable copy (unconfirmed email,
+  wrong credentials, rate limit, weak password).
+- New `app/reset-password.tsx`: recovery links now land on a screen that lets the
+  parent set a new password (and offers a fresh link when one has expired).
+
+**Still required in the Supabase dashboard** (Auth → URL Configuration) — the
+allow-list cannot be changed from the app:
+
+1. **Site URL** → `https://rainbowclinic.pages.dev`
+2. **Redirect URLs** → add `https://rainbowclinic.pages.dev/**` and `https://rainbowclinic.pages.dev/reset-password`
+   (add `http://localhost:8081/**` if you also test locally)
+
+After that, confirmation and reset emails open the live app. The alternative is
+to make `app.rainbowchildclinic.com` real: add it as a custom domain on the
+Cloudflare Pages project and point its DNS at Pages, which makes the existing
+Site URL valid.

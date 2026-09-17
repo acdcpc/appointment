@@ -1,44 +1,42 @@
 /** @type {const} */
-// Rainbow Child Development Clinic — canonical palette.
-// Deep navy = primary trust surface/hero (F1 decision: navy is canonical).
-// Teal = healthcare action, links, selected states, availability.
-// Coral = the main booking action and success/milestone accents.
-// Ink navy/slate = text hierarchy. Green/amber/red = factual status only.
+// Warm "clay & parchment" language — inspired by the Kapoori Ka reference the
+// owner prefers. Light mode is warm parchment with terracotta actions and deep
+// ink text; dark mode is warm charcoal with the same terracotta identity.
 const themeColors = {
   // Brand + structure
-  primary: { light: '#092C4C', dark: '#5BB8D0' },
-  background: { light: '#F7FAFC', dark: '#102A43' },
-  surface: { light: '#FFFFFF', dark: '#173B56' },
-  foreground: { light: '#102A43', dark: '#F7FAFC' },
-  muted: { light: '#526A80', dark: '#B8C7D8' },
-  border: { light: '#D9E2EC', dark: '#345A73' },
-  // Status — factual only, never decoration
-  success: { light: '#25714C', dark: '#68D391' },
-  warning: { light: '#C27C0E', dark: '#F6C453' },
-  error: { light: '#C53030', dark: '#FC8181' },
-  // Action (coral) — the main booking action
-  action: { light: '#F97360', dark: '#F98B78' },
-  actionHover: { light: '#E85F4C', dark: '#FAA08F' },
-  actionPressed: { light: '#D14F3C', dark: '#F8B3A6' },
-  actionSurface: { light: '#FFF4F1', dark: '#3A2430' },
-  // Brand interactive states (navy)
-  brandHover: { light: '#0B3A63', dark: '#74C6DB' },
-  brandPressed: { light: '#082239', dark: '#8ED4E5' },
-  // Healthcare teal — links, selected/availability states, clinical accents
-  teal: { light: '#0E7490', dark: '#38B7C0' },
-  tealSurface: { light: '#E0F2F3', dark: '#143D44' },
+  primary: { light: '#9A4A2A', dark: '#F0874A' },
+  background: { light: '#FBF7F0', dark: '#171310' },
+  surface: { light: '#FFFDF9', dark: '#241C18' },
+  foreground: { light: '#2A211B', dark: '#F2E9E1' },
+  muted: { light: '#6F6259', dark: '#B9A79A' },
+  border: { light: '#EFE3D6', dark: '#3E322A' },
+  // Status — factual only
+  success: { light: '#2A6B47', dark: '#7AC79B' },
+  warning: { light: '#8A5A00', dark: '#F2C879' },
+  error: { light: '#B3261E', dark: '#F08D80' },
+  // Action — the booking call to action (terracotta with ink text)
+  action: { light: '#E8602C', dark: '#E8602C' },
+  actionHover: { light: '#D14E1C', dark: '#F08050' },
+  actionPressed: { light: '#B84315', dark: '#F5A284' },
+  actionSurface: { light: '#FBE3D5', dark: '#3A241C' },
+  // Brand interactive states
+  brandHover: { light: '#833D22', dark: '#F5A284' },
+  brandPressed: { light: '#6E3219', dark: '#F7BCA6' },
+  // Supporting accent — sage/pine for selected, availability and clinical cues
+  teal: { light: '#2F6B5C', dark: '#78C4AE' },
+  tealSurface: { light: '#E8F1EA', dark: '#1E2A21' },
   // Status surfaces
-  successSurface: { light: '#EAF7F0', dark: '#1C3A2E' },
-  warningSurface: { light: '#FFF8EB', dark: '#3C331C' },
-  dangerSurface: { light: '#FDE7E2', dark: '#46232A' },
-  // Text on fills: white on navy brand surfaces, ink on coral actions
-  textInverse: { light: '#FFFFFF', dark: '#102A43' },
-  textInverseMuted: { light: '#CFE3ED', dark: '#1E4E63' },
-  onAction: { light: '#102A43', dark: '#102A43' },
+  successSurface: { light: '#E4F3E8', dark: '#1B2C22' },
+  warningSurface: { light: '#FBF0D6', dark: '#332814' },
+  dangerSurface: { light: '#FBE5E3', dark: '#3A211D' },
+  // Text on fills: white on the deep terracotta brand, ink on the clay action
+  textInverse: { light: '#FFFFFF', dark: '#2A211B' },
+  textInverseMuted: { light: '#F4DED2', dark: '#3A2A20' },
+  onAction: { light: '#2A211B', dark: '#2A211B' },
   // Accessibility + disabled
-  focusRing: { light: '#0E7490', dark: '#38B7C0' },
-  disabledSurface: { light: '#EEF2F7', dark: '#24425C' },
-  disabledText: { light: '#9FB3C8', dark: '#64809A' },
+  focusRing: { light: '#2F6B5C', dark: '#78C4AE' },
+  disabledSurface: { light: '#F1E8DD', dark: '#2A211B' },
+  disabledText: { light: '#A2968C', dark: '#6E6058' },
 };
 
 module.exports = { themeColors };

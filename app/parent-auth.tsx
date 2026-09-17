@@ -5,7 +5,8 @@ import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { useLanguagePreference, bilingualText } from "@/lib/language-preference";
-import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
+import { isSupabaseConfigured } from "@/lib/supabase";
+import { friendlyAuthError, sendGuardianPasswordReset } from "@/lib/supabase-auth";
 import {
   getGuardianSession,
   signInGuardianWithEmail,
@@ -64,10 +65,7 @@ export default function ParentAuth() {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())) { show(t.invalidEmail, "error"); return; }
     setBusy(true); setMessage(""); setMessageKind("info");
     try {
-      const client = getSupabase();
-      if (!client) throw new Error(t.notConfigured);
-      const { error: resetError } = await client.auth.resetPasswordForEmail(email.trim());
-      if (resetError) throw resetError;
+      await sendGuardianPasswordReset(email.trim());
       setResetSent(true);
       setMessageKind("success"); setMessage(t.resetSentText);
     } catch (error) {
