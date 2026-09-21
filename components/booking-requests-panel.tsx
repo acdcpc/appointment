@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { useColors } from "@/hooks/use-colors";
 import { usePediatricCare } from "@/lib/pediatric-care";
+import * as Clipboard from "expo-clipboard";
 import { upcomingClinicDays } from "@/lib/clinic-days";
 import {
   buildRescheduleNotice,
@@ -24,7 +25,7 @@ import {
  */
 export function BookingRequestsPanel() {
   const colors = useColors();
-  const { clinicHours, clinicHolidays, getAvailableSlots, services } = usePediatricCare();
+  const { clinicHours, clinicHolidays, getAvailableSlots, services, children } = usePediatricCare();
   const [requests, setRequests] = useState<BookingRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
@@ -33,6 +34,11 @@ export function BookingRequestsPanel() {
   const [newTime, setNewTime] = useState("");
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
+  // Patient identification opens when a booking is tapped: who is coming, and
+  // how to reach that family with a message about their visit.
+  const [openId, setOpenId] = useState<number | null>(null);
+  const [outgoing, setOutgoing] = useState("");
+  const [copyNotice, setCopyNotice] = useState("");
 
   const load = async () => {
     setLoading(true);
@@ -46,6 +52,43 @@ export function BookingRequestsPanel() {
     closedWeekdays: clinicHours.filter((hour) => !hour.isOpen).map((hour) => hour.weekday),
     closedDates: clinicHolidays.map((holiday) => holiday.date),
   }), [clinicHours, clinicHolidays]);
+
+  /** The linked patient record, when this child is already known to the clinic. */
+  const linkedPatient = (request: BookingRequest) => children.find((child) => child.name.trim().toLowerCase() === request.childName.trim().toLowerCase());
+
+  const openPatient = (request: BookingRequest) => {
+    setOpenId(openId === request.id ? null : request.id);
+    setCopyNotice("");
+    setOutgoing(`Namaste, this is Rainbow Child Development Clinic. Regarding ${request.childName}'s visit on ${request.preferredDate} at ${request.preferredTime} (${request.service}) — `);
+  };
+
+  const waLink = (request: BookingRequest, text: string) => {
+    const digits = request.guardianPhone.replace(/\D/g, "");
+    return `https://wa.me/${digits.startsWith("977") ? digits : `977${digits}`}?text=${encodeURIComponent(text)}`;
+  };
+
+  const sendWhatsApp = async (request: BookingRequest) => {
+    try {
+      await Linking.openURL(waLink(request, outgoing));
+      const result = await markBookingRequestNotified(request.id);
+      setCopyNotice(result.ok ? "WhatsApp opened with your message. Recorded that the parent was contacted." : result.message);
+      await load();
+    } catch {
+      setCopyNotice("WhatsApp could not be opened. Use Call or copy the message instead.");
+    }
+  };
+
+  const sendEmail = async (request: BookingRequest) => {
+    if (!request.guardianEmail) { setCopyNotice("No email address was given for this family."); return; }
+    const url = `mailto:${request.guardianEmail}?subject=${encodeURIComponent("Your child's visit at Rainbow Child Development Clinic")}&body=${encodeURIComponent(outgoing)}`;
+    try { await Linking.openURL(url); setCopyNotice("Email app opened with your message."); }
+    catch { setCopyNotice("No email app is available. Copy the message instead."); }
+  };
+
+  const copyMessage = async () => {
+    try { await Clipboard.setStringAsync(outgoing); setCopyNotice("Message copied."); }
+    catch { setCopyNotice("Copy was unavailable."); }
+  };
 
   const serviceFor = (request: BookingRequest) => services.find((item) => item.name === request.service)?.name ?? services[0]?.name ?? "";
   const slotsFor = (request: BookingRequest, date: string) => date ? getAvailableSlots(date, serviceFor(request)) : [];
@@ -120,7 +163,7 @@ export function BookingRequestsPanel() {
         <View style={styles.loading}><ActivityIndicator color={colors.primary} /><Text style={{ color: colors.muted, marginLeft: 8 }}>Loading bookings…</Text></View>
       ) : requests.length ? requests.map((request) => (
         <View key={request.id} style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <View style={styles.cardHead}>
+          <Pressable onPress={() => openPatient(request)} accessibilityRole="button" accessibilityLabel={`Open patient identification for ${request.childName}`} style={styles.cardHead}>
             <View style={{ flex: 1, gap: 3 }}>
               <Text style={{ color: colors.foreground, fontWeight: "900", fontSize: 15 }}>
                 {request.childName} · {request.childAge} · {request.childSex === "male" ? "Boy" : "Girl"}
@@ -140,8 +183,65 @@ export function BookingRequestsPanel() {
                 {request.notifiedAt ? " · parent informed" : ""}
               </Text>
             </View>
-            <Text style={{ color: request.status === "new" ? colors.warning : request.status === "closed" ? colors.muted : colors.success, fontWeight: "900", fontSize: 11, textTransform: "uppercase" }}>{request.status}</Text>
-          </View>
+            <View style={{ alignItems: "flex-end", gap: 4 }}>
+              <Text style={{ color: request.status === "new" ? colors.warning : request.status === "closed" ? colors.muted : colors.success, fontWeight: "900", fontSize: 11, textTransform: "uppercase" }}>{request.status}</Text>
+              <Text style={{ color: colors.primary, fontWeight: "900", fontSize: 12 }}>{openId === request.id ? "Hide patient ▲" : "Patient ▲"}</Text>
+            </View>
+          </Pressable>
+
+          {openId === request.id ? (
+            <View style={[styles.patient, { borderTopColor: colors.border }]}>
+              <Text style={[styles.fieldLabel, { color: colors.primary }]}>PATIENT IDENTIFICATION</Text>
+              <Text style={{ color: colors.foreground, fontSize: 15, fontWeight: "900" }}>{request.childName}</Text>
+              <Text style={{ color: colors.muted, fontSize: 13 }}>
+                {request.childAge} · {request.childSex === "male" ? "Boy" : "Girl"}
+                {request.weightKg !== undefined ? ` · ${request.weightKg} kg` : ""}
+                {request.heightCm !== undefined ? ` · ${request.heightCm} cm` : ""}
+              </Text>
+              {linkedPatient(request) ? (
+                <Text style={{ color: colors.success, fontSize: 12, fontWeight: "800" }}>
+                  Linked patient record: date of birth {linkedPatient(request)!.dateOfBirth}{linkedPatient(request)!.allergies ? ` · ${linkedPatient(request)!.allergies}` : ""}
+                </Text>
+              ) : (
+                <Text style={{ color: colors.muted, fontSize: 12 }}>
+                  No patient record is linked to this name yet — the clinic creates it when the visit is confirmed.
+                </Text>
+              )}
+              <Text style={{ color: colors.foreground, fontSize: 13, marginTop: 4 }}>
+                Contact: {request.guardianPhone}{request.guardianEmail ? ` · ${request.guardianEmail}` : " · no email given"}
+              </Text>
+              <View style={styles.actions}>
+                <Pressable onPress={() => Linking.openURL(`tel:${request.guardianPhone}`).catch(() => undefined)} accessibilityRole="button" style={[styles.action, { borderColor: colors.primary }]}>
+                  <Text style={{ color: colors.primary, fontWeight: "800", fontSize: 12 }}>Call {request.guardianPhone}</Text>
+                </Pressable>
+                <Pressable onPress={() => sendWhatsApp(request)} accessibilityRole="button" style={[styles.action, { borderColor: colors.success }]}>
+                  <Text style={{ color: colors.success, fontWeight: "800", fontSize: 12 }}>WhatsApp this parent</Text>
+                </Pressable>
+                <Pressable onPress={() => sendEmail(request)} accessibilityRole="button" style={[styles.action, { borderColor: request.guardianEmail ? colors.primary : colors.border, opacity: request.guardianEmail ? 1 : 0.6 }]}>
+                  <Text style={{ color: request.guardianEmail ? colors.primary : colors.muted, fontWeight: "800", fontSize: 12 }}>Email this parent</Text>
+                </Pressable>
+              </View>
+              <Text style={[styles.fieldLabel, { color: colors.muted, marginTop: 6 }]}>Message to this family</Text>
+              <TextInput
+                value={outgoing}
+                onChangeText={setOutgoing}
+                multiline
+                placeholder="Type the message you want to send about this visit"
+                placeholderTextColor={colors.muted}
+                style={[styles.messageInput, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background }]}
+                accessibilityLabel="Message to this family"
+              />
+              <View style={styles.actions}>
+                <Pressable onPress={() => sendWhatsApp(request)} accessibilityRole="button" style={[styles.action, { backgroundColor: colors.action, borderColor: colors.action }]}>
+                  <Text style={{ color: colors.onAction, fontWeight: "900", fontSize: 12 }}>Send on WhatsApp</Text>
+                </Pressable>
+                <Pressable onPress={copyMessage} accessibilityRole="button" style={[styles.action, { borderColor: colors.border }]}>
+                  <Text style={{ color: colors.muted, fontWeight: "800", fontSize: 12 }}>Copy message</Text>
+                </Pressable>
+              </View>
+              {copyNotice ? <Text style={{ color: colors.muted, fontSize: 12, fontWeight: "800" }}>{copyNotice}</Text> : null}
+            </View>
+          ) : null}
 
           {editingId === request.id ? (
             <View style={[styles.editor, { borderTopColor: colors.border }]}>
@@ -209,6 +309,8 @@ const styles = StyleSheet.create({
   card: { borderWidth: 1, borderRadius: 16, padding: 14, gap: 8 },
   cardHead: { flexDirection: "row", gap: 12, alignItems: "flex-start", flexWrap: "wrap" },
   editor: { borderTopWidth: 1, paddingTop: 12, gap: 8 },
+  patient: { borderTopWidth: 1, paddingTop: 12, gap: 6 },
+  messageInput: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, minHeight: 84, fontSize: 14 },
   fieldLabel: { fontSize: 11, fontWeight: "900", letterSpacing: 0.6 },
   chipRow: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
   chip: { borderWidth: 1, borderRadius: 11, paddingHorizontal: 12, minHeight: 40, justifyContent: "center" },
