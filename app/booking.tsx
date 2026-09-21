@@ -5,8 +5,9 @@ import * as Sharing from "expo-sharing";
 import * as FileSystem from "expo-file-system/legacy";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
-import { emptyBookingDetails, saveBookingRequest, validateBookingDetails, type BookingDetails } from "@/lib/booking-requests";
+import { composeAge, emptyBookingDetails, saveBookingRequest, validateBookingDetails, type BookingDetails } from "@/lib/booking-requests";
 import { getSupabaseSession } from "@/lib/supabase";
+import { ageInMonths, todayClinicDate } from "@/lib/growth-measurements";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { LanguageNavigationToggle } from "@/components/language-navigation-toggle";
@@ -68,6 +69,15 @@ export default function BookingScreen() {
   const [copyToast, setCopyToast] = useState("");
   const [details, setDetails] = useState<BookingDetails>(emptyBookingDetails);
   const [savedNotice, setSavedNotice] = useState("");
+  const [dobDraft, setDobDraft] = useState("");
+
+  /** Typing a date of birth fills years and months, so nobody has to count. */
+  const applyDateOfBirth = (value: string) => {
+    setDobDraft(value);
+    const months = ageInMonths(value, todayClinicDate());
+    if (months === null || months < 0) return;
+    setDetails((current) => ({ ...current, childAgeYears: String(Math.floor(months / 12)), childAgeMonths: String(months % 12) }));
+  };
 
   // Prefill the guardian's own email when they are signed in.
   useEffect(() => {
@@ -100,7 +110,7 @@ export default function BookingScreen() {
   const confirmBooking = async () => {
     const validation = validateBookingDetails(details);
     if (!validation.ok) { setMessage(validation.message); return; }
-    const result = bookAppointment({ childId: activeChild.id, service, date, time, reason: `${details.childName.trim()} · ${details.childAge.trim()}` });
+    const result = bookAppointment({ childId: activeChild.id, service, date, time, reason: `${details.childName.trim()} · ${composeAge(Number(details.childAgeYears || 0), Number(details.childAgeMonths || 0))}` });
     if (!result.ok) { setMessage(result.message); return; }
     // Send the child's details to the clinic, then keep the visit locally.
     const saved = await saveBookingRequest({ details, service, date, time });
@@ -152,7 +162,7 @@ export default function BookingScreen() {
             <Text style={[styles.summaryLabel, { color: colors.muted }]}>WITH DR. ANIL OJHA</Text>
             <Text style={[styles.summaryTitle, { color: colors.foreground }]}>{selectedServiceLabel}</Text>
             <Text style={[styles.summaryText, { color: colors.muted }]}>{date} · {time}</Text>
-            <Text style={[styles.summaryText, { color: colors.muted }]}>{details.childName.trim() || activeChild.name}{details.childAge ? ` · ${details.childAge}` : ""}</Text>
+            <Text style={[styles.summaryText, { color: colors.muted }]}>{details.childName.trim() || activeChild.name}{composeAge(Number(details.childAgeYears || 0), Number(details.childAgeMonths || 0)) ? ` · ${composeAge(Number(details.childAgeYears || 0), Number(details.childAgeMonths || 0))}` : ""}</Text>
           </View>
           <Pressable onPress={shareSummary} style={[styles.primaryButton, { backgroundColor: colors.primary, marginBottom: 12 }]} accessibilityRole="button">
             <Text style={[styles.primaryButtonText, { color: colors.textInverse }]}>Share to WhatsApp / सेयर गर्नुहोस्</Text>
@@ -284,10 +294,24 @@ export default function BookingScreen() {
               <Text style={[styles.formLabel, { color: colors.muted }]}>Child’s name</Text>
               <TextInput value={details.childName} onChangeText={setField("childName")} placeholder="Child's full name" placeholderTextColor={colors.muted} style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background }]} accessibilityLabel="Child name" />
             </View>
+            <View style={styles.formField}>
+              <Text style={[styles.formLabel, { color: colors.muted }]}>Date of birth (optional)</Text>
+              <TextInput value={dobDraft} onChangeText={applyDateOfBirth} placeholder="14 May 2022" placeholderTextColor={colors.muted} style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background }]} accessibilityLabel="Child date of birth optional" />
+              <Text style={[styles.reviewNote, { color: colors.muted }]}>Enter a date of birth and the age below fills in for you.</Text>
+            </View>
             <View style={styles.formRow}>
               <View style={styles.formField}>
                 <Text style={[styles.formLabel, { color: colors.muted }]}>Age</Text>
-                <TextInput value={details.childAge} onChangeText={setField("childAge")} placeholder="4 years 2 months" placeholderTextColor={colors.muted} style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background }]} accessibilityLabel="Child age" />
+                <View style={styles.ageRow}>
+                  <View style={styles.ageField}>
+                    <TextInput value={details.childAgeYears} onChangeText={setField("childAgeYears")} keyboardType="number-pad" placeholder="4" placeholderTextColor={colors.muted} style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background }]} accessibilityLabel="Child age in years" />
+                    <Text style={[styles.ageUnit, { color: colors.muted }]}>years</Text>
+                  </View>
+                  <View style={styles.ageField}>
+                    <TextInput value={details.childAgeMonths} onChangeText={setField("childAgeMonths")} keyboardType="number-pad" placeholder="2" placeholderTextColor={colors.muted} style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background }]} accessibilityLabel="Child age in months" />
+                    <Text style={[styles.ageUnit, { color: colors.muted }]}>months</Text>
+                  </View>
+                </View>
               </View>
               <View style={styles.formField}>
                 <Text style={[styles.formLabel, { color: colors.muted }]}>Sex</Text>
@@ -378,6 +402,9 @@ const styles = StyleSheet.create({
   formLabel: { fontSize: 11, fontWeight: "900", letterSpacing: 0.6 },
   input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 11, fontSize: 15, minHeight: 44 },
   sexRow: { flexDirection: "row", gap: 8 },
+  ageRow: { flexDirection: "row", gap: 8 },
+  ageField: { flex: 1, gap: 2 },
+  ageUnit: { fontSize: 10, fontWeight: "800", letterSpacing: 0.4 },
   sexChip: { flex: 1, borderWidth: 1, borderRadius: 12, paddingVertical: 12, minHeight: 44, alignItems: "center", justifyContent: "center" },
   message: { fontSize: 13, lineHeight: 19, fontWeight: "800", marginTop: 8 },
   primaryButton: { borderRadius: 16, paddingVertical: 15, alignItems: "center", marginTop: 14 },

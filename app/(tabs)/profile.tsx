@@ -7,7 +7,7 @@ import { useColors } from "@/hooks/use-colors";
 import { usePediatricCare } from "@/lib/pediatric-care";
 import { bilingualText, useLanguagePreference } from "@/lib/language-preference";
 import { getGuardianSession, signOutGuardian, type GuardianSession } from "@/lib/supabase-auth";
-import { loadMyBookingRequests, updateMyBookingRequest, type BookingDetails, type BookingRequest } from "@/lib/booking-requests";
+import { loadMyBookingRequests, parseAgeParts, updateMyBookingRequest, type BookingDetails, type BookingRequest } from "@/lib/booking-requests";
 import { getSupabase, signOutSupabase } from "@/lib/supabase";
 import { useThemeContext } from "@/lib/theme-provider";
 import { useTextSize, type TextSizeLevel } from "@/lib/text-size";
@@ -44,9 +44,11 @@ export default function ProfileTab() {
   }, []);
   const editBooking = () => {
     if (!bookingRequest) return;
+    const age = parseAgeParts(bookingRequest.childAge);
     setBookingDraft({
       childName: bookingRequest.childName,
-      childAge: bookingRequest.childAge,
+      childAgeYears: age.years,
+      childAgeMonths: age.months,
       childSex: bookingRequest.childSex,
       weightKg: bookingRequest.weightKg ?? "",
       heightCm: bookingRequest.heightCm ?? "",
@@ -234,7 +236,10 @@ export default function ProfileTab() {
               {bookingDraft ? (
                 <>
                   <TextInput value={bookingDraft.childName} onChangeText={(value) => setBookingDraft({ ...bookingDraft, childName: value })} style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background }]} accessibilityLabel={t("Child name", "बच्चाको नाम")} />
-                  <TextInput value={bookingDraft.childAge} onChangeText={(value) => setBookingDraft({ ...bookingDraft, childAge: value })} style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background }]} accessibilityLabel={t("Child age", "बच्चाको उमेर")} />
+                  <View style={{ flexDirection: "row", gap: 8 }}>
+                    <TextInput value={bookingDraft.childAgeYears} onChangeText={(value) => setBookingDraft({ ...bookingDraft, childAgeYears: value })} keyboardType="number-pad" placeholder="Years" placeholderTextColor={colors.muted} style={[styles.input, { flex: 1, color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background }]} accessibilityLabel={t("Child age in years", "बच्चाको उमेर वर्ष")} />
+                    <TextInput value={bookingDraft.childAgeMonths} onChangeText={(value) => setBookingDraft({ ...bookingDraft, childAgeMonths: value })} keyboardType="number-pad" placeholder="Months" placeholderTextColor={colors.muted} style={[styles.input, { flex: 1, color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background }]} accessibilityLabel={t("Child age in months", "बच्चाको उमेर महिना")} />
+                  </View>
                   <TextInput value={String(bookingDraft.weightKg ?? "")} onChangeText={(value) => setBookingDraft({ ...bookingDraft, weightKg: value })} keyboardType="decimal-pad" style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background }]} accessibilityLabel={t("Weight in kilograms", "तौल किलोग्राम")} />
                   <TextInput value={String(bookingDraft.heightCm ?? "")} onChangeText={(value) => setBookingDraft({ ...bookingDraft, heightCm: value })} keyboardType="decimal-pad" style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background }]} accessibilityLabel={t("Height in centimetres", "उचाइ सेन्टिमिटर")} />
                   <TextInput value={bookingDraft.guardianPhone} onChangeText={(value) => setBookingDraft({ ...bookingDraft, guardianPhone: value })} keyboardType="phone-pad" style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background }]} accessibilityLabel={t("Parent contact number", "अभिभावकको सम्पर्क नम्बर")} />
