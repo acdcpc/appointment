@@ -39,6 +39,7 @@ export function BookingRequestsPanel() {
   const [openId, setOpenId] = useState<number | null>(null);
   const [outgoing, setOutgoing] = useState("");
   const [copyNotice, setCopyNotice] = useState("");
+  const [counter, setCounter] = useState<"upcoming" | "rescheduled" | "new" | "closed" | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -131,11 +132,31 @@ export function BookingRequestsPanel() {
     }
   };
 
-  const metrics = [
-    { label: "Booked visits", value: stats.upcoming },
-    { label: "Rescheduled", value: stats.rescheduled },
-    { label: "New requests", value: stats.newRequests },
-    { label: "Closed", value: stats.closed },
+  const matchesCounter = (request: BookingRequest) => {
+    if (counter === "upcoming") return request.status !== "closed";
+    if (counter === "rescheduled") return request.rescheduleCount > 0;
+    if (counter === "new") return request.status === "new";
+    if (counter === "closed") return request.status === "closed";
+    return true;
+  };
+  const visible = requests.filter(matchesCounter);
+  const namesFor = (id: typeof counter) => {
+    const rows = requests.filter((request) => {
+      if (id === "upcoming") return request.status !== "closed";
+      if (id === "rescheduled") return request.rescheduleCount > 0;
+      if (id === "new") return request.status === "new";
+      if (id === "closed") return request.status === "closed";
+      return true;
+    });
+    if (!rows.length) return "Nobody in this list";
+    const shown = rows.slice(0, 2).map((request) => request.childName).join(", ");
+    return rows.length > 2 ? `${shown} +${rows.length - 2} more` : shown;
+  };
+  const metrics: Array<{ id: typeof counter; label: string; value: number; who: string }> = [
+    { id: "upcoming", label: "Booked visits", value: stats.upcoming, who: namesFor("upcoming") },
+    { id: "rescheduled", label: "Rescheduled", value: stats.rescheduled, who: namesFor("rescheduled") },
+    { id: "new", label: "New requests", value: stats.newRequests, who: namesFor("new") },
+    { id: "closed", label: "Closed", value: stats.closed, who: namesFor("closed") },
   ];
 
   return (
@@ -151,17 +172,33 @@ export function BookingRequestsPanel() {
       </Text>
 
       <View style={styles.metricRow}>
-        {metrics.map((metric) => (
-          <View key={metric.label} style={[styles.metric, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={{ color: colors.primary, fontSize: 24, fontWeight: "900" }}>{metric.value}</Text>
-            <Text style={{ color: colors.muted, fontSize: 11, fontWeight: "900", letterSpacing: 0.5, textTransform: "uppercase" }}>{metric.label}</Text>
-          </View>
-        ))}
+        {metrics.map((metric) => {
+          const selected = counter === metric.id;
+          return (
+            <Pressable
+              key={metric.label}
+              onPress={() => setCounter(selected ? null : metric.id)}
+              accessibilityRole="button"
+              accessibilityState={{ selected }}
+              accessibilityLabel={`${metric.label}: ${metric.value}. ${metric.who}`}
+              style={[styles.metric, { backgroundColor: selected ? colors.tealSurface : colors.surface, borderColor: selected ? colors.primary : colors.border }]}
+            >
+              <Text style={{ color: selected ? colors.primary : colors.foreground, fontSize: 24, fontWeight: "900" }}>{metric.value}</Text>
+              <Text style={{ color: colors.muted, fontSize: 11, fontWeight: "900", letterSpacing: 0.5, textTransform: "uppercase" }}>{metric.label}</Text>
+              <Text style={{ color: colors.muted, fontSize: 11, lineHeight: 15 }}>{metric.who}</Text>
+            </Pressable>
+          );
+        })}
       </View>
+      {counter ? (
+        <Pressable onPress={() => setCounter(null)} accessibilityRole="button" style={[styles.refresh, { borderColor: colors.primary, alignSelf: "flex-start" }]}>
+          <Text style={{ color: colors.primary, fontWeight: "900", fontSize: 12 }}>Showing {counter} — tap to show every booking</Text>
+        </Pressable>
+      ) : null}
 
       {loading ? (
         <View style={styles.loading}><ActivityIndicator color={colors.primary} /><Text style={{ color: colors.muted, marginLeft: 8 }}>Loading bookings…</Text></View>
-      ) : requests.length ? requests.map((request) => (
+      ) : visible.length ? visible.map((request) => (
         <View key={request.id} style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Pressable onPress={() => openPatient(request)} accessibilityRole="button" accessibilityLabel={`Open patient identification for ${request.childName}`} style={styles.cardHead}>
             <View style={{ flex: 1, gap: 3 }}>
