@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import * as Sharing from "expo-sharing";
 import * as FileSystem from "expo-file-system/legacy";
 import { useLocalSearchParams, useRouter } from "expo-router";
+
+import { emptyBookingDetails, saveBookingRequest, validateBookingDetails, type BookingDetails } from "@/lib/booking-requests";
+import { getSupabaseSession } from "@/lib/supabase";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { LanguageNavigationToggle } from "@/components/language-navigation-toggle";
@@ -63,6 +66,18 @@ export default function BookingScreen() {
   const [success, setSuccess] = useState(false);
   const [message, setMessage] = useState("");
   const [copyToast, setCopyToast] = useState("");
+  const [details, setDetails] = useState<BookingDetails>(emptyBookingDetails);
+  const [savedNotice, setSavedNotice] = useState("");
+
+  // Prefill the guardian's own email when they are signed in.
+  useEffect(() => {
+    let cancelled = false;
+    getSupabaseSession().then((session) => {
+      if (cancelled || !session?.user?.email) return;
+      setDetails((current) => (current.guardianEmail ? current : { ...current, guardianEmail: session.user.email ?? "" }));
+    }).catch(() => undefined);
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     if (dates.length && !dates.includes(date)) { setDate(dates[0]); setTime(""); setConfirming(false); }
@@ -82,12 +97,19 @@ export default function BookingScreen() {
   const selectTime = (slot: string) => { setTime(slot); setConfirming(true); setMessage(""); saveBookingDraft({ service, date, time: slot, reason: "" }); };
   const selectService = (name: string) => { setService(name); setTime(""); setConfirming(false); setMessage(""); saveBookingDraft({ service: name, date, time: "", reason: "" }); };
 
-  const confirmBooking = () => {
-    const result = bookAppointment({ childId: activeChild.id, service, date, time, reason: "Parent requested appointment" });
+  const confirmBooking = async () => {
+    const validation = validateBookingDetails(details);
+    if (!validation.ok) { setMessage(validation.message); return; }
+    const result = bookAppointment({ childId: activeChild.id, service, date, time, reason: `${details.childName.trim()} · ${details.childAge.trim()}` });
     if (!result.ok) { setMessage(result.message); return; }
+    // Send the child's details to the clinic, then keep the visit locally.
+    const saved = await saveBookingRequest({ details, service, date, time });
+    setSavedNotice(saved.message);
     clearBookingDraft();
     setSuccess(true);
   };
+
+  const setField = (key: keyof BookingDetails) => (value: string) => setDetails((current) => ({ ...current, [key]: value }));
 
   const appointmentSummary = `Rainbow Child Development Clinic\nAppointment: ${selectedServiceLabel}\nDate: ${date}\nTime: ${time}\nChild: ${activeChild.name}\n\nDr. Anil Ojha, MBBS, MD, FCCH`;
   const shareSummary = async () => {
@@ -124,13 +146,13 @@ export default function BookingScreen() {
           <Text style={[styles.title, { color: colors.foreground, textAlign: "center" }]}>Visit requested</Text>
           <Text style={[styles.nepali, { color: colors.primary, textAlign: "center" }]}>भेट्ने समय अनुरोध भयो</Text>
           <Text style={[styles.subtitle, { color: colors.muted, textAlign: "center" }]}>
-            Review your appointment summary below. The clinic has not sent a message automatically; call 9765002862 if you need to change it.
+            {savedNotice || "Review your appointment summary below. The clinic has not sent a message automatically; call 9765002862 if you need to change it."}
           </Text>
           <View style={[styles.summary, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Text style={[styles.summaryLabel, { color: colors.muted }]}>WITH DR. ANIL OJHA</Text>
             <Text style={[styles.summaryTitle, { color: colors.foreground }]}>{selectedServiceLabel}</Text>
             <Text style={[styles.summaryText, { color: colors.muted }]}>{date} · {time}</Text>
-            <Text style={[styles.summaryText, { color: colors.muted }]}>{activeChild.name}</Text>
+            <Text style={[styles.summaryText, { color: colors.muted }]}>{details.childName.trim() || activeChild.name}{details.childAge ? ` · ${details.childAge}` : ""}</Text>
           </View>
           <Pressable onPress={shareSummary} style={[styles.primaryButton, { backgroundColor: colors.primary, marginBottom: 12 }]} accessibilityRole="button">
             <Text style={[styles.primaryButtonText, { color: colors.textInverse }]}>Share to WhatsApp / सेयर गर्नुहोस्</Text>
@@ -256,7 +278,47 @@ export default function BookingScreen() {
             <Text style={[styles.summaryTitle, { color: colors.foreground }]}>{selectedServiceLabel}</Text>
             <Text style={[styles.summaryText, { color: colors.muted }]}>{date} · {time}</Text>
             <Text style={[styles.summaryText, { color: colors.muted }]}>For {activeChild.name}</Text>
-            <Text style={[styles.reviewNote, { color: colors.muted }]}>Confirming records this appointment request. The clinic follows up by phone or WhatsApp.</Text>
+            <Text style={[styles.summaryLabel, { color: colors.primary, marginTop: 10 }]}>WHO IS THIS VISIT FOR?</Text>
+            <Text style={[styles.reviewNote, { color: colors.muted }]}>The clinic needs the child’s name, age and sex, and a contact number. Weight and height are optional.</Text>
+            <View style={styles.formField}>
+              <Text style={[styles.formLabel, { color: colors.muted }]}>Child’s name</Text>
+              <TextInput value={details.childName} onChangeText={setField("childName")} placeholder="Child's full name" placeholderTextColor={colors.muted} style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background }]} accessibilityLabel="Child name" />
+            </View>
+            <View style={styles.formRow}>
+              <View style={styles.formField}>
+                <Text style={[styles.formLabel, { color: colors.muted }]}>Age</Text>
+                <TextInput value={details.childAge} onChangeText={setField("childAge")} placeholder="4 years 2 months" placeholderTextColor={colors.muted} style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background }]} accessibilityLabel="Child age" />
+              </View>
+              <View style={styles.formField}>
+                <Text style={[styles.formLabel, { color: colors.muted }]}>Sex</Text>
+                <View style={styles.sexRow}>
+                  {(["male", "female"] as const).map((option) => (
+                    <Pressable key={option} onPress={() => setField("childSex")(option)} accessibilityRole="radio" accessibilityState={{ selected: details.childSex === option }} style={[styles.sexChip, { borderColor: details.childSex === option ? colors.primary : colors.border, backgroundColor: details.childSex === option ? colors.tealSurface : colors.surface }]}>
+                      <Text style={{ color: details.childSex === option ? colors.primary : colors.foreground, fontWeight: "800", fontSize: 13 }}>{option === "male" ? "Boy / छोरा" : "Girl / छोरी"}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            </View>
+            <View style={styles.formRow}>
+              <View style={styles.formField}>
+                <Text style={[styles.formLabel, { color: colors.muted }]}>Weight in kg (optional)</Text>
+                <TextInput value={String(details.weightKg ?? "")} onChangeText={setField("weightKg")} keyboardType="decimal-pad" placeholder="15.2" placeholderTextColor={colors.muted} style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background }]} accessibilityLabel="Child weight in kilograms" />
+              </View>
+              <View style={styles.formField}>
+                <Text style={[styles.formLabel, { color: colors.muted }]}>Height in cm (optional)</Text>
+                <TextInput value={String(details.heightCm ?? "")} onChangeText={setField("heightCm")} keyboardType="decimal-pad" placeholder="99.4" placeholderTextColor={colors.muted} style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background }]} accessibilityLabel="Child height in centimetres" />
+              </View>
+            </View>
+            <View style={styles.formField}>
+              <Text style={[styles.formLabel, { color: colors.muted }]}>Parent contact number</Text>
+              <TextInput value={details.guardianPhone} onChangeText={setField("guardianPhone")} keyboardType="phone-pad" placeholder="98XXXXXXXX" placeholderTextColor={colors.muted} style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background }]} accessibilityLabel="Parent contact number" />
+            </View>
+            <View style={styles.formField}>
+              <Text style={[styles.formLabel, { color: colors.muted }]}>Email (optional)</Text>
+              <TextInput value={details.guardianEmail ?? ""} onChangeText={setField("guardianEmail")} autoCapitalize="none" keyboardType="email-address" placeholder="you@example.com" placeholderTextColor={colors.muted} style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background }]} accessibilityLabel="Parent email address optional" />
+            </View>
+            <Text style={[styles.reviewNote, { color: colors.muted }]}>These details are saved to the clinic and to your profile, where you can change them at any time.</Text>
             {message ? <Text style={[styles.message, { color: colors.error }]}>{message}</Text> : null}
             <Pressable onPress={confirmBooking} style={[styles.primaryButton, { backgroundColor: colors.action }]} accessibilityRole="button">
               <Text style={[styles.primaryButtonText, { color: colors.onAction }]}>Confirm the time / समय निश्चित गर्नुहोस्</Text>
@@ -311,6 +373,12 @@ const styles = StyleSheet.create({
   summaryTitle: { fontSize: 17, fontWeight: "900" },
   summaryText: { fontSize: 14, lineHeight: 20 },
   reviewNote: { fontSize: 12, lineHeight: 17, marginTop: 4 },
+  formField: { flex: 1, minWidth: 140, gap: 4, marginTop: 6 },
+  formRow: { flexDirection: "row", gap: 10, flexWrap: "wrap" },
+  formLabel: { fontSize: 11, fontWeight: "900", letterSpacing: 0.6 },
+  input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 11, fontSize: 15, minHeight: 44 },
+  sexRow: { flexDirection: "row", gap: 8 },
+  sexChip: { flex: 1, borderWidth: 1, borderRadius: 12, paddingVertical: 12, minHeight: 44, alignItems: "center", justifyContent: "center" },
   message: { fontSize: 13, lineHeight: 19, fontWeight: "800", marginTop: 8 },
   primaryButton: { borderRadius: 16, paddingVertical: 15, alignItems: "center", marginTop: 14 },
   primaryButtonText: { fontSize: 15, fontWeight: "900" },

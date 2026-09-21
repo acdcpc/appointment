@@ -7,6 +7,7 @@ import { useColors } from "@/hooks/use-colors";
 import { usePediatricCare } from "@/lib/pediatric-care";
 import { bilingualText, useLanguagePreference } from "@/lib/language-preference";
 import { getGuardianSession, signOutGuardian, type GuardianSession } from "@/lib/supabase-auth";
+import { loadMyBookingRequests, updateMyBookingRequest, type BookingDetails, type BookingRequest } from "@/lib/booking-requests";
 import { getSupabase, signOutSupabase } from "@/lib/supabase";
 import { useThemeContext } from "@/lib/theme-provider";
 import { useTextSize, type TextSizeLevel } from "@/lib/text-size";
@@ -31,6 +32,38 @@ export default function ProfileTab() {
   const [nameDraft, setNameDraft] = useState(activeChild.name);
   const [allergiesDraft, setAllergiesDraft] = useState(activeChild.allergies);
   const [saveMessage, setSaveMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  // Booking details the parent submitted with their last visit request; the
+  // clinic sees the same values, so editing here is how they stay correct.
+  const [bookingRequest, setBookingRequest] = useState<BookingRequest | null>(null);
+  const [bookingDraft, setBookingDraft] = useState<BookingDetails | null>(null);
+  const [bookingMessage, setBookingMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    loadMyBookingRequests().then((rows) => { if (!cancelled) setBookingRequest(rows[0] ?? null); }).catch(() => undefined);
+    return () => { cancelled = true; };
+  }, []);
+  const editBooking = () => {
+    if (!bookingRequest) return;
+    setBookingDraft({
+      childName: bookingRequest.childName,
+      childAge: bookingRequest.childAge,
+      childSex: bookingRequest.childSex,
+      weightKg: bookingRequest.weightKg ?? "",
+      heightCm: bookingRequest.heightCm ?? "",
+      guardianPhone: bookingRequest.guardianPhone,
+      guardianEmail: bookingRequest.guardianEmail ?? "",
+    });
+    setBookingMessage(null);
+  };
+  const saveBooking = async () => {
+    if (!bookingRequest || !bookingDraft) return;
+    const result = await updateMyBookingRequest(bookingRequest.id, bookingDraft);
+    setBookingMessage({ ok: result.ok, text: result.message });
+    if (result.ok) {
+      setBookingRequest({ ...bookingRequest, ...bookingDraft, weightKg: Number(bookingDraft.weightKg) || undefined, heightCm: Number(bookingDraft.heightCm) || undefined } as BookingRequest);
+      setBookingDraft(null);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -190,6 +223,51 @@ export default function ProfileTab() {
             </Text>
           </View>
         )}
+        {bookingRequest ? (
+          <>
+            <Text style={[styles.section, { color: colors.foreground }]}>{t("Visit details", "भेटको विवरण")}</Text>
+            <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 19 }}>
+                {t("The details you gave when you booked. The clinic sees the same values.", "भेट बुक गर्दा दिनुभएको विवरण। क्लिनिकले पनि यही देख्छ।")}
+              </Text>
+              <Text style={[styles.cardTitle, { color: colors.foreground, marginTop: 10 }]}>{t("Child", "बच्चा")}</Text>
+              {bookingDraft ? (
+                <>
+                  <TextInput value={bookingDraft.childName} onChangeText={(value) => setBookingDraft({ ...bookingDraft, childName: value })} style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background }]} accessibilityLabel={t("Child name", "बच्चाको नाम")} />
+                  <TextInput value={bookingDraft.childAge} onChangeText={(value) => setBookingDraft({ ...bookingDraft, childAge: value })} style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background }]} accessibilityLabel={t("Child age", "बच्चाको उमेर")} />
+                  <TextInput value={String(bookingDraft.weightKg ?? "")} onChangeText={(value) => setBookingDraft({ ...bookingDraft, weightKg: value })} keyboardType="decimal-pad" style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background }]} accessibilityLabel={t("Weight in kilograms", "तौल किलोग्राम")} />
+                  <TextInput value={String(bookingDraft.heightCm ?? "")} onChangeText={(value) => setBookingDraft({ ...bookingDraft, heightCm: value })} keyboardType="decimal-pad" style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background }]} accessibilityLabel={t("Height in centimetres", "उचाइ सेन्टिमिटर")} />
+                  <TextInput value={bookingDraft.guardianPhone} onChangeText={(value) => setBookingDraft({ ...bookingDraft, guardianPhone: value })} keyboardType="phone-pad" style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background }]} accessibilityLabel={t("Parent contact number", "अभिभावकको सम्पर्क नम्बर")} />
+                  <TextInput value={bookingDraft.guardianEmail ?? ""} onChangeText={(value) => setBookingDraft({ ...bookingDraft, guardianEmail: value })} autoCapitalize="none" keyboardType="email-address" style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background }]} accessibilityLabel={t("Email optional", "इमेल (वैकल्पिक)")} />
+                  <View style={{ flexDirection: "row", gap: 10, marginTop: 4 }}>
+                    <Pressable onPress={saveBooking} style={[styles.actionButton, { backgroundColor: colors.action }]} accessibilityRole="button">
+                      <Text style={[styles.actionButtonText, { color: colors.onAction }]}>{t("Save", "सुरक्षित")}</Text>
+                    </Pressable>
+                    <Pressable onPress={() => setBookingDraft(null)} style={[styles.actionButton, { borderColor: colors.border }]} accessibilityRole="button">
+                      <Text style={{ color: colors.muted, fontWeight: "800", fontSize: 13 }}>{t("Cancel", "रद्द")}</Text>
+                    </Pressable>
+                  </View>
+                </>
+              ) : (
+                <>
+                  <Text style={{ color: colors.foreground, fontSize: 14, lineHeight: 20 }}>
+                    {[bookingRequest.childName, bookingRequest.childAge, bookingRequest.childSex === "male" ? t("Boy", "छोरा") : t("Girl", "छोरी")].join(" · ")}
+                  </Text>
+                  <Text style={{ color: colors.muted, fontSize: 13 }}>
+                    {[bookingRequest.weightKg !== undefined ? `${bookingRequest.weightKg} kg` : null, bookingRequest.heightCm !== undefined ? `${bookingRequest.heightCm} cm` : null].filter(Boolean).join(" · ") || t("No weight or height given", "तौल वा उचाइ दिइएको छैन")}
+                  </Text>
+                  <Text style={{ color: colors.muted, fontSize: 13 }}>{bookingRequest.guardianPhone}{bookingRequest.guardianEmail ? ` · ${bookingRequest.guardianEmail}` : ""}</Text>
+                  <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "800" }}>{bookingRequest.service} · {bookingRequest.preferredDate} · {bookingRequest.preferredTime}</Text>
+                  <Pressable onPress={editBooking} style={[styles.actionButton, { borderColor: colors.primary, marginTop: 6 }]} accessibilityRole="button">
+                    <Text style={{ color: colors.primary, fontWeight: "800", fontSize: 13 }}>{t("Edit details", "विवरण सच्याउनुहोस्")}</Text>
+                  </Pressable>
+                </>
+              )}
+              {bookingMessage ? <Text style={{ color: bookingMessage.ok ? colors.success : colors.error, fontWeight: "800", fontSize: 13 }}>{bookingMessage.text}</Text> : null}
+            </View>
+          </>
+        ) : null}
+
         <Text style={[styles.section, { color: colors.foreground }]}>{t("Danger zone", "जोखिम क्षेत्र")}</Text>
         <View style={[styles.card, { backgroundColor: colors.dangerSurface, borderColor: colors.error }]}>
           <Text style={[styles.cardTitle, { color: colors.foreground }]}>{t("Delete my account", "मेरो खाता मेटाउनुहोस्")}</Text>

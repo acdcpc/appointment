@@ -32,7 +32,6 @@ function DesktopTopNav({ colors, language, setLanguage, authority }: { colors: R
         { path: "/", label: language === "ne" ? "गृहपृष्ठ" : "Home" },
         { path: "/(tabs)/find", label: language === "ne" ? "समय लिनुहोस्" : "Book visit" },
         { path: "/(tabs)/appointments", label: language === "ne" ? "भेटहरू" : "Visits" },
-        { path: "/(tabs)/records", label: language === "ne" ? "अभिलेख" : "Records" },
         { path: "/(tabs)/profile", label: language === "ne" ? "प्रोफाइल" : "Profile" },
       ];
   return (
@@ -102,7 +101,7 @@ export default function TabLayout() {
       <Tabs.Screen name="find" options={{ href: authorityTabs ? null : undefined, title: language === "ne" ? "समय लिनुहोस्" : "Book visit", tabBarIcon: ({ color }) => <IconSymbol size={24} name="magnifyingglass" color={color} /> }} />
       <Tabs.Screen name="appointments" options={{ href: authorityTabs ? null : undefined, title: language === "ne" ? "भेटहरू" : "Visits", tabBarIcon: ({ color }) => <IconSymbol size={24} name="calendar" color={color} /> }} />
       <Tabs.Screen name="growth" options={{ title: language === "ne" ? "वृद्धि" : "Growth", tabBarIcon: ({ color }) => <IconSymbol size={24} name="chart.line.uptrend.xyaxis" color={color} /> }} />
-      <Tabs.Screen name="records" options={{ href: authorityTabs ? null : undefined, title: language === "ne" ? "अभिलेख" : "Records", tabBarIcon: ({ color }) => <IconSymbol size={24} name="doc.text" color={color} /> }} />
+      <Tabs.Screen name="records" options={{ href: null, title: language === "ne" ? "अभिलेख" : "Records", tabBarIcon: ({ color }) => <IconSymbol size={24} name="doc.text" color={color} /> }} />
       <Tabs.Screen name="profile" options={{ title: language === "ne" ? "प्रोफाइल" : "Profile", tabBarIcon: ({ color }) => <IconSymbol size={24} name="person.fill" color={color} /> }} />
     </Tabs><LanguageNavigationToggle /><SuperAdminServiceSuggestionWorkspace /><EnvironmentNavigationBadge /><AuthorityNavigationBadge />
     </>

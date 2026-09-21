@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, 
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
+import { BookingRequestsPanel } from "@/components/booking-requests-panel";
 import { type ClinicOperatingHour, usePediatricCare } from "@/lib/pediatric-care";
 import { useAuth } from "@/hooks/use-auth";
 import { signInWithSupabaseEmail, signOutSupabase, getSupabaseSession } from "@/lib/supabase";
@@ -122,6 +123,7 @@ function Dashboard({ focus, reportId }: { focus?: "contacts" | "staff" | "email-
         {focus === "staff" ? <AuthenticatedStaffAccounts /> : null}
 
     <View onLayout={(event) => saveSectionOffset("care", event.nativeEvent.layout.y)}><Text style={[styles.sectionTitle, { color: colors.foreground }]}>Care tools</Text>
+    <BookingRequestsPanel />
     
     
     <ServicePreparationSettings />
