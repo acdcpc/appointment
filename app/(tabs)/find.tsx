@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { useRouter } from "expo-router";
+import { Redirect, useRouter } from "expo-router";
+import { isAuthorityRole, useAuthorityRole } from "@/lib/authority-role";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
@@ -46,6 +47,7 @@ function friendlyHours(range: string) {
 export default function BookVisitTab() {
   const colors = useColors();
   const router = useRouter();
+  const authorityRole = useAuthorityRole();
   const { services, clinicHours, clinicHolidays } = usePediatricCare();
   const [query, setQuery] = useState("");
   const [topic, setTopic] = useState<TopicKey>("All");
@@ -75,6 +77,8 @@ export default function BookVisitTab() {
       || (topic === "Wellbeing" && (english.includes("growth") || english.includes("well") || english.includes("follow")));
     return queryMatches && topicMatches;
   }), [query, services, topic]);
+
+  if (isAuthorityRole(authorityRole)) return <Redirect href="/clinician" />;
 
   const startBooking = () => {
     if (!selected) return;

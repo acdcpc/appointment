@@ -37,6 +37,9 @@ export type BookingRequest = {
   note?: string;
   status: "new" | "contacted" | "scheduled" | "closed";
   createdAt: string;
+  rescheduleCount: number;
+  notifiedAt?: string;
+  clinicNote?: string;
 };
 
 export const emptyBookingDetails: BookingDetails = {
@@ -119,6 +122,9 @@ const mapRow = (row: Record<string, unknown>): BookingRequest => ({
   note: row.note ? String(row.note) : undefined,
   status: (String(row.status ?? "new") as BookingRequest["status"]) ?? "new",
   createdAt: String(row.created_at ?? ""),
+  rescheduleCount: Number(row.reschedule_count ?? 0),
+  notifiedAt: row.notified_at ? String(row.notified_at) : undefined,
+  clinicNote: row.clinic_note ? String(row.clinic_note) : undefined,
 });
 
 export async function saveBookingRequest(input: {
@@ -213,5 +219,79 @@ export async function setBookingRequestStatus(id: number, status: BookingRequest
     return { ok: true, message: `Marked as ${status}.` };
   } catch {
     return { ok: false, message: "Status could not be updated." };
+  }
+}
+
+export type BookingStats = {
+  total: number;
+  upcoming: number;
+  rescheduled: number;
+  newRequests: number;
+  closed: number;
+};
+
+/** Counts for the clinic view: who is booked, and how many visits have moved. */
+export function summariseBookingRequests(requests: BookingRequest[]): BookingStats {
+  return {
+    total: requests.length,
+    upcoming: requests.filter((request) => request.status !== "closed").length,
+    rescheduled: requests.filter((request) => request.rescheduleCount > 0).length,
+    newRequests: requests.filter((request) => request.status === "new").length,
+    closed: requests.filter((request) => request.status === "closed").length,
+  };
+}
+
+/** Moves a visit to another time and records that the parent was told. */
+export async function rescheduleBookingRequest(input: {
+  id: number;
+  date: string;
+  time: string;
+  note?: string;
+  currentCount: number;
+  notifyParent: boolean;
+}): Promise<{ ok: boolean; message: string }> {
+  try {
+    const client = getSupabase();
+    if (!client) return { ok: false, message: "Storage is unavailable on this build." };
+    const { error } = await client.from("booking_requests").update({
+      preferred_date: input.date,
+      preferred_time: input.time,
+      status: "scheduled",
+      reschedule_count: input.currentCount + 1,
+      clinic_note: input.note?.trim() || null,
+      notified_at: input.notifyParent ? new Date().toISOString() : null,
+    }).eq("id", input.id);
+    if (error) return { ok: false, message: error.message };
+    return {
+      ok: true,
+      message: input.notifyParent
+        ? `Moved to ${input.date} · ${input.time} and recorded that the parent was told.`
+        : `Moved to ${input.date} · ${input.time}. The parent can see the new time in their profile.`,
+    };
+  } catch {
+    return { ok: false, message: "The visit could not be moved. Check the connection and try again." };
+  }
+}
+
+/** The message the clinic sends the parent when a visit moves. */
+export function buildRescheduleNotice(request: BookingRequest, date: string, time: string, clinicName = "Rainbow Child Development Clinic") {
+  return [
+    `Namaste, this is ${clinicName}.`,
+    `${request.childName}’s visit has been moved to ${date} at ${time}.`,
+    `Visit type: ${request.service}.`,
+    "Please reply if that time does not suit you. Thank you.",
+  ].join("\n");
+}
+
+/** Records that the clinic told the parent about the change. */
+export async function markBookingRequestNotified(id: number): Promise<{ ok: boolean; message: string }> {
+  try {
+    const client = getSupabase();
+    if (!client) return { ok: false, message: "Storage is unavailable on this build." };
+    const { error } = await client.from("booking_requests").update({ notified_at: new Date().toISOString() }).eq("id", id);
+    if (error) return { ok: false, message: error.message };
+    return { ok: true, message: "Recorded that the parent was informed." };
+  } catch {
+    return { ok: false, message: "Could not record the notification." };
   }
 }
