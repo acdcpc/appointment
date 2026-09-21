@@ -20,7 +20,7 @@ export default function ProfileTab() {
   const router = useRouter();
   const { language } = useLanguagePreference();
   const t = (english: string, nepali: string) => bilingualText(language, english, nepali);
-  const { children, activeChild, setActiveChild, updateChildProfile } = usePediatricCare();
+  const { childrenSource, children, activeChild, setActiveChild, updateChildProfile } = usePediatricCare();
   const { colorScheme, setColorScheme } = useThemeContext();
   const { level: textSize, setLevel: setTextSize } = useTextSize();
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -129,7 +129,9 @@ export default function ProfileTab() {
           </View>
         </View>
 
-        <Text style={[styles.section, { color: colors.foreground }]}>{t("Children & dependents", "बच्चाहरू")}</Text>
+        {childrenSource === "server" ? (
+          <>
+<Text style={[styles.section, { color: colors.foreground }]}>{t("Children & dependents", "बच्चाहरू")}</Text>
         <View style={styles.childPicker}>
           {children.map((child) => {
             const selected = child.id === activeChild.id;
@@ -179,7 +181,15 @@ export default function ProfileTab() {
             </Pressable>
           </View>
         </View>
-
+          </>
+        ) : (
+          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.cardTitle, { color: colors.foreground }]}>{t("Your child\u2019s care details", "\u0924\u092a\u093e\u0908\u0901\u0915\u094b \u092c\u091a\u094d\u091a\u093e\u0915\u094b \u0935\u093f\u0935\u0930\u0923")}</Text>
+            <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 19 }}>
+              {t("Sign in with the email the clinic has on file. Child profiles appear here once your account is linked \u2014 no sample names are shown.", "\u0915\u094d\u0932\u093f\u0928\u093f\u0915\u092e\u093e \u0930\u0939\u0947\u0915\u094b \u0907\u092e\u0947\u0932\u0932\u0947 \u0932\u0917 \u0907\u0928 \u0917\u0930\u094d\u0928\u0941\u0939\u094b\u0938\u094d\u0964 \u0916\u093e\u0924\u093e \u091c\u094b\u0921\u093f\u090f\u092a\u091b\u093f \u092c\u091a\u094d\u091a\u093e\u0915\u094b \u092a\u094d\u0930\u094b\u092b\u093e\u0907\u0932 \u092f\u0939\u093e\u0901 \u0926\u0947\u0916\u093f\u0928\u094d\u091b\u0964")}
+            </Text>
+          </View>
+        )}
         <Text style={[styles.section, { color: colors.foreground }]}>{t("Danger zone", "जोखिम क्षेत्र")}</Text>
         <View style={[styles.card, { backgroundColor: colors.dangerSurface, borderColor: colors.error }]}>
           <Text style={[styles.cardTitle, { color: colors.foreground }]}>{t("Delete my account", "मेरो खाता मेटाउनुहोस्")}</Text>

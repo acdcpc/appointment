@@ -11,6 +11,53 @@ import { bilingualText, useLanguagePreference } from "@/lib/language-preference"
 import { buildRescheduleConfirmationHtml, exportChildRecordPdf } from "@/lib/child-record-pdf";
 import { trpc } from "@/lib/trpc";
 import { getSupabaseSession } from "@/lib/supabase";
+import { signOutSupabase } from "@/lib/supabase";
+import { signOutGuardian } from "@/lib/supabase-auth";
+import { isAuthorityRole, useAuthorityRole, type AuthorityRole } from "@/lib/authority-role";
+
+/** Clinic staff land here: operations, not their own child's booking screen. */
+function AuthorityHome({ role }: { role: AuthorityRole }) {
+  const colors = useColors();
+  const router = useRouter();
+  const { language } = useLanguagePreference();
+  const t = (english: string, nepali: string) => bilingualText(language, english, nepali);
+  const signOut = async () => { await signOutGuardian(); await signOutSupabase(); router.replace("/parent-auth"); };
+  const cards = [
+    { title: t("Clinic admin panel", "क्लिनिक एडमिन प्यानल"), meta: t("The full clinic dashboard", "पूरा क्लिनिक ड्यासबोर्ड"), route: "/clinician" },
+    { title: t("Growth measurements", "वृद्धि मापन"), meta: t("Weight, height and head circumference", "तौल, उचाइ र शिरको परिधि"), route: "/clinician" },
+    { title: t("Staff access", "कर्मचारी पहुँच"), meta: t("Invitations, roles and sign-in activity", "निमन्त्रणा, भूमिका र लग इन गतिविधि"), route: "/clinician?focus=staff" },
+  ];
+  return (
+    <ScreenContainer className="p-5" maxWidth={980}>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <Text style={[styles.eyebrow, { color: colors.primary }]}>RAINBOW CHILD DEVELOPMENT CLINIC</Text>
+        <Text style={[styles.title, { color: colors.foreground }]}>{t("Settings", "सेटिङ")}</Text>
+        <Text style={[styles.subtitle, { color: colors.muted }]}>
+          {role === "super-admin"
+            ? t("Signed in as super-admin. The clinic admin panel and staff tools are in this Settings list; parent booking screens are hidden for staff accounts.", "सुपर-एडमिनको रूपमा लग इन। क्लिनिक एडमिन प्यानल र कर्मचारी उपकरण यही सेटिङ सूचीमा छन्; कर्मचारी खातामा अभिभावकका बुकिङ पृष्ठ देखिँदैन।")
+            : t("Signed in as clinic admin. The clinic admin panel and staff tools are in this Settings list; parent booking screens are hidden for staff accounts.", "क्लिनिक एडमिनको रूपमा लग इन। क्लिनिक एडमिन प्यानल र कर्मचारी उपकरण यही सेटिङ सूचीमा छन्; कर्मचारी खातामा अभिभावकका बुकिङ पृष्ठ देखिँदैन।")}
+        </Text>
+        {cards.map((card) => (
+          <Pressable
+            key={card.title}
+            onPress={() => router.push(card.route as never)}
+            accessibilityRole="button"
+            style={[styles.hero, { backgroundColor: colors.primary, marginTop: 14 }]}
+          >
+            <View style={{ flex: 1, gap: 5 }}>
+              <Text style={[styles.heroTitle, { color: colors.textInverse }]}>{card.title}</Text>
+              <Text style={[styles.heroText, { color: colors.textInverseMuted }]}>{card.meta}</Text>
+            </View>
+            <Text style={[styles.heroArrow, { color: colors.textInverse }]}>›</Text>
+          </Pressable>
+        ))}
+        <Pressable onPress={signOut} accessibilityRole="button" style={[styles.previewAuthButton, { borderColor: colors.primary, marginTop: 18 }]}>
+          <Text style={{ color: colors.primary, fontWeight: "900" }}>{t("Sign out", "लग आउट")}</Text>
+        </Pressable>
+      </ScrollView>
+    </ScreenContainer>
+  );
+}
 
 export default function HomeScreen() {
   const wide = useWindowDimensions().width >= 1024;
@@ -19,6 +66,7 @@ export default function HomeScreen() {
   const { children, activeChild, appointments, earlierSlotRequests, history, preparationChecklists, confirmGuardianAttendance, acknowledgeAppointmentChange, requestEarlierSlot, withdrawEarlierSlotRequest, respondToEarlierSlotOffer, childrenSource, pendingReports } = usePediatricCare();
   const { language } = useLanguagePreference();
   const t = (english: string, nepali: string) => bilingualText(language, english, nepali);
+  const authorityRole = useAuthorityRole();
   const nextAppointment = appointments.find((appointment) => appointment.status !== "completed");
   const developmentNote = history.find((entry) => entry.category === "Development");
   // Signed in means "has a guardian session" — not "a child record happened to
@@ -74,6 +122,7 @@ export default function HomeScreen() {
   const respondToOffer = (response: "accepted" | "declined") => { if (!activeEarlierSlotOffer) return; const result = respondToEarlierSlotOffer(activeEarlierSlotOffer.id, response); setAppointmentMessage(result.ok ? `Your response has been recorded. The clinic will review it; your current appointment remains unchanged.` : result.message); };
   const downloadRescheduleConfirmation = async () => { if (!nextAppointment) return; const result = await exportChildRecordPdf(buildRescheduleConfirmationHtml(activeChild, nextAppointment)); setAppointmentMessage(result.message); };
   const acknowledgeUpdatedAppointment = () => { if (!nextAppointment) return; const result = acknowledgeAppointmentChange(nextAppointment.id); setAppointmentMessage(result.ok ? "Thank you — your acknowledgement of the updated appointment time has been recorded. This does not confirm attendance or change the visit." : result.message); };
+  if (isAuthorityRole(authorityRole)) return <AuthorityHome role={authorityRole} />;
   return <ScreenContainer className="p-5" maxWidth={980}><ScrollView showsVerticalScrollIndicator={false}>
     {wide ? (
       <View style={styles.twoCol}>

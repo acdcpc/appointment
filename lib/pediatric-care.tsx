@@ -1,12 +1,14 @@
 import { createContext, type ReactNode, useContext, useEffect, useMemo, useState } from "react";
 import { getSupabase, getSupabaseSession } from "./supabase";
+import { ageInMonths, describeMeasurement, normaliseDraft, validateGrowthMeasurement, type GrowthMeasurementInput } from "./growth-measurements";
 
 export type ChildProfile = { id: string; name: string; dateOfBirth: string; sex: "male" | "female"; allergies: string; parentName: string };
 export type AppointmentStatus = "confirmed" | "needs-intake" | "completed" | "cancelled";
 export type PediatricAppointment = { id: string; childId: string; service: string; date: string; time: string; durationMinutes: number; reason: string; status: AppointmentStatus; changeMessage?: string; guardianConfirmedAt?: string; rescheduledAt?: string; rescheduleAcknowledgedAt?: string; appointmentChangeReminderDraftedAt?: string };
 export type PrescriptionRecord = { id: string; childId: string; appointmentId: string; issuedOn: string; medication: string; instructions: string; status: "active" | "completed" };
 export type MedicalHistoryEntry = { id: string; childId: string; category: "Allergy" | "Development" | "Visit" | "Immunization" | "Communication"; title: string; occurredOn: string; note: string };
-export type GrowthMetric = { id: string; childId: string; occurredOn: string; ageMonths: number; weightKg: number; heightCm: number; note: string };
+export type GrowthSaveResult = { ok: true; message: string } | { ok: false; message: string };
+export type GrowthMetric = { id: string; childId: string; occurredOn: string; ageMonths: number; weightKg?: number; heightCm?: number; headCircumferenceCm?: number; note: string; recordedRole?: "clinic" | "guardian"; recordedBy?: string };
 export type ClinicOperatingHour = { weekday: "Mon" | "Tue" | "Wed" | "Thu" | "Fri" | "Sat" | "Sun"; label: string; start: string; end: string; isOpen: boolean };
 export type ClinicBreak = { id: string; weekday: ClinicOperatingHour["weekday"]; start: string; end: string };
 export type ClinicHoliday = { id: string; date: string; label: string };
@@ -40,7 +42,7 @@ type BookingInput = Pick<PediatricAppointment, "childId" | "service" | "date" | 
 type PrescriptionInput = Pick<PrescriptionRecord, "childId" | "appointmentId" | "medication" | "instructions">;
 type Result = { ok: true } | { ok: false; message: string };
 type PediatricCareContextValue = {
-  children: ChildProfile[]; childrenSource: "demo" | "server"; pendingReports: Array<{ id: number; childId: string; scope: string; token: string }>; activeChild: ChildProfile; setActiveChild: (childId: string) => void; appointments: PediatricAppointment[]; replaceAppointments: (appointments: PediatricAppointment[]) => void; prescriptions: PrescriptionRecord[]; history: MedicalHistoryEntry[]; growthMetrics: GrowthMetric[]; clinicHours: ClinicOperatingHour[]; clinicBreaks: ClinicBreak[]; clinicHolidays: ClinicHoliday[]; clinicDayHourOverrides: ClinicDayHourOverride[]; replaceClinicDayHourOverrides: (overrides: ClinicDayHourOverride[]) => void; services: ServiceConfig[]; preparationChecklists: ServicePreparationChecklist[]; earlierSlotRequests: EarlierSlotRequest[]; replaceEarlierSlotRequests: (requests: EarlierSlotRequest[]) => void; waitlistOfferDurationHours: number; referralServices: ReferralService[]; auditEvents: PatientAuditEvent[]; replaceAuditEvents: (events: PatientAuditEvent[]) => void; referralLetterSettings: ReferralLetterSettings; clinicLocation: ClinicLocationSettings; staffMembers: StaffMember[]; applyStaffCapacitySnapshots: (capacities: Array<{ staffId: string; triageCapacity: number }>) => void; staffInvitations: StaffInvitation[];
+  children: ChildProfile[]; childrenSource: "demo" | "server"; pendingReports: Array<{ id: number; childId: string; scope: string; token: string }>; activeChild: ChildProfile; setActiveChild: (childId: string) => void; appointments: PediatricAppointment[]; replaceAppointments: (appointments: PediatricAppointment[]) => void; prescriptions: PrescriptionRecord[]; history: MedicalHistoryEntry[]; growthMetrics: GrowthMetric[]; recordGrowthMeasurement: (input: GrowthMeasurementInput) => Promise<GrowthSaveResult>; clinicHours: ClinicOperatingHour[]; clinicBreaks: ClinicBreak[]; clinicHolidays: ClinicHoliday[]; clinicDayHourOverrides: ClinicDayHourOverride[]; replaceClinicDayHourOverrides: (overrides: ClinicDayHourOverride[]) => void; services: ServiceConfig[]; preparationChecklists: ServicePreparationChecklist[]; earlierSlotRequests: EarlierSlotRequest[]; replaceEarlierSlotRequests: (requests: EarlierSlotRequest[]) => void; waitlistOfferDurationHours: number; referralServices: ReferralService[]; auditEvents: PatientAuditEvent[]; replaceAuditEvents: (events: PatientAuditEvent[]) => void; referralLetterSettings: ReferralLetterSettings; clinicLocation: ClinicLocationSettings; staffMembers: StaffMember[]; applyStaffCapacitySnapshots: (capacities: Array<{ staffId: string; triageCapacity: number }>) => void; staffInvitations: StaffInvitation[];
   updateChildProfile: (childId: string, changes: Partial<Pick<ChildProfile, "name" | "allergies">>) => Promise<Result>; getAvailableSlots: (date: string, service: string, omitAppointmentId?: string) => string[]; bookAppointment: (input: BookingInput) => Result; rescheduleAppointment: (appointmentId: string, date: string, time: string, message?: string) => Result; cancelAppointment: (appointmentId: string, message?: string) => Result; confirmGuardianAttendance: (appointmentId: string) => Result; acknowledgeAppointmentChange: (appointmentId: string) => Result; recordAppointmentChangeReminderDraft: (appointmentId: string) => Result; updateClinicHour: (weekday: ClinicOperatingHour["weekday"], changes: Partial<ClinicOperatingHour>) => void; updateServiceDuration: (service: string, durationMinutes: number) => void; updateServicePreparation: (service: string, items: string[]) => Result; updateWaitlistOfferDuration: (hours: number) => Result; updateServiceWaitlistOfferDuration: (service: string, hours: number | undefined) => Result; requestEarlierSlot: (appointmentId: string, note?: string) => Result; withdrawEarlierSlotRequest: (id: string) => Result; createEarlierSlotOffer: (id: string, date: string, time: string) => Result; respondToEarlierSlotOffer: (id: string, response: "accepted" | "declined") => Result; convertAcceptedEarlierSlotOffer: (id: string) => Result; acknowledgeEarlierSlotResponse: (id: string) => void; assignEarlierSlotRequest: (id: string, staffId?: string) => Result; updateStaffTriageCapacity: (id: string, capacity: number) => Result; reviewEarlierSlotRequest: (id: string, status: "reviewed" | "declined") => void; addClinicBreak: (weekday: ClinicBreak["weekday"], start: string, end: string) => Result; removeClinicBreak: (id: string) => void; addClinicHoliday: (date: string, label: string) => Result; removeClinicHoliday: (id: string) => void; addReferralService: (input: Omit<ReferralService, "id" | "approvalStatus" | "decisionBy" | "decisionAt">) => Result; approveReferralService: (id: string) => void; rejectReferralService: (id: string) => void; removeReferralService: (id: string) => void; updateReferralLetterSettings: (settings: ReferralLetterSettings) => void; updateClinicLocation: (settings: ClinicLocationSettings) => void; addStaffMember: (name: string, role: StaffRole) => Result; updateStaffRole: (id: string, role: StaffRole) => void; removeStaffMember: (id: string) => void; inviteStaffMember: (email: string, role: StaffRole) => Result; cancelStaffInvitation: (id: string) => void; recordReferralLetter: (childId: string, recipient: string, purpose: string) => void; recordReferralEmailShare: (childId: string, recipient: string, email: string, status: EmailShareStatus, isResend?: boolean, metadata?: Pick<PatientAuditEvent, "attemptedAt" | "serverRetryLimit" | "serverRetryAttempts">) => void; recordPatientCommunication: (childId: string, recipient: string, email: string, scope: PatientCommunicationScope, status: EmailShareStatus) => void; recordReminderDraft: (childId: string, recipient: string, reportLabel: string) => void; writePrescription: (input: PrescriptionInput) => Result;
 };
 
@@ -80,12 +82,29 @@ const initialHistory: MedicalHistoryEntry[] = [
   { id: "history-1", childId: "child-1", category: "Allergy", title: "Allergy record", occurredOn: "12 Aug 2026", note: "No known drug allergies reported by parent." }, { id: "history-2", childId: "child-1", category: "Development", title: "Development review requested", occurredOn: "05 Aug 2026", note: "Parent requested a review of developmental milestones at the next visit." }, { id: "history-3", childId: "child-1", category: "Visit", title: "Pediatric follow-up", occurredOn: "20 Jul 2026", note: "Visit summary available in the clinical record." },
   { id: "history-4", childId: "child-2", category: "Visit", title: "Respiratory review requested", occurredOn: "14 Aug 2026", note: "Parent requested a clinician review after a recent cough." }, { id: "history-5", childId: "child-3", category: "Development", title: "Growth and wellbeing review", occurredOn: "10 Aug 2026", note: "Parent requested nutrition and growth discussion." },
 ];
-const growthMetrics: GrowthMetric[] = [
+const demoGrowthMetrics: GrowthMetric[] = [
   { id: "growth-1", childId: "child-1", occurredOn: "12 Aug 2026", ageMonths: 51, weightKg: 15.2, heightCm: 99.4, note: "Measurement recorded at pediatric follow-up." },
   { id: "growth-2", childId: "child-1", occurredOn: "20 Jul 2026", ageMonths: 50, weightKg: 14.9, heightCm: 98.7, note: "Measurement recorded during a prior visit." },
   { id: "growth-3", childId: "child-2", occurredOn: "14 Aug 2026", ageMonths: 71, weightKg: 17.4, heightCm: 106.1, note: "Parent-visible clinic measurement record." },
   { id: "growth-4", childId: "child-3", occurredOn: "10 Aug 2026", ageMonths: 91, weightKg: 20.6, heightCm: 116.8, note: "Growth and wellbeing visit measurement." },
 ];
+
+/** Maps a stored measurement row (snake_case columns) into the chart shape. */
+function mapGrowthRow(row: Record<string, unknown>): GrowthMetric {
+  const optionalNumber = (value: unknown) => (value === null || value === undefined || value === "" ? undefined : Number(value));
+  return {
+    id: String(row.id ?? ""),
+    childId: String(row.child_id ?? row.childId ?? ""),
+    occurredOn: String(row.measured_on ?? row.measuredOn ?? ""),
+    ageMonths: Number(row.age_months ?? row.ageMonths ?? 0),
+    weightKg: optionalNumber(row.weight_kg ?? row.weightKg),
+    heightCm: optionalNumber(row.height_cm ?? row.heightCm),
+    headCircumferenceCm: optionalNumber(row.head_circumference_cm ?? row.headCircumferenceCm),
+    note: String(row.note ?? ""),
+    recordedRole: String(row.recorded_role ?? "clinic") === "guardian" ? "guardian" : "clinic",
+    recordedBy: row.recorded_by === null || row.recorded_by === undefined ? undefined : String(row.recorded_by),
+  };
+}
 
 const timeToMinutes = (time: string) => { const [clock, suffix = ""] = time.trim().split(" "); const [hourString, minuteString] = clock.split(":"); let hours = Number(hourString); const minutes = Number(minuteString); if (!Number.isFinite(hours) || !Number.isFinite(minutes) || minutes < 0 || minutes > 59) return Number.NaN; if (/(AM|PM)/i.test(suffix)) { if (suffix.toUpperCase() === "PM" && hours !== 12) hours += 12; if (suffix.toUpperCase() === "AM" && hours === 12) hours = 0; } return hours * 60 + minutes; };
 const minutesToDisplay = (minutes: number) => { const hour = Math.floor(minutes / 60); const minute = minutes % 60; const suffix = hour >= 12 ? "PM" : "AM"; const displayHour = hour % 12 || 12; return `${displayHour}:${minute.toString().padStart(2, "0")} ${suffix}`; };
@@ -129,6 +148,9 @@ export function PediatricCareProvider({ children: content }: { children: ReactNo
         if (cancelled || !mapped.length) return;
         setChildProfiles(mapped);
         setChildrenSource("server");
+        // Drop any prototype-era local copy so a renamed child can never be
+        // resurrected from this browser's storage.
+        try { if (typeof window !== "undefined" && window.localStorage) window.localStorage.removeItem("rainbow-child-profiles"); } catch { /* ignore */ }
         // Reports the clinic published for these children and the guardian has
         // not yet acknowledged — surfaced on Home so nothing has to be
         // remembered. Read through the existing guardian RLS policy.
@@ -165,6 +187,24 @@ export function PediatricCareProvider({ children: content }: { children: ReactNo
     return initialChildProfiles;
   });
   const [selectedChildId, setSelectedChildId] = useState(initialChildProfiles[0].id); const [appointments, setAppointments] = useState<PediatricAppointment[]>(() => loadPersistedAppointments() ?? initialAppointments); const [clinicHours, setClinicHours] = useState<ClinicOperatingHour[]>(initialHours); const [clinicBreaks, setClinicBreaks] = useState<ClinicBreak[]>([]); const [clinicHolidays, setClinicHolidays] = useState<ClinicHoliday[]>([]); const [clinicDayHourOverrides, setClinicDayHourOverrides] = useState<ClinicDayHourOverride[]>([]); const [services, setServices] = useState<ServiceConfig[]>(initialServices); const [preparationChecklists, setPreparationChecklists] = useState<ServicePreparationChecklist[]>(initialPreparationChecklists); const [earlierSlotRequests, setEarlierSlotRequests] = useState<EarlierSlotRequest[]>([]); const [waitlistOfferDurationHours, setWaitlistOfferDurationHours] = useState(24); const [prescriptions, setPrescriptions] = useState<PrescriptionRecord[]>(initialPrescriptions); const [history, setHistory] = useState<MedicalHistoryEntry[]>(initialHistory); const [referralServices, setReferralServices] = useState<ReferralService[]>([]); const [auditEvents, setAuditEvents] = useState<PatientAuditEvent[]>([]); const [referralLetterSettings, setReferralLetterSettings] = useState<ReferralLetterSettings>({ clinicName: "Rainbow Child Development Clinic", clinicContact: "Phone: 9765002862 · rainbowclinic25@gmail.com", signatureName: "Associate Professor Dr. Anil Ojha, MBBS, MD, FCCH", signatureTitle: "Developmental Pediatrician" }); const [clinicLocation, setClinicLocation] = useState<ClinicLocationSettings>({ address: "Gokul Awas Rd, Karyabinayak 44700", mapUrl: "https://www.google.com.au/search?client=safari&hs=ORpV&sca_esv=79a7fd24df7232ff&hl=en-au&kgmid=/g/11zhz76ycx&q=Rainbow+Child+Development+Clinic&shem=epsd1,ltae,rimspwouoe&shndl=30&source=sh/x/loc/act/m1/3&kgs=21ca31c1d4d885a7&utm_source=epsd1,ltae,rimspwouoe,sh/x/loc/act/m1/3", clinicEmail: "rainbowclinic25@gmail.com", isProvisional: false }); const [staffMembers, setStaffMembers] = useState<StaffMember[]>([{ id: "staff-ojha", name: "Associate Professor Dr. Anil Ojha, MBBS, MD, FCCH", role: "clinician" }]); const [staffInvitations, setStaffInvitations] = useState<StaffInvitation[]>([]);
+  // Growth measurements are state now (they were a frozen demo list), so a value
+  // recorded in the dashboard appears immediately and survives a reload.
+  const [growthMetricRows, setGrowthMetricRows] = useState<GrowthMetric[]>(demoGrowthMetrics);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const session = await getSupabaseSession();
+        const client = getSupabase();
+        if (!session || !client) return;
+        const { data, error } = await client.from("child_growth_measurements").select("*");
+        if (cancelled || error || !data) return;
+        setGrowthMetricRows(data.map(mapGrowthRow).filter((row) => row.childId));
+      } catch { /* keep the prototype values if storage is unreachable */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   // Single write-through point: covers booking, reschedule, cancel and attendance.
   useEffect(() => { persistAppointments(appointments); }, [appointments]);
   const value = useMemo<PediatricCareContextValue>(() => {
@@ -176,6 +216,47 @@ export function PediatricCareProvider({ children: content }: { children: ReactNo
       const duration = durationFor(service); const start = timeToMinutes(startValue); const end = timeToMinutes(endValue); const dayBreaks = clinicBreaks.filter((item) => item.weekday === day!.weekday && validRange(item.start, item.end)); const slots: string[] = [];
       for (let candidate = start; candidate + duration <= end; candidate += 30) { const blockedByAppointment = appointments.some((appointment) => appointment.id !== omitAppointmentId && appointment.date === date && appointment.status !== "completed" && appointment.status !== "cancelled" && overlap(candidate, candidate + duration, timeToMinutes(appointment.time), timeToMinutes(appointment.time) + appointment.durationMinutes)); const blockedByBreak = dayBreaks.some((breakTime) => overlap(candidate, candidate + duration, timeToMinutes(breakTime.start), timeToMinutes(breakTime.end))); if (!blockedByAppointment && !blockedByBreak) slots.push(minutesToDisplay(candidate)); }
       return slots;
+    };
+    const recordGrowthMeasurement = async (input: GrowthMeasurementInput): Promise<GrowthSaveResult> => {
+      const draft = normaliseDraft(input);
+      const validation = validateGrowthMeasurement(draft);
+      if (!validation.ok) return { ok: false, message: validation.message };
+      const child = childProfiles.find((item) => item.id === draft.childId);
+      const months = ageInMonths(child?.dateOfBirth ?? "", draft.measuredOn);
+      const localRow: GrowthMetric = {
+        id: `growth-${Date.now()}`,
+        childId: draft.childId,
+        occurredOn: draft.measuredOn,
+        ageMonths: months ?? 0,
+        weightKg: draft.weightKg,
+        heightCm: draft.heightCm,
+        headCircumferenceCm: draft.headCircumferenceCm,
+        note: draft.note ?? "Measurement recorded in the clinic dashboard.",
+        recordedRole: "clinic",
+      };
+      setGrowthMetricRows((current) => [localRow, ...current]);
+      const summary = describeMeasurement(draft, months);
+      try {
+        const session = await getSupabaseSession();
+        const client = getSupabase();
+        if (session && client) {
+          const { error } = await client.from("child_growth_measurements").insert({
+            child_id: draft.childId,
+            measured_on: draft.measuredOn,
+            age_months: months,
+            weight_kg: draft.weightKg ?? null,
+            height_cm: draft.heightCm ?? null,
+            head_circumference_cm: draft.headCircumferenceCm ?? null,
+            note: draft.note ?? null,
+            recorded_by: session.user.email ?? null,
+            recorded_role: "clinic",
+          });
+          if (error) return { ok: true, message: `Recorded ${summary} on this device, but it could not be saved to the clinic record. Check the connection and record it again.` };
+        }
+        return { ok: true, message: `Recorded ${summary}.` };
+      } catch {
+        return { ok: true, message: `Recorded ${summary} on this device only.` };
+      }
     };
     const validateSlot = (date: string, time: string, service: string, omitAppointmentId?: string): Result => getAvailableSlots(date, service, omitAppointmentId).includes(time) ? { ok: true } : { ok: false, message: "That time is outside active clinic hours, overlaps a break or holiday, or no longer has enough time for this visit." };
     const recordAuditEvent = (event: PatientAuditEvent) => { const recordedAt = event.recordedAt ?? new Date().toISOString(); setAuditEvents((events) => [{ ...event, recordedAt }, ...events]); };
@@ -221,7 +302,8 @@ export function PediatricCareProvider({ children: content }: { children: ReactNo
       assignEarlierSlotRequest, updateStaffTriageCapacity, updateChildProfile,
       childrenSource,
       pendingReports,
-      children: childProfiles, activeChild: childProfiles.find((child) => child.id === selectedChildId) ?? childProfiles[0], setActiveChild: setSelectedChildId, appointments, replaceAppointments: setAppointments, prescriptions, history, growthMetrics, clinicHours, clinicBreaks, clinicHolidays, clinicDayHourOverrides, replaceClinicDayHourOverrides: setClinicDayHourOverrides, services, preparationChecklists, earlierSlotRequests, replaceEarlierSlotRequests: (persisted) => setEarlierSlotRequests((current) => { const byId = new Map(current.map((request) => [request.id, request])); persisted.forEach((request) => byId.set(request.id, request)); return [...byId.values()].sort((left, right) => Date.parse(right.requestedAt) - Date.parse(left.requestedAt)); }), waitlistOfferDurationHours, referralServices, auditEvents, replaceAuditEvents: (persisted) => setAuditEvents((current) => { const byId = new Map(current.map((event) => [event.id, event])); persisted.forEach((event) => byId.set(event.id, event)); const merged = [...byId.values()].sort((left, right) => Date.parse(right.attemptedAt ?? right.recordedAt ?? "") - Date.parse(left.attemptedAt ?? left.recordedAt ?? "")); return current.length === merged.length && current.every((event, index) => event === merged[index]) ? current : merged; }), referralLetterSettings, clinicLocation, staffMembers, applyStaffCapacitySnapshots: (capacities) => setStaffMembers((current) => current.map((staff) => { const matching = capacities.find((snapshot) => snapshot.staffId === staff.id); return matching ? { ...staff, triageCapacity: matching.triageCapacity } : staff; })), staffInvitations, getAvailableSlots,
+      recordGrowthMeasurement,
+      children: childProfiles, activeChild: childProfiles.find((child) => child.id === selectedChildId) ?? childProfiles[0], setActiveChild: setSelectedChildId, appointments, replaceAppointments: setAppointments, prescriptions, history, growthMetrics: growthMetricRows, clinicHours, clinicBreaks, clinicHolidays, clinicDayHourOverrides, replaceClinicDayHourOverrides: setClinicDayHourOverrides, services, preparationChecklists, earlierSlotRequests, replaceEarlierSlotRequests: (persisted) => setEarlierSlotRequests((current) => { const byId = new Map(current.map((request) => [request.id, request])); persisted.forEach((request) => byId.set(request.id, request)); return [...byId.values()].sort((left, right) => Date.parse(right.requestedAt) - Date.parse(left.requestedAt)); }), waitlistOfferDurationHours, referralServices, auditEvents, replaceAuditEvents: (persisted) => setAuditEvents((current) => { const byId = new Map(current.map((event) => [event.id, event])); persisted.forEach((event) => byId.set(event.id, event)); const merged = [...byId.values()].sort((left, right) => Date.parse(right.attemptedAt ?? right.recordedAt ?? "") - Date.parse(left.attemptedAt ?? left.recordedAt ?? "")); return current.length === merged.length && current.every((event, index) => event === merged[index]) ? current : merged; }), referralLetterSettings, clinicLocation, staffMembers, applyStaffCapacitySnapshots: (capacities) => setStaffMembers((current) => current.map((staff) => { const matching = capacities.find((snapshot) => snapshot.staffId === staff.id); return matching ? { ...staff, triageCapacity: matching.triageCapacity } : staff; })), staffInvitations, getAvailableSlots,
       bookAppointment: (input) => { const valid = validateSlot(input.date, input.time, input.service); if (!valid.ok) return valid; const appointment: PediatricAppointment = { id: `apt-${Date.now()}`, ...input, durationMinutes: durationFor(input.service), status: "needs-intake" }; setAppointments((current) => [appointment, ...current]); return { ok: true }; },
       rescheduleAppointment: (appointmentId, date, time, message = "") => { const current = appointments.find((appointment) => appointment.id === appointmentId); if (!current) return { ok: false, message: "The appointment could not be found." }; const valid = validateSlot(date, time, current.service, appointmentId); if (!valid.ok) return valid; setAppointments((items) => items.map((appointment) => appointment.id === appointmentId ? { ...appointment, date, time, status: "confirmed", changeMessage: message.trim() || undefined, rescheduledAt: new Date().toISOString(), rescheduleAcknowledgedAt: undefined, appointmentChangeReminderDraftedAt: undefined } : appointment)); recordAuditEvent({ id: `audit-${Date.now()}`, childId: current.childId, type: "appointment-change", occurredOn: "Today", actorRole: "clinician", actorName: "Associate Professor Dr. Anil Ojha", summary: `Appointment rescheduled to ${date} at ${time}.`, message: message.trim() || undefined }); return { ok: true }; },
       cancelAppointment: (appointmentId, message = "") => { const current = appointments.find((appointment) => appointment.id === appointmentId); if (!current) return { ok: false, message: "The appointment could not be found." }; setAppointments((items) => items.map((appointment) => appointment.id === appointmentId ? { ...appointment, status: "cancelled", changeMessage: message.trim() || undefined } : appointment)); recordAuditEvent({ id: `audit-${Date.now()}`, childId: current.childId, type: "appointment-change", occurredOn: "Today", actorRole: "clinician", actorName: "Associate Professor Dr. Anil Ojha", summary: "Appointment cancelled.", message: message.trim() || undefined }); return { ok: true }; },

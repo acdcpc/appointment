@@ -10,18 +10,29 @@ import { EnvironmentNavigationBadge } from "@/components/environment-navigation-
 import { LanguageNavigationToggle } from "@/components/language-navigation-toggle";
 import { SuperAdminServiceSuggestionWorkspace } from "@/components/super-admin-service-suggestion-workspace";
 import { useLanguagePreference } from "@/lib/language-preference";
+import { isAuthorityRole, useAuthorityRole } from "@/lib/authority-role";
+import { signOutGuardian } from "@/lib/supabase-auth";
+import { signOutSupabase } from "@/lib/supabase";
 
-function DesktopTopNav({ colors, language, setLanguage }: { colors: ReturnType<typeof useColors>; language: string; setLanguage: (l: "en" | "ne") => void }) {
+function DesktopTopNav({ colors, language, setLanguage, authority }: { colors: ReturnType<typeof useColors>; language: string; setLanguage: (l: "en" | "ne") => void; authority: boolean }) {
   const router = useRouter();
   const pathname = usePathname() ?? "/";
   const segment = pathname.replace("/(tabs)", "");
-  const items: Array<{ path: Href; label: string }> = [
-    { path: "/", label: language === "ne" ? "गृहपृष्ठ" : "Home" },
-    { path: "/(tabs)/find", label: language === "ne" ? "समय लिनुहोस्" : "Book visit" },
-    { path: "/(tabs)/appointments", label: language === "ne" ? "भेटहरू" : "Visits" },
-    { path: "/(tabs)/records", label: language === "ne" ? "अभिलेख" : "Records" },
-    { path: "/(tabs)/profile", label: language === "ne" ? "प्रोफाइल" : "Profile" },
-  ];
+  // Clinic staff do not book their own child in, so the parent tabs are dropped
+  // for them and the dashboard takes their place.
+  const items: Array<{ path: Href; label: string }> = authority
+    ? [
+        { path: "/", label: language === "ne" ? "गृहपृष्ठ" : "Home" },
+        { path: "/clinician" as Href, label: language === "ne" ? "क्लिनिक ड्यासबोर्ड" : "Clinic dashboard" },
+        { path: "/(tabs)/profile", label: language === "ne" ? "प्रोफाइल" : "Profile" },
+      ]
+    : [
+        { path: "/", label: language === "ne" ? "गृहपृष्ठ" : "Home" },
+        { path: "/(tabs)/find", label: language === "ne" ? "समय लिनुहोस्" : "Book visit" },
+        { path: "/(tabs)/appointments", label: language === "ne" ? "भेटहरू" : "Visits" },
+        { path: "/(tabs)/records", label: language === "ne" ? "अभिलेख" : "Records" },
+        { path: "/(tabs)/profile", label: language === "ne" ? "प्रोफाइल" : "Profile" },
+      ];
   return (
     <View style={{ backgroundColor: colors.background, borderBottomWidth: 0.5, borderBottomColor: colors.border }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 16, minHeight: 56, paddingHorizontal: 24, width: "100%", maxWidth: 1200, alignSelf: "center" }}>
@@ -77,16 +88,18 @@ export default function TabLayout() {
   const { setLanguage } = useLanguagePreference();
   const { width } = useWindowDimensions();
   const desktopNav = Platform.OS === "web" && width >= 1024;
+  const authorityRole = useAuthorityRole();
+  const authorityTabs = isAuthorityRole(authorityRole);
   const bottomPadding = Platform.OS === "web" ? 12 : Math.max(insets.bottom, 8);
   const tabBarHeight = Math.max(56, minimumActionHeight + 12) + bottomPadding;
   return (
     <>
-    {desktopNav ? <DesktopTopNav colors={colors} language={language} setLanguage={setLanguage} /> : null}
+    {desktopNav ? <DesktopTopNav colors={colors} language={language} setLanguage={setLanguage} authority={authorityTabs} /> : null}
     <Tabs screenOptions={{ headerShown: false, tabBarActiveTintColor: colors.primary, tabBarInactiveTintColor: colors.muted, tabBarButton: HapticTab, tabBarStyle: desktopNav ? { display: "none" } : { paddingTop: 9, paddingBottom: bottomPadding, height: tabBarHeight + 4, backgroundColor: colors.surface, borderTopColor: colors.border, borderTopWidth: 1 } }}>
       <Tabs.Screen name="index" options={{ title: language === "ne" ? "गृहपृष्ठ" : "Home", tabBarIcon: ({ color }) => <IconSymbol size={24} name="house.fill" color={color} /> }} />
-      <Tabs.Screen name="find" options={{ title: language === "ne" ? "समय लिनुहोस्" : "Book visit", tabBarIcon: ({ color }) => <IconSymbol size={24} name="magnifyingglass" color={color} /> }} />
-      <Tabs.Screen name="appointments" options={{ title: language === "ne" ? "भेटहरू" : "Visits", tabBarIcon: ({ color }) => <IconSymbol size={24} name="calendar" color={color} /> }} />
-      <Tabs.Screen name="records" options={{ title: language === "ne" ? "अभिलेख" : "Records", tabBarIcon: ({ color }) => <IconSymbol size={24} name="doc.text" color={color} /> }} />
+      <Tabs.Screen name="find" options={{ href: authorityTabs ? null : undefined, title: language === "ne" ? "समय लिनुहोस्" : "Book visit", tabBarIcon: ({ color }) => <IconSymbol size={24} name="magnifyingglass" color={color} /> }} />
+      <Tabs.Screen name="appointments" options={{ href: authorityTabs ? null : undefined, title: language === "ne" ? "भेटहरू" : "Visits", tabBarIcon: ({ color }) => <IconSymbol size={24} name="calendar" color={color} /> }} />
+      <Tabs.Screen name="records" options={{ href: authorityTabs ? null : undefined, title: language === "ne" ? "अभिलेख" : "Records", tabBarIcon: ({ color }) => <IconSymbol size={24} name="doc.text" color={color} /> }} />
       <Tabs.Screen name="profile" options={{ title: language === "ne" ? "प्रोफाइल" : "Profile", tabBarIcon: ({ color }) => <IconSymbol size={24} name="person.fill" color={color} /> }} />
     </Tabs><LanguageNavigationToggle /><SuperAdminServiceSuggestionWorkspace /><EnvironmentNavigationBadge /><AuthorityNavigationBadge />
     </>

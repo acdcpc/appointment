@@ -15,6 +15,7 @@ import {
   type GuardianSession,
 } from "@/lib/supabase-auth";
 import { getAuthErrorMessage, isAlreadyRegisteredError, passwordProblem } from "@/lib/auth-errors";
+import { isClinicAdministratorEmail } from "../server/clinic-authority";
 
 /**
  * Parent sign-in / sign-up.
@@ -83,14 +84,14 @@ export default function ParentAuthScreen() {
           setSuccess(t("Account created — you are signed in.", "खाता बनियो — तपाईं लग इन हुनुभयो।"));
           const next = await getGuardianSession();
           setSession(next);
-          setTimeout(() => router.replace("/(tabs)"), 1800);
+          setTimeout(() => router.replace(isClinicAdministratorEmail(email.trim()) ? "/clinician" as never : "/(tabs)"), 1800);
         }
       } else {
         const signedIn = await signInGuardianWithEmail(email.trim(), password);
         setSession(signedIn);
         setSuccess(t("Signed in. Loading your child's details…", "लग इन भयो। बच्चाको विवरण खोल्दै…"));
         setPassword("");
-        setTimeout(() => router.replace("/(tabs)"), 900);
+        setTimeout(() => router.replace(isClinicAdministratorEmail(email.trim()) ? "/clinician" as never : "/(tabs)"), 900);
       }
     } catch (error) {
       if (isRegistering && isAlreadyRegisteredError(error)) {

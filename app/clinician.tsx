@@ -2,55 +2,28 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
-import { GuardianLinkingCard } from "@/components/guardian-linking-card";
 import { useColors } from "@/hooks/use-colors";
 import { type ClinicOperatingHour, usePediatricCare } from "@/lib/pediatric-care";
 import { useAuth } from "@/hooks/use-auth";
 import { signInWithSupabaseEmail, signOutSupabase, getSupabaseSession } from "@/lib/supabase";
 import { isClinicAdministratorEmail, isSuperAdminEmail } from "../server/clinic-authority";
 import { trpc } from "@/lib/trpc";
-import { ClinicianIntelligence } from "@/components/clinician-intelligence";
-import { ActiveGrowthReference } from "@/components/active-growth-reference";
-import { ReferralTemplateBuilder } from "@/components/referral-template-builder";
-import { ClinicianAuditLog } from "@/components/clinician-audit-log";
+import { GrowthMeasurementEntry } from "@/components/growth-measurement-entry";
 import { AuthenticatedStaffAccounts } from "@/components/authenticated-staff-accounts";
-import { DashboardNotifications } from "@/components/dashboard-notifications";
-import { ApprovalActivityFeed } from "@/components/approval-activity-feed";
 import { ReferralDeliveryMonitor } from "@/components/referral-delivery-monitor";
-import { AuditRetentionSettings } from "@/components/audit-retention-settings";
-import { RetentionInsights } from "@/components/retention-insights";
 import { ClinicContactSettings } from "@/components/clinic-contact-settings";
 import { ClinicDayHourOverrides } from "@/components/clinic-day-hour-overrides";
 import { PatientCommunication } from "@/components/patient-communication";
-import { GuardianFollowUp } from "@/components/guardian-follow-up";
 import { ClinicDayFocus } from "@/components/clinic-day-focus";
 import { ServicePreparationSettings } from "@/components/service-preparation-settings";
 import { EarlierSlotRequests } from "@/components/earlier-slot-requests";
 import { WaitlistActivity } from "@/components/waitlist-activity";
-import { DailyWaitlistTriage } from "@/components/daily-waitlist-triage";
-import { WeeklyWaitlistSummary } from "@/components/weekly-waitlist-summary";
-import { MonthlyWaitlistConversionReport } from "@/components/monthly-waitlist-conversion-report";
-import { AppointmentChangeFollowUp } from "@/components/appointment-change-follow-up";
-import { TriageCapacitySettings } from "@/components/triage-capacity-settings";
-import { BulkAppointmentChangeReminders } from "@/components/bulk-appointment-change-reminders";
-import { WaitlistConversionTrend } from "@/components/waitlist-conversion-trend";
-import { StaffCapacityHistory } from "@/components/staff-capacity-history";
 import { ClinicianOperationalSync } from "@/components/clinician-operational-sync";
-import { CapacityTargetAlerts } from "@/components/capacity-target-alerts";
-import { PrintAccessAuditExport } from "@/components/print-access-audit-export";
-import { CapacityAlertOperationsSettings } from "@/components/capacity-alert-operations-settings";
 import { StaffCapacityAlertWorkspace } from "@/components/staff-capacity-alert-workspace";
-import { AuditPresetManager } from "@/components/audit-preset-manager";
-import { WeeklyCapacitySummaryExport } from "@/components/weekly-capacity-summary-export";
 import { StaffInvitationExpiryReminders } from "@/components/staff-invitation-expiry-reminders";
-import { StaffAccountActivityAudit } from "@/components/staff-account-activity-audit";
-import { MonthlyStaffAccessSummary } from "@/components/monthly-staff-access-summary";
 import { WeeklyCapacityReportReference } from "@/components/weekly-capacity-report-reference";
-import { WeeklyCapacityReportReferenceSettings } from "@/components/weekly-capacity-report-reference-settings";
 import { WeeklyCapacityReportExpiryReminders } from "@/components/weekly-capacity-report-expiry-reminders";
 import { ClinicianAppointmentSync } from "@/components/clinician-appointment-sync";
-import { ClinicianAppointmentCreation } from "@/components/clinician-appointment-creation";
-import { GuardianRecordAccessIssuer } from "@/components/guardian-record-access-issuer";
 import { LargeTextAccessibilityCheck } from "@/components/large-text-accessibility-check";
 import { ClinicianDeploymentFeedbackLink } from "@/components/clinician-deployment-feedback-link";
 
@@ -108,7 +81,22 @@ export default function ClinicianDashboard() {
   if (!isAuthenticated) return <ClinicianLogin onBack={() => router.back()} onSignedIn={(signedInEmail) => { setSupabaseAuthed(true); setAccountEmail(signedInEmail); }} />;
   if (!accessAllowed) return <ScreenContainer className="p-5"><View style={styles.loginWrap}><Pressable onPress={() => router.back()}><Text style={[styles.back, { color: colors.primary }]}>‹  Back</Text></Pressable><View style={[styles.loginCard, { backgroundColor: colors.surface, borderColor: colors.border }]}><Text style={[styles.loginTitle, { color: colors.foreground }]}>Clinic access required</Text><Text style={[styles.loginText, { color: colors.muted }]}>{denialReason ?? "This signed-in account is not assigned to the clinic. Ask the practice owner to create an invitation matching your account email."}</Text><Pressable onPress={logout} style={[styles.secondaryButton, { borderColor: colors.primary }]}><Text style={{ color: colors.primary, fontWeight: "800" }}>Sign out</Text></Pressable></View></View></ScreenContainer>;
   if (!isOwner) return <StaffCapacityAlertWorkspace role={access.data?.staffRole ?? "receptionist"} onSignOut={logout} />;
-  return <Dashboard focus={focus} reportId={reportId} />;
+  return (
+    <>
+      <View style={[styles.authorityBar, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: colors.foreground, fontWeight: "900", fontSize: 14 }}>Rainbow Child Development Clinic · clinic dashboard</Text>
+          <Text style={{ color: colors.muted, fontSize: 12 }}>
+            {isSuperAdminEmail(accountEmail) ? "Signed in as super-admin" : "Signed in as clinic admin"}{accountEmail ? ` · ${accountEmail}` : ""}
+          </Text>
+        </View>
+        <Pressable onPress={logout} accessibilityRole="button" style={[styles.authoritySignOut, { borderColor: colors.primary }]}>
+          <Text style={{ color: colors.primary, fontWeight: "900", fontSize: 13 }}>Sign out / लग आउट</Text>
+        </Pressable>
+      </View>
+      <Dashboard focus={focus} reportId={reportId} />
+    </>
+  );
 }
 
 function Dashboard({ focus, reportId }: { focus?: "contacts" | "staff" | "email-shares"; reportId?: string }) {
@@ -128,45 +116,27 @@ function Dashboard({ focus, reportId }: { focus?: "contacts" | "staff" | "email-
     <Pressable onPress={() => router.back()}><Text style={[styles.back, { color: colors.primary }]}>‹  Back</Text></Pressable><Text style={[styles.eyebrow, { color: colors.primary }]}>RAINBOW CHILD DEVELOPMENT CLINIC</Text><Text style={[styles.title, { color: colors.foreground }]}>Associate Professor Dr. Anil Ojha</Text><Text style={[styles.subtitle, { color: colors.muted }]}>MBBS, MD, FCCH · Developmental Pediatrician · 9765002862</Text>
     <ClinicianDeploymentFeedbackLink />
     <View style={styles.metrics}>{[[String(scheduledQueue.length), "Scheduled visits"], [String(appointments.filter((item) => item.status === "needs-intake").length), "Needs intake"], ["1", "Active child"]].map(([value, label]) => <View key={label} style={[styles.metric, { backgroundColor: colors.surface, borderColor: colors.border }]}><Text style={[styles.metricValue, { color: colors.foreground }]}>{value}</Text><Text style={[styles.cardMeta, { color: colors.muted }]}>{label}</Text></View>)}</View>
-    <View style={[styles.shortcutCard, { backgroundColor: colors.surface, borderColor: colors.border }]} accessibilityLabel="Dashboard section shortcuts"><Text style={[styles.shortcutTitle, { color: colors.foreground }]}>Jump to section</Text><Text style={[styles.cardMeta, { color: colors.muted }]}>Shortcuts keep the full dashboard in reading order and do not hide alerts.</Text><View style={styles.shortcutRow}>{shortcuts.map((shortcut) => <Pressable key={shortcut.id} onPress={() => jumpToSection(shortcut.id)} accessibilityRole="button" accessibilityLabel={`Jump to ${shortcut.label}`} style={[styles.shortcut, { borderColor: colors.primary }]}><Text style={[styles.shortcutText, { color: colors.primary }]}>{shortcut.label}</Text></Pressable>)}</View></View>
+    <View style={[styles.shortcutCard, { backgroundColor: colors.surface, borderColor: colors.border }]} accessibilityLabel="Dashboard section shortcuts"><Text style={[styles.shortcutTitle, { color: colors.foreground }]}>Jump to section</Text><Text style={[styles.cardMeta, { color: colors.muted }]}>Shortcuts jump to the sections kept in this dashboard.</Text><View style={styles.shortcutRow}>{(shortcuts.filter((shortcut) => shortcut.id !== "operations" && shortcut.id !== "appointments")).map((shortcut) => <Pressable key={shortcut.id} onPress={() => jumpToSection(shortcut.id)} accessibilityRole="button" accessibilityLabel={`Jump to ${shortcut.label}`} style={[styles.shortcut, { borderColor: colors.primary }]}><Text style={[styles.shortcutText, { color: colors.primary }]}>{shortcut.label}</Text></Pressable>)}</View></View>
     <ClinicDayFocus />
     <StaffInvitationExpiryReminders onOpenStaff={() => router.push({ pathname: "/clinician", params: { focus: "staff" } })} />
     <WeeklyCapacityReportExpiryReminders />
     {reportId ? <WeeklyCapacityReportReference internalReportId={reportId} /> : null}
-    <View onLayout={(event) => saveSectionOffset("operations", event.nativeEvent.layout.y)}><Text style={[styles.sectionTitle, { color: colors.foreground }]}>Operational work</Text><GuardianLinkingCard /><DailyWaitlistTriage />
-    <TriageCapacitySettings />
-    <CapacityTargetAlerts />
-    <CapacityAlertOperationsSettings />
-    <WeeklyWaitlistSummary />
-    <MonthlyWaitlistConversionReport />
-    <WaitlistConversionTrend />
-    <StaffCapacityHistory />
-    <AppointmentChangeFollowUp />
-    <PrintAccessAuditExport />
-    <AuditPresetManager />
-    <WeeklyCapacitySummaryExport />
-    <WeeklyCapacityReportReferenceSettings />
-    <StaffAccountActivityAudit />
-    <MonthlyStaffAccessSummary />
-    <BulkAppointmentChangeReminders />
-    <DashboardNotifications onOpenContacts={() => router.push({ pathname: "/clinician", params: { focus: "contacts" } })} onOpenStaff={() => router.push({ pathname: "/clinician", params: { focus: "staff" } })} onOpenEmailShares={() => router.push({ pathname: "/clinician", params: { focus: "email-shares" } })} />
-    <ApprovalActivityFeed /></View>
+
     <ReferralDeliveryMonitor />
-    {focus === "contacts" ? <ReferralTemplateBuilder /> : null}
-    {focus === "staff" ? <AuthenticatedStaffAccounts /> : null}
-    <View onLayout={(event) => saveSectionOffset("appointments", event.nativeEvent.layout.y)}><Text style={[styles.sectionTitle, { color: colors.foreground }]}>Appointment queue</Text><ClinicianAppointmentCreation />{scheduledQueue.length ? scheduledQueue.map((appointment) => <View key={appointment.id} style={[styles.queueCard, { backgroundColor: colors.surface, borderColor: colors.border }]}><Text style={[styles.queueTime, { color: colors.primary }]}>{appointment.time}</Text><View style={styles.queueDetails}><Text style={[styles.cardTitle, { color: colors.foreground }]}>{children.find((child) => child.id === appointment.childId)?.name ?? "Child record"} · {appointment.service}</Text><Text style={[styles.cardMeta, { color: colors.muted }]}>{appointment.date} · {appointment.reason} · {appointment.durationMinutes} minutes</Text></View><Text style={[styles.status, { color: appointment.status === "needs-intake" ? colors.warning : colors.success }]}>{appointment.status === "needs-intake" ? "Intake" : "Confirmed"}</Text></View>) : <View style={[styles.emptyState, { backgroundColor: colors.surface, borderColor: colors.border }]}><Text style={[styles.cardTitle, { color: colors.foreground }]}>No durable appointments yet</Text><Text style={[styles.cardMeta, { color: colors.muted }]}>Create a clinician-authorized visit above, or new bookings will appear here when the authorized schedule is opened. No sample visits are shown.</Text></View>}</View>
-    <View onLayout={(event) => saveSectionOffset("care", event.nativeEvent.layout.y)}><Text style={[styles.sectionTitle, { color: colors.foreground }]}>Care tools</Text><ClinicianIntelligence onApplyDraft={applyAiDraft} />
+        {focus === "staff" ? <AuthenticatedStaffAccounts /> : null}
+
+    <View onLayout={(event) => saveSectionOffset("care", event.nativeEvent.layout.y)}><Text style={[styles.sectionTitle, { color: colors.foreground }]}>Care tools</Text>
     <PatientCommunication />
-    <GuardianRecordAccessIssuer />
-    <GuardianFollowUp />
+    
+    
     <ServicePreparationSettings />
     <EarlierSlotRequests />
     <WaitlistActivity />
-    <ActiveGrowthReference />
-    {!focus ? <ReferralTemplateBuilder /> : null}
-    <ClinicianAuditLog forcedFilter={focus === "email-shares" ? "email-share" : undefined} />
-    <AuditRetentionSettings />
-    <RetentionInsights />
+    <GrowthMeasurementEntry />
+    
+        
+    
+    
     <ClinicContactSettings /></View>
     {!focus ? <AuthenticatedStaffAccounts /> : null}
     <View onLayout={(event) => saveSectionOffset("settings", event.nativeEvent.layout.y)}><Text style={[styles.sectionTitle, { color: colors.foreground }]}>Schedule settings</Text><Text style={[styles.cardMeta, { color: colors.muted }]}>Changes block new bookings only. Review existing appointments separately if you change clinic availability.</Text>
@@ -178,4 +148,4 @@ function Dashboard({ focus, reportId }: { focus?: "contacts" | "staff" | "email-
   </ScrollView></ScreenContainer>;
 }
 
-const styles = StyleSheet.create({ back: { fontSize: 15, fontWeight: "800", marginBottom: 20 }, loadingText: { marginTop: 12, fontSize: 14 }, loginWrap: { flex: 1, justifyContent: "center" }, loginCard: { borderWidth: 1, borderRadius: 24, padding: 22, gap: 15 }, lock: { width: 50, height: 50, borderRadius: 17, alignItems: "center", justifyContent: "center" }, loginTitle: { fontSize: 24, fontWeight: "800" }, loginText: { fontSize: 15, lineHeight: 22 }, noticeText: { fontWeight: "800", lineHeight: 20 }, loginFootnote: { fontSize: 12, lineHeight: 18 }, label: { fontSize: 12, fontWeight: "800", marginTop: 8, marginBottom: 4 }, eyebrow: { fontSize: 11, letterSpacing: 1.4, fontWeight: "800" }, title: { fontSize: 30, lineHeight: 36, fontWeight: "800", marginTop: 5 }, subtitle: { fontSize: 15, lineHeight: 22, marginTop: 4 }, metrics: { flexDirection: "row", gap: 8, marginTop: 22 }, metric: { flex: 1, borderWidth: 1, borderRadius: 16, padding: 12, gap: 4 }, metricValue: { fontSize: 24, fontWeight: "800" }, shortcutCard: { borderWidth: 1, borderRadius: 16, padding: 14, gap: 8, marginTop: 12 }, shortcutTitle: { fontSize: 15, fontWeight: "800" }, shortcutRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 }, shortcut: { minHeight: 44, borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, justifyContent: "center" }, shortcutText: { fontSize: 13, fontWeight: "800" }, sectionTitle: { fontSize: 18, fontWeight: "800", marginTop: 24, marginBottom: 10 }, subsection: { fontSize: 15, fontWeight: "800", marginTop: 16, marginBottom: 8 }, cardTitle: { fontSize: 15, fontWeight: "800" }, cardMeta: { fontSize: 13, lineHeight: 19 }, queueCard: { borderWidth: 1, borderRadius: 16, padding: 14, flexDirection: "row", gap: 12, alignItems: "flex-start", marginBottom: 8 }, queueTime: { fontWeight: "800", minWidth: 64 }, queueDetails: { flex: 1, gap: 3, minWidth: 0 }, status: { fontSize: 11, fontWeight: "800" }, emptyState: { borderWidth: 1, borderRadius: 16, padding: 14, gap: 5 }, hourRow: { borderWidth: 1, borderRadius: 16, padding: 13, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 8, flexWrap: "wrap" }, timeFields: { flexDirection: "row", alignItems: "center", gap: 5, flexWrap: "wrap" }, timeInput: { borderWidth: 1, borderRadius: 9, minWidth: 62, paddingVertical: 7, paddingHorizontal: 6, fontSize: 13, textAlign: "center" }, settingsCard: { borderWidth: 1, borderRadius: 16, padding: 13, gap: 10 }, breakDayRow: { flexDirection: "row", gap: 5, flexWrap: "wrap" }, dayChip: { minWidth: 42, borderWidth: 1, borderRadius: 8, alignItems: "center", paddingHorizontal: 8, paddingVertical: 8 }, breakFields: { flexDirection: "row", alignItems: "center", gap: 5, flexWrap: "wrap" }, smallButton: { borderRadius: 9, paddingHorizontal: 12, paddingVertical: 9, minHeight: 40, justifyContent: "center" }, smallButtonText: { fontWeight: "800" }, settingItem: { borderTopWidth: 1, paddingTop: 10, flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }, holidayFields: { flexDirection: "row", gap: 8, flexWrap: "wrap" }, holidayDate: { flexGrow: 1, minWidth: 120, borderWidth: 1, borderRadius: 9, padding: 10, fontSize: 13 }, holidayLabel: { flexGrow: 1, minWidth: 120, borderWidth: 1, borderRadius: 9, padding: 10, fontSize: 13 }, durationRow: { borderWidth: 1, borderRadius: 16, padding: 13, flexDirection: "row", alignItems: "center", gap: 10, marginTop: 8, flexWrap: "wrap" }, durationOptions: { flexDirection: "row", gap: 4, flexWrap: "wrap" }, duration: { minWidth: 44, minHeight: 40, borderWidth: 1, borderRadius: 9, alignItems: "center", justifyContent: "center", paddingHorizontal: 8, paddingVertical: 8 }, appointmentPicker: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 }, appointmentOption: { borderWidth: 1, borderRadius: 10, padding: 10, minHeight: 44, justifyContent: "center" }, input: { borderWidth: 1, borderRadius: 13, padding: 13, fontSize: 15, marginTop: 12 }, instructions: { minHeight: 94, borderWidth: 1, borderRadius: 13, padding: 13, fontSize: 15, marginTop: 10, textAlignVertical: "top" }, message: { fontSize: 13, fontWeight: "800", marginTop: 10, lineHeight: 19 }, primaryButton: { borderRadius: 15, padding: 16, minHeight: 50, justifyContent: "center", alignItems: "center", marginTop: 14 }, primaryButtonText: { fontWeight: "800", fontSize: 16 }, secondaryButton: { borderWidth: 1, borderRadius: 13, padding: 12, minHeight: 44, justifyContent: "center", alignItems: "center" } });
+const styles = StyleSheet.create({ authorityBar: { flexDirection: "row", alignItems: "center", gap: 12, borderBottomWidth: 1, paddingHorizontal: 18, paddingVertical: 10, flexWrap: "wrap" }, authoritySignOut: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, minHeight: 44, justifyContent: "center" }, back: { fontSize: 15, fontWeight: "800", marginBottom: 20 }, loadingText: { marginTop: 12, fontSize: 14 }, loginWrap: { flex: 1, justifyContent: "center" }, loginCard: { borderWidth: 1, borderRadius: 24, padding: 22, gap: 15 }, lock: { width: 50, height: 50, borderRadius: 17, alignItems: "center", justifyContent: "center" }, loginTitle: { fontSize: 24, fontWeight: "800" }, loginText: { fontSize: 15, lineHeight: 22 }, noticeText: { fontWeight: "800", lineHeight: 20 }, loginFootnote: { fontSize: 12, lineHeight: 18 }, label: { fontSize: 12, fontWeight: "800", marginTop: 8, marginBottom: 4 }, eyebrow: { fontSize: 11, letterSpacing: 1.4, fontWeight: "800" }, title: { fontSize: 30, lineHeight: 36, fontWeight: "800", marginTop: 5 }, subtitle: { fontSize: 15, lineHeight: 22, marginTop: 4 }, metrics: { flexDirection: "row", gap: 8, marginTop: 22 }, metric: { flex: 1, borderWidth: 1, borderRadius: 16, padding: 12, gap: 4 }, metricValue: { fontSize: 24, fontWeight: "800" }, shortcutCard: { borderWidth: 1, borderRadius: 16, padding: 14, gap: 8, marginTop: 12 }, shortcutTitle: { fontSize: 15, fontWeight: "800" }, shortcutRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 }, shortcut: { minHeight: 44, borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, justifyContent: "center" }, shortcutText: { fontSize: 13, fontWeight: "800" }, sectionTitle: { fontSize: 18, fontWeight: "800", marginTop: 24, marginBottom: 10 }, subsection: { fontSize: 15, fontWeight: "800", marginTop: 16, marginBottom: 8 }, cardTitle: { fontSize: 15, fontWeight: "800" }, cardMeta: { fontSize: 13, lineHeight: 19 }, queueCard: { borderWidth: 1, borderRadius: 16, padding: 14, flexDirection: "row", gap: 12, alignItems: "flex-start", marginBottom: 8 }, queueTime: { fontWeight: "800", minWidth: 64 }, queueDetails: { flex: 1, gap: 3, minWidth: 0 }, status: { fontSize: 11, fontWeight: "800" }, emptyState: { borderWidth: 1, borderRadius: 16, padding: 14, gap: 5 }, hourRow: { borderWidth: 1, borderRadius: 16, padding: 13, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 8, flexWrap: "wrap" }, timeFields: { flexDirection: "row", alignItems: "center", gap: 5, flexWrap: "wrap" }, timeInput: { borderWidth: 1, borderRadius: 9, minWidth: 62, paddingVertical: 7, paddingHorizontal: 6, fontSize: 13, textAlign: "center" }, settingsCard: { borderWidth: 1, borderRadius: 16, padding: 13, gap: 10 }, breakDayRow: { flexDirection: "row", gap: 5, flexWrap: "wrap" }, dayChip: { minWidth: 42, borderWidth: 1, borderRadius: 8, alignItems: "center", paddingHorizontal: 8, paddingVertical: 8 }, breakFields: { flexDirection: "row", alignItems: "center", gap: 5, flexWrap: "wrap" }, smallButton: { borderRadius: 9, paddingHorizontal: 12, paddingVertical: 9, minHeight: 40, justifyContent: "center" }, smallButtonText: { fontWeight: "800" }, settingItem: { borderTopWidth: 1, paddingTop: 10, flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }, holidayFields: { flexDirection: "row", gap: 8, flexWrap: "wrap" }, holidayDate: { flexGrow: 1, minWidth: 120, borderWidth: 1, borderRadius: 9, padding: 10, fontSize: 13 }, holidayLabel: { flexGrow: 1, minWidth: 120, borderWidth: 1, borderRadius: 9, padding: 10, fontSize: 13 }, durationRow: { borderWidth: 1, borderRadius: 16, padding: 13, flexDirection: "row", alignItems: "center", gap: 10, marginTop: 8, flexWrap: "wrap" }, durationOptions: { flexDirection: "row", gap: 4, flexWrap: "wrap" }, duration: { minWidth: 44, minHeight: 40, borderWidth: 1, borderRadius: 9, alignItems: "center", justifyContent: "center", paddingHorizontal: 8, paddingVertical: 8 }, appointmentPicker: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 }, appointmentOption: { borderWidth: 1, borderRadius: 10, padding: 10, minHeight: 44, justifyContent: "center" }, input: { borderWidth: 1, borderRadius: 13, padding: 13, fontSize: 15, marginTop: 12 }, instructions: { minHeight: 94, borderWidth: 1, borderRadius: 13, padding: 13, fontSize: 15, marginTop: 10, textAlignVertical: "top" }, message: { fontSize: 13, fontWeight: "800", marginTop: 10, lineHeight: 19 }, primaryButton: { borderRadius: 15, padding: 16, minHeight: 50, justifyContent: "center", alignItems: "center", marginTop: 14 }, primaryButtonText: { fontWeight: "800", fontSize: 16 }, secondaryButton: { borderWidth: 1, borderRadius: 13, padding: 12, minHeight: 44, justifyContent: "center", alignItems: "center" } });
