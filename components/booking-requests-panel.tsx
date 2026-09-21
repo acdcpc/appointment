@@ -3,8 +3,8 @@ import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, TextInput, Vie
 
 import { useColors } from "@/hooks/use-colors";
 import { usePediatricCare } from "@/lib/pediatric-care";
-import * as Clipboard from "expo-clipboard";
 import { upcomingClinicDays } from "@/lib/clinic-days";
+import { PatientContactPanel } from "@/components/patient-contact-panel";
 import {
   buildRescheduleNotice,
   loadAllBookingRequests,
@@ -37,8 +37,6 @@ export function BookingRequestsPanel() {
   // Patient identification opens when a booking is tapped: who is coming, and
   // how to reach that family with a message about their visit.
   const [openId, setOpenId] = useState<number | null>(null);
-  const [outgoing, setOutgoing] = useState("");
-  const [copyNotice, setCopyNotice] = useState("");
   const [counter, setCounter] = useState<"upcoming" | "rescheduled" | "new" | "closed" | null>(null);
 
   const load = async () => {
@@ -59,36 +57,6 @@ export function BookingRequestsPanel() {
 
   const openPatient = (request: BookingRequest) => {
     setOpenId(openId === request.id ? null : request.id);
-    setCopyNotice("");
-    setOutgoing(`Namaste, this is Rainbow Child Development Clinic. Regarding ${request.childName}'s visit on ${request.preferredDate} at ${request.preferredTime} (${request.service}) — `);
-  };
-
-  const waLink = (request: BookingRequest, text: string) => {
-    const digits = request.guardianPhone.replace(/\D/g, "");
-    return `https://wa.me/${digits.startsWith("977") ? digits : `977${digits}`}?text=${encodeURIComponent(text)}`;
-  };
-
-  const sendWhatsApp = async (request: BookingRequest) => {
-    try {
-      await Linking.openURL(waLink(request, outgoing));
-      const result = await markBookingRequestNotified(request.id);
-      setCopyNotice(result.ok ? "WhatsApp opened with your message. Recorded that the parent was contacted." : result.message);
-      await load();
-    } catch {
-      setCopyNotice("WhatsApp could not be opened. Use Call or copy the message instead.");
-    }
-  };
-
-  const sendEmail = async (request: BookingRequest) => {
-    if (!request.guardianEmail) { setCopyNotice("No email address was given for this family."); return; }
-    const url = `mailto:${request.guardianEmail}?subject=${encodeURIComponent("Your child's visit at Rainbow Child Development Clinic")}&body=${encodeURIComponent(outgoing)}`;
-    try { await Linking.openURL(url); setCopyNotice("Email app opened with your message."); }
-    catch { setCopyNotice("No email app is available. Copy the message instead."); }
-  };
-
-  const copyMessage = async () => {
-    try { await Clipboard.setStringAsync(outgoing); setCopyNotice("Message copied."); }
-    catch { setCopyNotice("Copy was unavailable."); }
   };
 
   const serviceFor = (request: BookingRequest) => services.find((item) => item.name === request.service)?.name ?? services[0]?.name ?? "";
@@ -120,8 +88,8 @@ export function BookingRequestsPanel() {
 
   const informParent = async (request: BookingRequest) => {
     const text = buildRescheduleNotice(request, request.preferredDate, request.preferredTime);
-    const number = request.guardianPhone.replace(/\D/g, "");
-    const url = `https://wa.me/${number.startsWith("977") ? number : `977${number}`}?text=${encodeURIComponent(text)}`;
+    const digits = request.guardianPhone.replace(/\D/g, "");
+    const url = `https://wa.me/${digits.startsWith("977") ? digits : `977${digits}`}?text=${encodeURIComponent(text)}`;
     try {
       await Linking.openURL(url);
       const result = await markBookingRequestNotified(request.id);
@@ -227,57 +195,19 @@ export function BookingRequestsPanel() {
           </Pressable>
 
           {openId === request.id ? (
-            <View style={[styles.patient, { borderTopColor: colors.border }]}>
-              <Text style={[styles.fieldLabel, { color: colors.primary }]}>PATIENT IDENTIFICATION</Text>
-              <Text style={{ color: colors.foreground, fontSize: 15, fontWeight: "900" }}>{request.childName}</Text>
-              <Text style={{ color: colors.muted, fontSize: 13 }}>
-                {request.childAge} · {request.childSex === "male" ? "Boy" : "Girl"}
-                {request.weightKg !== undefined ? ` · ${request.weightKg} kg` : ""}
-                {request.heightCm !== undefined ? ` · ${request.heightCm} cm` : ""}
-              </Text>
-              {linkedPatient(request) ? (
-                <Text style={{ color: colors.success, fontSize: 12, fontWeight: "800" }}>
-                  Linked patient record: date of birth {linkedPatient(request)!.dateOfBirth}{linkedPatient(request)!.allergies ? ` · ${linkedPatient(request)!.allergies}` : ""}
-                </Text>
-              ) : (
-                <Text style={{ color: colors.muted, fontSize: 12 }}>
-                  No patient record is linked to this name yet — the clinic creates it when the visit is confirmed.
-                </Text>
-              )}
-              <Text style={{ color: colors.foreground, fontSize: 13, marginTop: 4 }}>
-                Contact: {request.guardianPhone}{request.guardianEmail ? ` · ${request.guardianEmail}` : " · no email given"}
-              </Text>
-              <View style={styles.actions}>
-                <Pressable onPress={() => Linking.openURL(`tel:${request.guardianPhone}`).catch(() => undefined)} accessibilityRole="button" style={[styles.action, { borderColor: colors.primary }]}>
-                  <Text style={{ color: colors.primary, fontWeight: "800", fontSize: 12 }}>Call {request.guardianPhone}</Text>
-                </Pressable>
-                <Pressable onPress={() => sendWhatsApp(request)} accessibilityRole="button" style={[styles.action, { borderColor: colors.success }]}>
-                  <Text style={{ color: colors.success, fontWeight: "800", fontSize: 12 }}>WhatsApp this parent</Text>
-                </Pressable>
-                <Pressable onPress={() => sendEmail(request)} accessibilityRole="button" style={[styles.action, { borderColor: request.guardianEmail ? colors.primary : colors.border, opacity: request.guardianEmail ? 1 : 0.6 }]}>
-                  <Text style={{ color: request.guardianEmail ? colors.primary : colors.muted, fontWeight: "800", fontSize: 12 }}>Email this parent</Text>
-                </Pressable>
-              </View>
-              <Text style={[styles.fieldLabel, { color: colors.muted, marginTop: 6 }]}>Message to this family</Text>
-              <TextInput
-                value={outgoing}
-                onChangeText={setOutgoing}
-                multiline
-                placeholder="Type the message you want to send about this visit"
-                placeholderTextColor={colors.muted}
-                style={[styles.messageInput, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background }]}
-                accessibilityLabel="Message to this family"
-              />
-              <View style={styles.actions}>
-                <Pressable onPress={() => sendWhatsApp(request)} accessibilityRole="button" style={[styles.action, { backgroundColor: colors.action, borderColor: colors.action }]}>
-                  <Text style={{ color: colors.onAction, fontWeight: "900", fontSize: 12 }}>Send on WhatsApp</Text>
-                </Pressable>
-                <Pressable onPress={copyMessage} accessibilityRole="button" style={[styles.action, { borderColor: colors.border }]}>
-                  <Text style={{ color: colors.muted, fontWeight: "800", fontSize: 12 }}>Copy message</Text>
-                </Pressable>
-              </View>
-              {copyNotice ? <Text style={{ color: colors.muted, fontSize: 12, fontWeight: "800" }}>{copyNotice}</Text> : null}
-            </View>
+            <PatientContactPanel
+              contact={{
+                childName: request.childName,
+                childAge: request.childAge,
+                childSex: request.childSex,
+                weightKg: request.weightKg,
+                heightCm: request.heightCm,
+                phone: request.guardianPhone,
+                email: request.guardianEmail,
+                visitLabel: `${request.preferredDate} · ${request.preferredTime} · ${request.service}`,
+              }}
+              onContacted={async () => { await markBookingRequestNotified(request.id); await load(); }}
+            />
           ) : null}
 
           {editingId === request.id ? (
@@ -346,7 +276,6 @@ const styles = StyleSheet.create({
   card: { borderWidth: 1, borderRadius: 16, padding: 14, gap: 8 },
   cardHead: { flexDirection: "row", gap: 12, alignItems: "flex-start", flexWrap: "wrap" },
   editor: { borderTopWidth: 1, paddingTop: 12, gap: 8 },
-  patient: { borderTopWidth: 1, paddingTop: 12, gap: 6 },
   messageInput: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, minHeight: 84, fontSize: 14 },
   fieldLabel: { fontSize: 11, fontWeight: "900", letterSpacing: 0.6 },
   chipRow: { flexDirection: "row", gap: 8, flexWrap: "wrap" },

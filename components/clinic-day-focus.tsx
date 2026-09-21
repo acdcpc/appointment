@@ -1,5 +1,8 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+import { PatientContactPanel } from "@/components/patient-contact-panel";
+import { loadAllBookingRequests, type BookingRequest } from "@/lib/booking-requests";
 
 import { useColors } from "@/hooks/use-colors";
 import { usePediatricCare } from "@/lib/pediatric-care";
@@ -18,6 +21,16 @@ export function ClinicDayFocus() {
   const colors = useColors();
   const { appointments, auditEvents, earlierSlotRequests, children } = usePediatricCare();
   const [view, setView] = useState<FocusView>("visits");
+  // Tapping a patient's name opens their information and the message box. The
+  // family's contact details come from the booking the parent submitted.
+  const [openRow, setOpenRow] = useState<string | null>(null);
+  const [requests, setRequests] = useState<BookingRequest[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    loadAllBookingRequests().then((rows) => { if (!cancelled) setRequests(rows); }).catch(() => undefined);
+    return () => { cancelled = true; };
+  }, []);
+  const requestFor = (childName: string) => requests.find((request) => request.childName.trim().toLowerCase() === childName.trim().toLowerCase());
 
   const nameFor = (childId: string, reason?: string) => {
     const known = children.find((child) => child.id === childId)?.name;
@@ -66,9 +79,10 @@ export function ClinicDayFocus() {
 
       {view === "visits" ? (
         activeVisits.length ? activeVisits.map((appointment) => (
-          <View key={appointment.id} style={[styles.row, { borderColor: colors.border, backgroundColor: colors.background }]}>
+          <View key={appointment.id} style={[styles.rowWrap, { borderColor: colors.border, backgroundColor: colors.background }]}>
+            <Pressable onPress={() => setOpenRow(openRow === appointment.id ? null : appointment.id)} accessibilityRole="button" accessibilityLabel={`Open patient information for ${nameFor(appointment.childId, appointment.reason)}`} style={styles.rowInner}>
             <View style={{ flex: 1, gap: 2 }}>
-              <Text style={{ color: colors.foreground, fontWeight: "900", fontSize: 14 }}>{nameFor(appointment.childId, appointment.reason)}</Text>
+              <Text style={{ color: colors.foreground, fontWeight: "900", fontSize: 14 }}>{nameFor(appointment.childId, appointment.reason)} <Text style={{ color: colors.primary, fontSize: 12 }}>{openRow === appointment.id ? "▲" : "· tap for patient details"}</Text></Text>
               <Text style={{ color: colors.muted, fontSize: 12 }}>{appointment.date} · {appointment.time} · {appointment.service} · {appointment.durationMinutes} min</Text>
               {appointment.changeMessage ? <Text style={{ color: colors.warning, fontSize: 12, fontWeight: "800" }}>{appointment.changeMessage}</Text> : null}
             </View>
@@ -80,6 +94,24 @@ export function ClinicDayFocus() {
                 {appointment.guardianConfirmedAt ? "Guardian confirmed" : "Awaiting guardian"}
               </Text>
             </View>
+            </Pressable>
+            {openRow === appointment.id ? (() => {
+              const request = requestFor(nameFor(appointment.childId, appointment.reason));
+              return (
+                <PatientContactPanel
+                  contact={{
+                    childName: nameFor(appointment.childId, appointment.reason),
+                    childAge: request?.childAge,
+                    childSex: request?.childSex,
+                    weightKg: request?.weightKg,
+                    heightCm: request?.heightCm,
+                    phone: request?.guardianPhone,
+                    email: request?.guardianEmail,
+                    visitLabel: `${appointment.date} · ${appointment.time} · ${appointment.service}`,
+                  }}
+                />
+              );
+            })() : null}
           </View>
         )) : <Text style={{ color: colors.muted, fontSize: 13 }}>No active visits right now.</Text>
       ) : null}
@@ -149,4 +181,6 @@ const styles = StyleSheet.create({
   value: { fontSize: 22, fontWeight: "800" },
   label: { fontSize: 11, lineHeight: 15 },
   row: { borderWidth: 1, borderRadius: 12, padding: 10, flexDirection: "row", gap: 10, alignItems: "flex-start", flexWrap: "wrap" },
+  rowWrap: { borderWidth: 1, borderRadius: 12, padding: 10, gap: 8 },
+  rowInner: { flexDirection: "row", gap: 10, alignItems: "flex-start", flexWrap: "wrap" },
 });
