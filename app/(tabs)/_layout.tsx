@@ -3,6 +3,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Platform, Pressable, Text, View, useWindowDimensions } from "react-native";
 import { HapticTab } from "@/components/haptic-tab";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+// Growth tab: the single home for weight, height and head circumference.
 import { useColors } from "@/hooks/use-colors";
 import { useLargeTextLayout } from "@/lib/large-text-accessibility";
 import { AuthorityNavigationBadge } from "@/components/authority-navigation-badge";
@@ -24,6 +25,7 @@ function DesktopTopNav({ colors, language, setLanguage, authority }: { colors: R
     ? [
         { path: "/", label: language === "ne" ? "गृहपृष्ठ" : "Home" },
         { path: "/clinician" as Href, label: language === "ne" ? "क्लिनिक ड्यासबोर्ड" : "Clinic dashboard" },
+        { path: "/(tabs)/growth" as Href, label: language === "ne" ? "वृद्धि मापन" : "Growth" },
         { path: "/(tabs)/profile", label: language === "ne" ? "प्रोफाइल" : "Profile" },
       ]
     : [
@@ -99,6 +101,7 @@ export default function TabLayout() {
       <Tabs.Screen name="index" options={{ title: language === "ne" ? "गृहपृष्ठ" : "Home", tabBarIcon: ({ color }) => <IconSymbol size={24} name="house.fill" color={color} /> }} />
       <Tabs.Screen name="find" options={{ href: authorityTabs ? null : undefined, title: language === "ne" ? "समय लिनुहोस्" : "Book visit", tabBarIcon: ({ color }) => <IconSymbol size={24} name="magnifyingglass" color={color} /> }} />
       <Tabs.Screen name="appointments" options={{ href: authorityTabs ? null : undefined, title: language === "ne" ? "भेटहरू" : "Visits", tabBarIcon: ({ color }) => <IconSymbol size={24} name="calendar" color={color} /> }} />
+      <Tabs.Screen name="growth" options={{ title: language === "ne" ? "वृद्धि" : "Growth", tabBarIcon: ({ color }) => <IconSymbol size={24} name="chart.line.uptrend.xyaxis" color={color} /> }} />
       <Tabs.Screen name="records" options={{ href: authorityTabs ? null : undefined, title: language === "ne" ? "अभिलेख" : "Records", tabBarIcon: ({ color }) => <IconSymbol size={24} name="doc.text" color={color} /> }} />
       <Tabs.Screen name="profile" options={{ title: language === "ne" ? "प्रोफाइल" : "Profile", tabBarIcon: ({ color }) => <IconSymbol size={24} name="person.fill" color={color} /> }} />
     </Tabs><LanguageNavigationToggle /><SuperAdminServiceSuggestionWorkspace /><EnvironmentNavigationBadge /><AuthorityNavigationBadge />

@@ -24,7 +24,7 @@ function AuthorityHome({ role }: { role: AuthorityRole }) {
   const signOut = async () => { await signOutGuardian(); await signOutSupabase(); router.replace("/parent-auth"); };
   const cards = [
     { title: t("Clinic admin panel", "क्लिनिक एडमिन प्यानल"), meta: t("The full clinic dashboard", "पूरा क्लिनिक ड्यासबोर्ड"), route: "/clinician" },
-    { title: t("Growth measurements", "वृद्धि मापन"), meta: t("Weight, height and head circumference", "तौल, उचाइ र शिरको परिधि"), route: "/clinician" },
+    { title: t("Growth measurements", "वृद्धि मापन"), meta: t("Weight, height and head circumference", "तौल, उचाइ र शिरको परिधि"), route: "/(tabs)/growth" },
     { title: t("Staff access", "कर्मचारी पहुँच"), meta: t("Invitations, roles and sign-in activity", "निमन्त्रणा, भूमिका र लग इन गतिविधि"), route: "/clinician?focus=staff" },
   ];
   return (

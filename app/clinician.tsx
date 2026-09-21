@@ -8,12 +8,9 @@ import { useAuth } from "@/hooks/use-auth";
 import { signInWithSupabaseEmail, signOutSupabase, getSupabaseSession } from "@/lib/supabase";
 import { isClinicAdministratorEmail, isSuperAdminEmail } from "../server/clinic-authority";
 import { trpc } from "@/lib/trpc";
-import { GrowthMeasurementEntry } from "@/components/growth-measurement-entry";
 import { AuthenticatedStaffAccounts } from "@/components/authenticated-staff-accounts";
-import { ReferralDeliveryMonitor } from "@/components/referral-delivery-monitor";
 import { ClinicContactSettings } from "@/components/clinic-contact-settings";
 import { ClinicDayHourOverrides } from "@/components/clinic-day-hour-overrides";
-import { PatientCommunication } from "@/components/patient-communication";
 import { ClinicDayFocus } from "@/components/clinic-day-focus";
 import { ServicePreparationSettings } from "@/components/service-preparation-settings";
 import { EarlierSlotRequests } from "@/components/earlier-slot-requests";
@@ -122,17 +119,14 @@ function Dashboard({ focus, reportId }: { focus?: "contacts" | "staff" | "email-
     <WeeklyCapacityReportExpiryReminders />
     {reportId ? <WeeklyCapacityReportReference internalReportId={reportId} /> : null}
 
-    <ReferralDeliveryMonitor />
         {focus === "staff" ? <AuthenticatedStaffAccounts /> : null}
 
     <View onLayout={(event) => saveSectionOffset("care", event.nativeEvent.layout.y)}><Text style={[styles.sectionTitle, { color: colors.foreground }]}>Care tools</Text>
-    <PatientCommunication />
     
     
     <ServicePreparationSettings />
     <EarlierSlotRequests />
     <WaitlistActivity />
-    <GrowthMeasurementEntry />
     
         
     
