@@ -2,7 +2,12 @@ import { StyleSheet, Text, View } from "react-native";
 import Svg, { Circle, Line, Polyline, Text as SvgText } from "react-native-svg";
 
 import { useColors } from "@/hooks/use-colors";
-import { referenceBand, referenceRange, type MetricKey, type Sex } from "@/lib/growth-interpretation";
+import { interpretMetric, referenceBand, referenceRange, type MetricKey, type Sex } from "@/lib/growth-interpretation";
+
+/** Scores one plotted point with the same WHO maths the panel uses. */
+function interpretPoint(metric: MetricKey, value: number, ageMonths: number, sex: Sex) {
+  return interpretMetric(metric, value, ageMonths, sex);
+}
 
 export type ChartPoint = { ageMonths: number; value: number; label: string };
 
@@ -61,14 +66,26 @@ export function GrowthChart({ metric, sex, points, unit }: { metric: MetricKey; 
   const span = Math.max(high - low, 1);
 
   const width = 300;
-  const height = 170;
-  const plot = { left: 34, right: 288, top: 12, bottom: 138 };
+  const height = 205;
+  const plot = { left: 34, right: 250, top: 14, bottom: 150 };
   const x = (age: number) => plot.left + ((age - from) / (to - from)) * (plot.right - plot.left);
   const y = (value: number) => plot.bottom - ((value - low) / span) * (plot.bottom - plot.top);
   const line = (key: "minus3" | "minus2" | "median" | "plus2" | "plus3") => samples.map((sample) => `${x(sample.age)},${y(sample.band[key])}`).join(" ");
   const observed = points.filter((point) => point.ageMonths >= from && point.ageMonths <= to).sort((left, right) => left.ageMonths - right.ageMonths);
 
   const ticks = [from, from + (to - from) / 3, from + (2 * (to - from)) / 3, to].map((value) => Math.round(value));
+
+  // Annotate the child's latest point with its own z-score and centile, so the
+  // chart and the interpretation panel state the same number.
+  const latest = observed[observed.length - 1];
+  const labels = latest ? {
+    value: latest.value,
+    age: Math.round(latest.ageMonths),
+    ...(() => {
+      const score = interpretPoint(metric, latest.value, latest.ageMonths, sex);
+      return { z: score.z ?? 0, percentile: score.percentile ?? 0 };
+    })(),
+  } : null;
 
   return (
     <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -86,12 +103,19 @@ export function GrowthChart({ metric, sex, points, unit }: { metric: MetricKey; 
         <Polyline points={line("median")} fill="none" stroke="#64748B" strokeWidth="2" />
         {observed.length > 1 ? <Polyline points={observed.map((point) => `${x(point.ageMonths)},${y(point.value)}`).join(" ")} fill="none" stroke={colors.teal} strokeWidth="3" /> : null}
         {observed.map((point) => <Circle key={point.label} cx={x(point.ageMonths)} cy={y(point.value)} r="4.5" fill={colors.teal} />)}
-        <SvgText x="2" y={plot.top + 8} fill={colors.muted} fontSize="9">{high}</SvgText>
-        <SvgText x="2" y={plot.bottom} fill={colors.muted} fontSize="9">{low}</SvgText>
-        <SvgText x={plot.right} y="152" textAnchor="end" fill="#64748B" fontSize="9">+3 SD</SvgText>
-        <SvgText x={plot.right} y="164" textAnchor="end" fill="#64748B" fontSize="9">median</SvgText>
-        <SvgText x={plot.right} y="176" textAnchor="end" fill="#64748B" fontSize="9">−3 SD</SvgText>
-        {ticks.map((tick) => <SvgText key={tick} x={x(tick)} y="152" textAnchor="middle" fill={colors.muted} fontSize="9">{tick}m</SvgText>)}
+        <SvgText x="2" y={plot.top + 8} fill={colors.muted} fontSize="10">{high}</SvgText>
+        <SvgText x="2" y={(plot.top + plot.bottom) / 2 + 3} fill={colors.muted} fontSize="10">{Math.round(((high + low) / 2) * 10) / 10}</SvgText>
+        <SvgText x="2" y={plot.bottom} fill={colors.muted} fontSize="10">{low}</SvgText>
+        {/* Band labels sit beside their own curve, with the equivalent WHO centile,
+            because a clinician reads P3 / P97 faster than a bare SD figure. */}
+        <SvgText x={plot.right + 4} y={y(samples[samples.length - 1].band.plus3) + 3} fill="#94A3B8" fontSize="9">+3 SD (P99.9)</SvgText>
+        <SvgText x={plot.right + 4} y={y(samples[samples.length - 1].band.plus2) + 3} fill="#64748B" fontSize="9">+2 SD (P97.7)</SvgText>
+        <SvgText x={plot.right + 4} y={y(samples[samples.length - 1].band.median) + 3} fill="#475569" fontSize="9">P50</SvgText>
+        <SvgText x={plot.right + 4} y={y(samples[samples.length - 1].band.minus2) + 3} fill="#64748B" fontSize="9">−2 SD (P2.3)</SvgText>
+        <SvgText x={plot.right + 4} y={y(samples[samples.length - 1].band.minus3) + 3} fill="#94A3B8" fontSize="9">−3 SD (P0.1)</SvgText>
+        <SvgText x={plot.left} y={plot.bottom + 18} fill={colors.muted} fontSize="9">age</SvgText>
+        {ticks.map((tick, index) => <SvgText key={tick} x={x(tick)} y={plot.bottom + 18} textAnchor={index === 0 ? "start" : index === ticks.length - 1 ? "end" : "middle"} fill={colors.muted} fontSize="10">{tick}m</SvgText>)}
+        {labels ? <SvgText x={plot.right} y="196" textAnchor="end" fill={colors.teal} fontSize="10" fontWeight="bold">Latest: {labels.value} {unit} at {labels.age} months · z {labels.z > 0 ? "+" : ""}{labels.z} · P{labels.percentile}</SvgText> : null}
       </Svg>
       <Text style={[styles.note, { color: colors.muted }]}>
         Dashed = ±3 SD, solid light = ±2 SD, dark = median. Teal = this child. Reference context only; not a diagnosis.
