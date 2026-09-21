@@ -8,6 +8,7 @@ import { usePediatricCare } from "@/lib/pediatric-care";
 import { bilingualText, useLanguagePreference } from "@/lib/language-preference";
 import { getGuardianSession, signOutGuardian, type GuardianSession } from "@/lib/supabase-auth";
 import { loadMyBookingRequests, parseAgeParts, updateMyBookingRequest, type BookingDetails, type BookingRequest } from "@/lib/booking-requests";
+import { isAuthorityRole, useAuthorityRole } from "@/lib/authority-role";
 import { getSupabase, signOutSupabase } from "@/lib/supabase";
 import { useThemeContext } from "@/lib/theme-provider";
 import { useTextSize, type TextSizeLevel } from "@/lib/text-size";
@@ -37,6 +38,8 @@ export default function ProfileTab() {
   const [bookingRequest, setBookingRequest] = useState<BookingRequest | null>(null);
   const [bookingDraft, setBookingDraft] = useState<BookingDetails | null>(null);
   const [bookingMessage, setBookingMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  // Staff get one more route into the admin panel, right at the top of Profile.
+  const authorityRole = useAuthorityRole();
   useEffect(() => {
     let cancelled = false;
     loadMyBookingRequests().then((rows) => { if (!cancelled) setBookingRequest(rows[0] ?? null); }).catch(() => undefined);
@@ -139,6 +142,19 @@ export default function ProfileTab() {
             </Pressable>
           ) : null}
         </View>
+
+        {isAuthorityRole(authorityRole) ? (
+          <>
+            <Text style={[styles.section, { color: colors.foreground }]}>{t("Clinic staff", "क्लिनिक कर्मचारी")}</Text>
+            <Pressable onPress={() => router.push("/clinician" as never)} accessibilityRole="button" style={[styles.card, { backgroundColor: colors.tealSurface, borderColor: colors.primary, flexDirection: "row", alignItems: "center", gap: 12 }]}>
+              <View style={{ flex: 1, gap: 3 }}>
+                <Text style={[styles.cardTitle, { color: colors.foreground }]}>{t("Open the clinic admin panel", "क्लिनिक एडमिन प्यानल खोल्नुहोस्")}</Text>
+                <Text style={{ color: colors.muted, fontSize: 13 }}>{t("Appointments, booking requests, growth and staff", "भेट, बुकिङ अनुरोध, वृद्धि र कर्मचारी")}</Text>
+              </View>
+              <Text style={{ color: colors.primary, fontSize: 20 }}>›</Text>
+            </Pressable>
+          </>
+        ) : null}
 
         <Text style={[styles.section, { color: colors.foreground }]}>{t("Appearance & text size", "देखावट र अक्षरको आकार")}</Text>
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>

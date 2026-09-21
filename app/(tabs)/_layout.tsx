@@ -24,8 +24,9 @@ function DesktopTopNav({ colors, language, setLanguage, authority }: { colors: R
   const items: Array<{ path: Href; label: string }> = authority
     ? [
         { path: "/", label: language === "ne" ? "गृहपृष्ठ" : "Home" },
-        { path: "/clinician" as Href, label: language === "ne" ? "क्लिनिक ड्यासबोर्ड" : "Clinic dashboard" },
+        { path: "/(tabs)/admin" as Href, label: language === "ne" ? "एडमिन" : "Admin" },
         { path: "/(tabs)/growth" as Href, label: language === "ne" ? "वृद्धि मापन" : "Growth" },
+        { path: "/(tabs)/settings" as Href, label: language === "ne" ? "सेटिङ" : "Settings" },
         { path: "/(tabs)/profile", label: language === "ne" ? "प्रोफाइल" : "Profile" },
       ]
     : [
@@ -100,6 +101,8 @@ export default function TabLayout() {
       <Tabs.Screen name="index" options={{ title: language === "ne" ? "गृहपृष्ठ" : "Home", tabBarIcon: ({ color }) => <IconSymbol size={24} name="house.fill" color={color} /> }} />
       <Tabs.Screen name="find" options={{ href: authorityTabs ? null : undefined, title: language === "ne" ? "समय लिनुहोस्" : "Book visit", tabBarIcon: ({ color }) => <IconSymbol size={24} name="magnifyingglass" color={color} /> }} />
       <Tabs.Screen name="appointments" options={{ href: authorityTabs ? null : undefined, title: language === "ne" ? "भेटहरू" : "Visits", tabBarIcon: ({ color }) => <IconSymbol size={24} name="calendar" color={color} /> }} />
+      <Tabs.Screen name="admin" options={{ href: authorityTabs ? undefined : null, title: language === "ne" ? "एडमिन" : "Admin", tabBarIcon: ({ color }) => <IconSymbol size={24} name="shield.lefthalf.filled" color={color} /> }} />
+      <Tabs.Screen name="settings" options={{ href: authorityTabs ? undefined : null, title: language === "ne" ? "सेटिङ" : "Settings", tabBarIcon: ({ color }) => <IconSymbol size={24} name="gearshape" color={color} /> }} />
       <Tabs.Screen name="growth" options={{ title: language === "ne" ? "वृद्धि" : "Growth", tabBarIcon: ({ color }) => <IconSymbol size={24} name="chart.line.uptrend.xyaxis" color={color} /> }} />
       <Tabs.Screen name="records" options={{ href: null, title: language === "ne" ? "अभिलेख" : "Records", tabBarIcon: ({ color }) => <IconSymbol size={24} name="doc.text" color={color} /> }} />
       <Tabs.Screen name="profile" options={{ title: language === "ne" ? "प्रोफाइल" : "Profile", tabBarIcon: ({ color }) => <IconSymbol size={24} name="person.fill" color={color} /> }} />

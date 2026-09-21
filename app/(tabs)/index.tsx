@@ -25,13 +25,14 @@ function AuthorityHome({ role }: { role: AuthorityRole }) {
   const cards = [
     { title: t("Clinic admin panel", "क्लिनिक एडमिन प्यानल"), meta: t("The full clinic dashboard", "पूरा क्लिनिक ड्यासबोर्ड"), route: "/clinician" },
     { title: t("Growth measurements", "वृद्धि मापन"), meta: t("Weight, height and head circumference", "तौल, उचाइ र शिरको परिधि"), route: "/(tabs)/growth" },
+    { title: t("Settings", "सेटिङ"), meta: t("Admin panel, growth and clinic details", "एडमिन प्यानल, वृद्धि र क्लिनिक विवरण"), route: "/(tabs)/settings" },
     { title: t("Staff access", "कर्मचारी पहुँच"), meta: t("Invitations, roles and sign-in activity", "निमन्त्रणा, भूमिका र लग इन गतिविधि"), route: "/clinician?focus=staff" },
   ];
   return (
     <ScreenContainer className="p-5" maxWidth={980}>
       <ScrollView showsVerticalScrollIndicator={false}>
         <Text style={[styles.eyebrow, { color: colors.primary }]}>RAINBOW CHILD DEVELOPMENT CLINIC</Text>
-        <Text style={[styles.title, { color: colors.foreground }]}>{t("Settings", "सेटिङ")}</Text>
+        <Text style={[styles.title, { color: colors.foreground }]}>{t("Clinic home", "क्लिनिक गृहपृष्ठ")}</Text>
         <Text style={[styles.subtitle, { color: colors.muted }]}>
           {role === "super-admin"
             ? t("Signed in as super-admin. The clinic admin panel and staff tools are in this Settings list; parent booking screens are hidden for staff accounts.", "सुपर-एडमिनको रूपमा लग इन। क्लिनिक एडमिन प्यानल र कर्मचारी उपकरण यही सेटिङ सूचीमा छन्; कर्मचारी खातामा अभिभावकका बुकिङ पृष्ठ देखिँदैन।")
