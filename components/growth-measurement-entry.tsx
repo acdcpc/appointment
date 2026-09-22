@@ -15,7 +15,7 @@ import { todayClinicDate } from "@/lib/growth-measurements";
  */
 export function GrowthMeasurementEntry() {
   const colors = useColors();
-  const { children, activeChild, growthMetrics, recordGrowthMeasurement } = usePediatricCare();
+  const { children, activeChild, setActiveChild, growthMetrics, recordGrowthMeasurement } = usePediatricCare();
   const [childId, setChildId] = useState(activeChild.id);
   const [measuredOn, setMeasuredOn] = useState(todayClinicDate());
   const [weightKg, setWeightKg] = useState("");
@@ -36,6 +36,9 @@ export function GrowthMeasurementEntry() {
     const result = await recordGrowthMeasurement({ childId, measuredOn, weightKg, heightCm, headCircumferenceCm, note });
     setMessage({ ok: result.ok, text: result.message });
     if (result.ok) {
+      // Show the patient just measured: the chart, the interpretation and the
+      // visit-to-visit comparison below all follow the active child.
+      if (childId !== activeChild.id) setActiveChild(childId);
       setWeightKg("");
       setHeightCm("");
       setHeadCircumferenceCm("");

@@ -8,6 +8,7 @@ import { useColors } from "@/hooks/use-colors";
 import { usePediatricCare } from "@/lib/pediatric-care";
 import { isAuthorityRole, useAuthorityRole } from "@/lib/authority-role";
 import { interpretMeasurement, referenceBand, referenceRange, type MetricKey } from "@/lib/growth-interpretation";
+import { buildGrowthTrend, type TrendVisit } from "@/lib/growth-trend";
 
 /**
  * Growth tab — WHO chart and clinical interpretation.
@@ -23,6 +24,14 @@ const METRICS: Array<{ key: MetricKey; label: string; unit: string; field: "weig
   { key: "headCircumference", label: "Head circumference", unit: "cm", field: "headCircumferenceCm" },
   { key: "bmi", label: "BMI", unit: "kg/m²", field: "bmi" },
 ];
+
+/** Compact "Weight +0.6 kg (Δz −0.3), Height +1.2 cm (Δz −0.1)" line for history rows. */
+function trendLine(trend: ReturnType<typeof buildGrowthTrend>): string {
+  return trend.metrics
+    .filter((entry) => entry.change !== undefined)
+    .map((entry) => `${entry.label.split("-")[0]} ${entry.change! > 0 ? "+" : entry.change === 0 ? "±" : ""}${entry.change} ${entry.unit}${entry.deltaZ !== undefined ? ` (Δz ${entry.deltaZ > 0 ? "+" : ""}${entry.deltaZ})` : ""}`)
+    .join(" · ");
+}
 
 const BAND_COLOUR = { "severe-low": "error", "severe-high": "error", low: "warning", high: "warning", normal: "success", undefined: "muted" } as const;
 
@@ -63,6 +72,21 @@ export default function GrowthTab() {
     heightCm: latest.heightCm,
     headCircumferenceCm: latest.headCircumferenceCm,
   }) : null, [activeChild.sex, ageMonths, latest]);
+
+  const toVisit = (item: (typeof measurements)[number] | undefined): TrendVisit | null => item ? {
+    occurredOn: item.occurredOn,
+    ageMonths: item.ageMonths,
+    weightKg: item.weightKg,
+    heightCm: item.heightCm,
+    headCircumferenceCm: item.headCircumferenceCm,
+  } : null;
+
+  // Visit-to-visit comparison: the change matters more than any single reading,
+  // because a child can stay inside the normal range while falling across centiles.
+  const previous = measurements.length >= 2 ? measurements[measurements.length - 2] : undefined;
+  const previousVisit = toVisit(previous);
+  const latestVisit = toVisit(latest);
+  const trend = previousVisit && latestVisit ? buildGrowthTrend({ sex: activeChild.sex, previous: previousVisit, current: latestVisit }) : null;
 
   const bands = latest ? referenceBand(metric, ageMonths, activeChild.sex) : null;
   const whoRange = referenceRange(metric);
@@ -133,6 +157,34 @@ export default function GrowthTab() {
                   </View>
                 ))}
 
+                {trend ? (
+                  <>
+                    <Text style={[styles.section, { color: colors.foreground }]}>Change since the previous visit — {trend.previousOn} → {trend.currentOn} ({trend.days} days)</Text>
+                    <View style={[styles.summaryCard, { borderColor: trend.flags.length ? colors.warning : colors.success, backgroundColor: trend.flags.length ? colors.warningSurface : colors.successSurface }]}>
+                      <Text style={{ color: trend.flags.length ? colors.warning : colors.success, fontWeight: "900", fontSize: 14 }}>{trend.summary}</Text>
+                      {trend.flags.map((flag) => <Text key={flag} style={{ color: colors.foreground, fontSize: 13 }}>• {flag}</Text>)}
+                    </View>
+                    {trend.metrics.map((entry) => (
+                      <View key={entry.metric} style={[styles.metricCard, { borderColor: colors.border, backgroundColor: colors.surface, borderLeftColor: entry.direction === "worsening" ? colors.error : entry.direction === "improving" ? colors.success : colors.muted, borderLeftWidth: 4 }]}>
+                        <View style={{ flex: 1, gap: 3 }}>
+                          <Text style={{ color: colors.foreground, fontWeight: "900", fontSize: 14 }}>{entry.label}</Text>
+                          <Text style={{ color: colors.muted, fontSize: 13 }}>{entry.statement}</Text>
+                          {entry.deltaZ !== undefined ? (
+                            <Text style={{ color: entry.direction === "worsening" ? colors.error : entry.direction === "improving" ? colors.success : colors.muted, fontSize: 13, fontWeight: "800" }}>
+                              {entry.direction === "worsening" ? "Downward crossing of the WHO bands — review" : entry.direction === "improving" ? "Upward movement across the WHO bands" : "Tracking along the same WHO band"}
+                            </Text>
+                          ) : null}
+                        </View>
+                      </View>
+                    ))}
+                  </>
+                ) : latest ? (
+                  <View style={[styles.notice, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+                    <Text style={{ color: colors.foreground, fontWeight: "900", fontSize: 13 }}>First measurement for {activeChild.name}</Text>
+                    <Text style={{ color: colors.muted, fontSize: 13 }}>There is nothing to compare against yet. Record the next visit and the change in values, rate and WHO z-score appears here automatically.</Text>
+                  </View>
+                ) : null}
+
                 {bands ? (
                   <View style={[styles.notice, { borderColor: colors.border, backgroundColor: colors.surface }]}>
                     <Text style={{ color: colors.foreground, fontWeight: "900", fontSize: 13 }}>WHO reference values at {ageMonths} months ({activeMetric.label.toLowerCase()})</Text>
@@ -167,6 +219,13 @@ export default function GrowthTab() {
             headCircumferenceCm: item.headCircumferenceCm,
           });
           const rowFlags = rowInterpretation.metrics.filter((entry) => entry.z !== undefined && (entry.band === "low" || entry.band === "high" || entry.band === "severe-low" || entry.band === "severe-high"));
+          const index = measurements.findIndex((entry) => entry.id === item.id);
+          const previousRow = index > 0 ? toVisit(measurements[index - 1]) : null;
+          const rowChange = previousRow ? trendLine(buildGrowthTrend({
+            sex: activeChild.sex,
+            previous: previousRow,
+            current: toVisit(item)!,
+          })) : null;
           return (
             <View key={item.id} style={[styles.row, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <View style={{ flex: 1, gap: 3 }}>
@@ -182,6 +241,7 @@ export default function GrowthTab() {
                 <Text style={{ color: rowFlags.length ? colors.warning : colors.success, fontSize: 12, fontWeight: "800" }}>
                   {rowFlags.length ? rowFlags.map((entry) => `${entry.label}: ${entry.band.replace("-", " ")}`).join(" · ") : "All scored metrics within ±2 SD"}
                 </Text>
+                {rowChange ? <Text style={{ color: colors.muted, fontSize: 12 }}>vs previous visit: {rowChange}</Text> : null}
                 {item.note ? <Text style={{ color: colors.muted, fontSize: 12 }}>{item.note}</Text> : null}
               </View>
               <Text style={{ color: colors.muted, fontSize: 11, fontWeight: "800" }}>{item.recordedRole === "guardian" ? "Parent-reported" : "Clinic"}</Text>
