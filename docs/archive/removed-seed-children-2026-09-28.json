@@ -1,0 +1,45 @@
+{
+  "removedAt": "2026-09-28T14:32:42.079Z",
+  "reason": "Owner request: the three prototype seed children must not remain as if they were real clinic records. App-side sample data was already removed from the build; this removes the database rows.",
+  "children": [
+    {
+      "id": 2,
+      "childId": "child-2",
+      "name": "Maya Gurung",
+      "dateOfBirth": "03 September 2020",
+      "sex": "female",
+      "allergies": "Parent reports no known allergies",
+      "parentName": "Nisha Gurung",
+      "createdBy": null,
+      "createdAt": "2026-09-01T07:22:07.88978+00:00",
+      "updatedAt": "2026-09-01T07:22:07.88978+00:00"
+    },
+    {
+      "id": 3,
+      "childId": "child-3",
+      "name": "Rohan Thapa",
+      "dateOfBirth": "21 January 2019",
+      "sex": "male",
+      "allergies": "See parent-provided allergy history",
+      "parentName": "Suman Thapa",
+      "createdBy": null,
+      "createdAt": "2026-09-01T07:22:07.88978+00:00",
+      "updatedAt": "2026-09-01T07:22:07.88978+00:00"
+    },
+    {
+      "id": 1,
+      "childId": "child-1",
+      "name": "pkasa",
+      "dateOfBirth": "14 May 2022",
+      "sex": "male",
+      "allergies": "No known drug allergies reported",
+      "parentName": "Jordan Smith",
+      "createdBy": null,
+      "createdAt": "2026-09-01T07:22:07.88978+00:00",
+      "updatedAt": "2026-09-21T08:01:28.001+00:00"
+    }
+  ],
+  "guardianLinks": [],
+  "growthMeasurements": [],
+  "reportShares": []
+}

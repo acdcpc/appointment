@@ -68,3 +68,17 @@ Still true after these fixes: bookings are confirmed by the clinic by phone/What
 | Onboarding: "the bottom part is completely obscured and could not be scrolled" | The exported shell injects `body{overflow:hidden}` (`ScrollViewStyleReset`), so a page can only scroll through its own `ScrollView` — and onboarding had none. Its CTA sat under Safari's toolbar, and `height:100%` resolves against the *large* viewport on iOS. | Onboarding (and report-acknowledgement) now render inside a `ScrollView` with a growing centred column and `bottomClearance` (≥ 48 dp). The shell uses `100dvh` where supported and pads `#root` by `env(safe-area-inset-*)`, so Safari's toolbar and the home indicator never cover reachable content. |
 | "Most of the font is not readable in night mode" (growth page, dark) | The palette's CSS variables were emitted **twice**: on `<html>` at runtime for the selected scheme, and as light values baked into the app wrapper's inline style by the static export. The wrapper copy sits closer to every element, so it shadowed the dark values — the canvas stayed parchment while inline-styled text switched to near-white (~1.1:1). | On web the palette is owned solely by `<html>` (the wrapper `vars()` is native-only) with light defaults in `global.css` for the pre-hydration paint. The growth chart's hard-coded slate greys (down to ~2.4:1 in dark) now use the accessible `muted` token. |
 | "Still default name Aarav coming up" | The prototype seeded three sample children, sample history and sample growth rows in state, and an empty/absent server answer kept them ("no linked children" was treated as failure). A localStorage copy (`rainbow-child-profiles`) survived reloads. | Sample patients removed everywhere: children/history/growth rows start empty and fill only from Supabase (an empty answer is respected); the localStorage copy is purged on every load; growth, booking, home and records show honest empty states instead of a name. |
+
+Seed-data removal, same day, at the owner's request: the three prototype children
+(`child-1` — renamed to "pkasa" at some point — plus `child-2` Maya Gurung and
+`child-3` Rohan Thapa) were deleted from Supabase, archived first in
+`docs/archive/removed-seed-children-2026-09-28.json`. `clinic_children`,
+`guardians` and `child_growth_measurements` are now empty: the app and the database
+show no patient at all until the clinic creates a real record.
+`scripts/verify-growth-trend.ts` now creates and removes its own temporary patient,
+so the end-to-end check still runs after the seeds are gone (10/10 checks).
+
+Still open from this: there is no in-app form yet for the clinic to create a new
+patient record in `clinic_children` — booking requests bring the details in, but
+the record that the growth chart and guardian linking hang off needs either this
+form or a deliberate import step before real use.

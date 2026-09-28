@@ -1,9 +1,10 @@
 /**
  * End-to-end check of the repeat-visit growth comparison.
  *
- * Writes two visits for the same seeded patient into Supabase with the service
- * role, reads them back the way the app does, and runs the same trend builder the
- * Growth tab uses. Prints the comparison and removes what it wrote.
+ * Creates its own temporary patient, writes two visits for it into Supabase
+ * with the service role, reads them back the way the app does, and runs the same
+ * trend builder the Growth tab uses. Prints the comparison and removes
+ * everything it created (the clinic's seed children no longer exist).
  *
  * Run: pnpm exec tsx scripts/verify-growth-trend.ts
  */
@@ -24,7 +25,8 @@ if (!url || !key) {
 }
 const db = createClient(url, key, { auth: { persistSession: false } });
 
-const CHILD_ID = "child-1";
+const CHILD_ID = "verify-trend-child";
+const OTHER_CHILD_ID = "verify-trend-other";
 const MEDIAN = 50;
 
 function addMonths(date: Date, months: number) {
@@ -44,16 +46,18 @@ const check = (name: string, ok: boolean, detail = "") => {
 };
 
 async function main() {
+// Self-contained: create the temporary patient this run needs.
 const { data: child, error: childError } = await db
   .from("clinic_children")
+  .upsert({ childId: CHILD_ID, name: "Verification Child", dateOfBirth: "14 May 2022", sex: "male", allergies: "None recorded", parentName: "Verification" }, { onConflict: "childId" })
   .select('"childId", "dateOfBirth", sex, "parentName"')
-  .eq("childId", CHILD_ID)
   .single();
 
 if (childError || !child) {
-  console.error("Could not read the seeded child:", childError?.message);
+  console.error("Could not create the verification child:", childError?.message);
   process.exit(1);
 }
+await db.from("clinic_children").upsert({ childId: OTHER_CHILD_ID, name: "Verification Other Child", dateOfBirth: "03 September 2020", sex: "female", allergies: "None recorded", parentName: "Verification" }, { onConflict: "childId" });
 
 const birth = new Date(child.dateOfBirth);
 const first = addMonths(birth, 12);
@@ -140,15 +144,19 @@ try {
   const { data: other } = await db
     .from("child_growth_measurements")
     .select("id")
-    .eq("child_id", "child-2")
+    .eq("child_id", OTHER_CHILD_ID)
     .in("id", written);
-  check("the visits stay bound to their own child", (other ?? []).length === 0, "child-2 sees none of them");
+  check("the visits stay bound to their own child", (other ?? []).length === 0, `${OTHER_CHILD_ID} sees none of them`);
 } catch (error) {
   check("verification run", false, error instanceof Error ? error.message : String(error));
 } finally {
   if (written.length) await db.from("child_growth_measurements").delete().in("id", written);
   const { count } = await db.from("child_growth_measurements").select("id", { count: "exact", head: true }).in("id", written);
   check("verification rows removed", (count ?? 0) === 0, `${written.length} rows written and deleted`);
+  await db.from("child_growth_measurements").delete().in("child_id", [CHILD_ID, OTHER_CHILD_ID]);
+  await db.from("clinic_children").delete().in("childId", [CHILD_ID, OTHER_CHILD_ID]);
+  const { count: childCount } = await db.from("clinic_children").select("childId", { count: "exact", head: true }).in("childId", [CHILD_ID, OTHER_CHILD_ID]);
+  check("verification children removed", (childCount ?? 0) === 0, `${CHILD_ID}, ${OTHER_CHILD_ID}`);
 }
 
 const failed = results.filter(([, ok]) => !ok);
