@@ -82,6 +82,35 @@ describe("growth trend between two visits", () => {
     expect(bmi.statement).toMatch(/BMI-for-age/);
   });
 
+  it("never reports a weight change in centimetres over a long interval", () => {
+    // Half a year apart: the rate must stay in kg/month (or g/day), with the
+    // annualised figure shown, and never borrow the length unit.
+    const trend = buildGrowthTrend({
+      sex: "male",
+      previous: visit("14 May 2023", 12, 9.6, 75.7),
+      current: visit("14 Nov 2023", 18, 9.8, 78.2),
+    });
+    const weight = trend.metrics.find((metric) => metric.metric === "weight")!;
+    expect(weight.rateUnit).toBe("kg/month");
+    expect(weight.statement).toMatch(/kg\/month/);
+    expect(weight.statement).not.toMatch(/cm\/month/);
+    expect(weight.ratePerMonth).toBeCloseTo(0.03, 2);
+
+    const height = trend.metrics.find((metric) => metric.metric === "height")!;
+    expect(height.statement).toMatch(/cm\/month/);
+    expect(height.statement).not.toMatch(/kg\/month/);
+  });
+
+  it("annualises length velocity when the interval exceeds a year", () => {
+    const trend = buildGrowthTrend({
+      sex: "female",
+      previous: visit("14 May 2023", 24, 12.0, 85.0),
+      current: visit("14 May 2025", 48, 16.5, 103.0),
+    });
+    const height = trend.metrics.find((metric) => metric.metric === "height")!;
+    expect(height.statement).toMatch(/cm\/year/);
+  });
+
   it("handles two measurements taken on the same day without inventing a rate", () => {
     const trend = buildGrowthTrend({
       sex: "female",

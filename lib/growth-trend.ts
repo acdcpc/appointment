@@ -76,16 +76,30 @@ function valueFor(metric: MetricKey, visit: TrendVisit) {
   return bmiOf(visit);
 }
 
-/** Rate wording a clinician expects: g/day for short intervals, kg/month beyond. */
+/**
+ * Rate wording a clinician expects: g/day for short intervals, kg/month for longer
+ * ones, cm/month for length. The unit always follows the metric — a weight change
+ * is never reported in centimetres.
+ */
 function formatRate(metric: MetricKey, change: number, days: number, months: number) {
   if (days <= 0) return { ratePerMonth: undefined, rateUnit: undefined, text: "" };
-  if (metric === "weight" && days <= 120) {
-    const perDay = (change * 1000) / days;
-    return { ratePerMonth: round(change / months, 2), rateUnit: "kg/month", text: `≈ ${Math.round(perDay)} g/day` };
-  }
   const perMonth = change / months;
-  if (metric === "bmi") return { ratePerMonth: round(perMonth, 2), rateUnit: "kg/m²/month", text: `≈ ${round(perMonth, 2)} kg/m² per month` };
-  return { ratePerMonth: round(perMonth, 2), rateUnit: "cm/month", text: `≈ ${round(perMonth, 2)} cm/month` };
+  const perYear = change / (days / 365.25);
+
+  if (metric === "weight") {
+    if (days <= 120) {
+      return { ratePerMonth: round(perMonth, 2), rateUnit: "kg/month", text: `≈ ${Math.round((change * 1000) / days)} g/day` };
+    }
+    return { ratePerMonth: round(perMonth, 2), rateUnit: "kg/month", text: `≈ ${round(perMonth, 2)} kg/month (${round(perYear, 1)} kg/year)` };
+  }
+  if (metric === "bmi") {
+    return { ratePerMonth: round(perMonth, 2), rateUnit: "kg/m²/month", text: `≈ ${round(perMonth, 2)} kg/m² per month` };
+  }
+  return {
+    ratePerMonth: round(perMonth, 2),
+    rateUnit: "cm/month",
+    text: days > 365 ? `≈ ${round(perMonth, 1)} cm/month (${round(perYear, 1)} cm/year)` : `≈ ${round(perMonth, 2)} cm/month`,
+  };
 }
 
 function describeMetric(metric: MetricKey, sex: Sex, previous: TrendVisit, current: TrendVisit, days: number, months: number): TrendMetric {
