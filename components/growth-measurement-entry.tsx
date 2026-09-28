@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { useColors } from "@/hooks/use-colors";
@@ -26,6 +26,12 @@ export function GrowthMeasurementEntry() {
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
 
   const selectedChild = children.find((child) => child.id === childId) ?? activeChild;
+  // Children arrive asynchronously (clinic records); keep the selector honest.
+  useEffect(() => {
+    if (children.length && !children.some((child) => child.id === childId)) {
+      setChildId(activeChild.id || children[0].id);
+    }
+  }, [children, activeChild.id, childId]);
   const childMeasurements = growthMetrics
     .filter((item) => item.childId === childId)
     .slice(0, 4);

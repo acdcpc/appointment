@@ -96,11 +96,13 @@ export function GrowthChart({ metric, sex, points, unit }: { metric: MetricKey; 
       <Svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`}>
         <Line x1={plot.left} y1={plot.bottom} x2={plot.right} y2={plot.bottom} stroke={colors.border} />
         <Line x1={plot.left} y1={plot.top} x2={plot.left} y2={plot.bottom} stroke={colors.border} />
-        <Polyline points={line("minus3")} fill="none" stroke="#94A3B8" strokeWidth="1.2" strokeDasharray="4 4" />
-        <Polyline points={line("plus3")} fill="none" stroke="#94A3B8" strokeWidth="1.2" strokeDasharray="4 4" />
-        <Polyline points={line("minus2")} fill="none" stroke="#CBD5E1" strokeWidth="1.6" />
-        <Polyline points={line("plus2")} fill="none" stroke="#CBD5E1" strokeWidth="1.6" />
-        <Polyline points={line("median")} fill="none" stroke="#64748B" strokeWidth="2" />
+        {/* Curve and label greys come from the palette's accessible muted token:
+            the old hard-coded slate greys dropped to ~2.4:1 on the dark canvas. */}
+        <Polyline points={line("minus3")} fill="none" stroke={colors.muted} strokeOpacity={0.4} strokeWidth="1.2" strokeDasharray="4 4" />
+        <Polyline points={line("plus3")} fill="none" stroke={colors.muted} strokeOpacity={0.4} strokeWidth="1.2" strokeDasharray="4 4" />
+        <Polyline points={line("minus2")} fill="none" stroke={colors.muted} strokeOpacity={0.65} strokeWidth="1.6" />
+        <Polyline points={line("plus2")} fill="none" stroke={colors.muted} strokeOpacity={0.65} strokeWidth="1.6" />
+        <Polyline points={line("median")} fill="none" stroke={colors.muted} strokeWidth="2" />
         {observed.length > 1 ? <Polyline points={observed.map((point) => `${x(point.ageMonths)},${y(point.value)}`).join(" ")} fill="none" stroke={colors.teal} strokeWidth="3" /> : null}
         {observed.map((point) => <Circle key={point.label} cx={x(point.ageMonths)} cy={y(point.value)} r="4.5" fill={colors.teal} />)}
         <SvgText x="2" y={plot.top + 8} fill={colors.muted} fontSize="10">{high}</SvgText>
@@ -108,11 +110,11 @@ export function GrowthChart({ metric, sex, points, unit }: { metric: MetricKey; 
         <SvgText x="2" y={plot.bottom} fill={colors.muted} fontSize="10">{low}</SvgText>
         {/* Band labels sit beside their own curve, with the equivalent WHO centile,
             because a clinician reads P3 / P97 faster than a bare SD figure. */}
-        <SvgText x={plot.right + 4} y={y(samples[samples.length - 1].band.plus3) + 3} fill="#94A3B8" fontSize="9">+3 SD (P99.9)</SvgText>
-        <SvgText x={plot.right + 4} y={y(samples[samples.length - 1].band.plus2) + 3} fill="#64748B" fontSize="9">+2 SD (P97.7)</SvgText>
-        <SvgText x={plot.right + 4} y={y(samples[samples.length - 1].band.median) + 3} fill="#475569" fontSize="9">P50</SvgText>
-        <SvgText x={plot.right + 4} y={y(samples[samples.length - 1].band.minus2) + 3} fill="#64748B" fontSize="9">−2 SD (P2.3)</SvgText>
-        <SvgText x={plot.right + 4} y={y(samples[samples.length - 1].band.minus3) + 3} fill="#94A3B8" fontSize="9">−3 SD (P0.1)</SvgText>
+        <SvgText x={plot.right + 4} y={y(samples[samples.length - 1].band.plus3) + 3} fill={colors.muted} fontSize="9">+3 SD (P99.9)</SvgText>
+        <SvgText x={plot.right + 4} y={y(samples[samples.length - 1].band.plus2) + 3} fill={colors.muted} fontSize="9">+2 SD (P97.7)</SvgText>
+        <SvgText x={plot.right + 4} y={y(samples[samples.length - 1].band.median) + 3} fill={colors.muted} fontSize="9">P50</SvgText>
+        <SvgText x={plot.right + 4} y={y(samples[samples.length - 1].band.minus2) + 3} fill={colors.muted} fontSize="9">−2 SD (P2.3)</SvgText>
+        <SvgText x={plot.right + 4} y={y(samples[samples.length - 1].band.minus3) + 3} fill={colors.muted} fontSize="9">−3 SD (P0.1)</SvgText>
         <SvgText x={plot.left} y={plot.bottom + 18} fill={colors.muted} fontSize="9">age</SvgText>
         {ticks.map((tick, index) => <SvgText key={tick} x={x(tick)} y={plot.bottom + 18} textAnchor={index === 0 ? "start" : index === ticks.length - 1 ? "end" : "middle"} fill={colors.muted} fontSize="10">{tick}m</SvgText>)}
         {labels ? <SvgText x={plot.right} y="196" textAnchor="end" fill={colors.teal} fontSize="10" fontWeight="bold">Latest: {labels.value} {unit} at {labels.age} months · z {labels.z > 0 ? "+" : ""}{labels.z} · P{labels.percentile}</SvgText> : null}

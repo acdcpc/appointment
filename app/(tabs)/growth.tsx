@@ -37,7 +37,7 @@ const BAND_COLOUR = { "severe-low": "error", "severe-high": "error", low: "warni
 
 export default function GrowthTab() {
   const colors = useColors();
-  const { activeChild, growthMetrics } = usePediatricCare();
+  const { activeChild, growthMetrics, children } = usePediatricCare();
   const role = useAuthorityRole();
   const canRecord = isAuthorityRole(role);
   const [metric, setMetric] = useState<MetricKey>("weight");
@@ -97,6 +97,26 @@ export default function GrowthTab() {
     return key === "error" ? colors.error : key === "warning" ? colors.warning : key === "success" ? colors.success : colors.muted;
   };
 
+  // No child linked yet: show the honest empty state instead of sample data.
+  if (!activeChild.id) {
+    return (
+      <ScreenContainer className="p-5" maxWidth={980}>
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <Text style={[styles.eyebrow, { color: colors.primary }]}>RAINBOW CHILD DEVELOPMENT CLINIC</Text>
+          <Text style={[styles.title, { color: colors.foreground }]}>Growth — WHO reference</Text>
+          <View style={[styles.empty, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+            <Text style={{ color: colors.foreground, fontWeight: "800" }}>No child selected</Text>
+            <Text style={{ color: colors.muted, fontSize: 13 }}>
+              {canRecord
+                ? "Children appear here from the clinic’s records — no sample patients are shown."
+                : "Your child’s growth chart appears once the clinic links your guardian account."}
+            </Text>
+          </View>
+        </ScrollView>
+      </ScreenContainer>
+    );
+  }
+
   return (
     <ScreenContainer className="p-5" maxWidth={980}>
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -114,7 +134,7 @@ export default function GrowthTab() {
           </View>
         ) : null}
 
-        {canRecord ? <GrowthMeasurementEntry /> : null}
+        {canRecord && children.length ? <GrowthMeasurementEntry /> : null}
 
         <View style={styles.metricRow}>
           {METRICS.map((entry) => {

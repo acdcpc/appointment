@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { Appearance, View, useColorScheme as useSystemColorScheme } from "react-native";
+import { Appearance, Platform, View, useColorScheme as useSystemColorScheme } from "react-native";
 import { colorScheme as nativewindColorScheme, vars } from "nativewind";
 
 import { SchemeColors, type ColorScheme } from "@/constants/theme";
@@ -51,9 +51,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     applyScheme(colorScheme);
   }, [applyScheme, colorScheme]);
 
+  // On web the palette lives as inline custom properties on <html> (see
+  // applyScheme above). A wrapper-level vars() copy would sit *closer* to every
+  // element than <html> and therefore shadow it: when the wrapper lagged behind
+  // (stale prerendered light values that hydration does not patch), the page
+  // canvas stayed parchment while statements/headings switched to the dark
+  // palette — white-on-cream, invisible. Native has no CSS cascade, so it still
+  // needs the wrapper variables for NativeWind.
   const themeVariables = useMemo(
     () =>
-      vars({
+      Platform.OS === "web" ? undefined : vars({
         "color-primary": SchemeColors[colorScheme].primary,
         "color-background": SchemeColors[colorScheme].background,
         "color-surface": SchemeColors[colorScheme].surface,

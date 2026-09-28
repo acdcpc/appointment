@@ -1,4 +1,4 @@
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 
 import { ScreenContainer } from "@/components/screen-container";
@@ -44,7 +44,12 @@ export default function Onboarding() {
   ];
 
   return (
-    <ScreenContainer style={[styles.container, { backgroundColor: colors.background }]}>
+    <ScreenContainer bottomClearance style={{ backgroundColor: colors.background }}>
+      {/* This page overflowed an iPhone screen and could not be scrolled: its
+          last actions sat under Safari's toolbar and the home indicator, with
+          body{overflow:hidden} preventing any page scroll. A ScrollView with a
+          growing, centred content column fixes both halves. */}
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
       <View style={styles.hero}>
         <Image source={require("../assets/images/icon.png")} style={styles.logoImage} />
         <Text style={[styles.title, { color: colors.foreground }]}>
@@ -115,16 +120,14 @@ export default function Onboarding() {
           )}
         </Text>
       </View>
+        </ScrollView>
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    justifyContent: "center",
-    gap: 24,
-    paddingVertical: 32,
-  },
+  scroll: { flex: 1, width: "100%" },
+  scrollContent: { flexGrow: 1, justifyContent: "center", gap: 24, paddingVertical: 32, paddingBottom: 24 },
   hero: {
     alignItems: "center",
     gap: 10,

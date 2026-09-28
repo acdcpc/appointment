@@ -2,6 +2,33 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Light theme defaults. The theme provider overrides these with inline custom
+   properties on <html> for the active scheme (inline style beats this rule), so
+   this block only decides the paint before hydration finishes. It must exist:
+   without it a web page has no --color-* values at all until JS runs. */
+:root {
+  --color-primary: #9A4A2A;
+  --color-background: #FBF7F0;
+  --color-surface: #FFFDF9;
+  --color-foreground: #2A211B;
+  --color-muted: #6F6259;
+  --color-border: #EFE3D6;
+  --color-success: #2A6B47;
+  --color-warning: #8A5A00;
+  --color-error: #B3261E;
+  --color-action: #E8602C;
+  --color-action-surface: #FBE3D5;
+  --color-teal: #2F6B5C;
+  --color-teal-surface: #E8F1EA;
+  --color-success-surface: #E4F3E8;
+  --color-warning-surface: #FBF0D6;
+  --color-danger-surface: #FBE5E3;
+  --color-text-inverse: #FFFFFF;
+  --color-text-inverse-muted: #F4DED2;
+  --color-focus-ring: #2F6B5C;
+  --color-disabled-surface: #F1E8DD;
+}
+
 /* Motion foundation — web only, calm and fast (design.md / brief section 14).
    Hover/pressed feedback 100-150ms ease-out; disabled entirely for users who
    prefer reduced motion. */

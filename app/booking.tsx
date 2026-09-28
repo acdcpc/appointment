@@ -121,7 +121,7 @@ export default function BookingScreen() {
 
   const setField = (key: keyof BookingDetails) => (value: string) => setDetails((current) => ({ ...current, [key]: value }));
 
-  const appointmentSummary = `Rainbow Child Development Clinic\nAppointment: ${selectedServiceLabel}\nDate: ${date}\nTime: ${time}\nChild: ${activeChild.name}\n\nDr. Anil Ojha, MBBS, MD, FCCH`;
+  const appointmentSummary = `Rainbow Child Development Clinic\nAppointment: ${selectedServiceLabel}\nDate: ${date}\nTime: ${time}\nChild: ${details.childName.trim() || "to be confirmed"}\n\nDr. Anil Ojha, MBBS, MD, FCCH`;
   const shareSummary = async () => {
     try {
       if (Platform.OS === "web") {
@@ -162,7 +162,7 @@ export default function BookingScreen() {
             <Text style={[styles.summaryLabel, { color: colors.muted }]}>WITH DR. ANIL OJHA</Text>
             <Text style={[styles.summaryTitle, { color: colors.foreground }]}>{selectedServiceLabel}</Text>
             <Text style={[styles.summaryText, { color: colors.muted }]}>{date} · {time}</Text>
-            <Text style={[styles.summaryText, { color: colors.muted }]}>{details.childName.trim() || activeChild.name}{composeAge(Number(details.childAgeYears || 0), Number(details.childAgeMonths || 0)) ? ` · ${composeAge(Number(details.childAgeYears || 0), Number(details.childAgeMonths || 0))}` : ""}</Text>
+            <Text style={[styles.summaryText, { color: colors.muted }]}>{details.childName.trim()}{composeAge(Number(details.childAgeYears || 0), Number(details.childAgeMonths || 0)) ? ` · ${composeAge(Number(details.childAgeYears || 0), Number(details.childAgeMonths || 0))}` : ""}</Text>
           </View>
           <Pressable onPress={shareSummary} style={[styles.primaryButton, { backgroundColor: colors.primary, marginBottom: 12 }]} accessibilityRole="button">
             <Text style={[styles.primaryButtonText, { color: colors.textInverse }]}>Share to WhatsApp / सेयर गर्नुहोस्</Text>
@@ -287,7 +287,7 @@ export default function BookingScreen() {
             <Text style={[styles.summaryLabel, { color: colors.primary }]}>CONFIRM THIS TIME</Text>
             <Text style={[styles.summaryTitle, { color: colors.foreground }]}>{selectedServiceLabel}</Text>
             <Text style={[styles.summaryText, { color: colors.muted }]}>{date} · {time}</Text>
-            <Text style={[styles.summaryText, { color: colors.muted }]}>For {activeChild.name}</Text>
+            <Text style={[styles.summaryText, { color: colors.muted }]}>{activeChild.id ? `For ${activeChild.name}` : "New visit — the child’s details are added below"}</Text>
             <Text style={[styles.summaryLabel, { color: colors.primary, marginTop: 10 }]}>WHO IS THIS VISIT FOR?</Text>
             <Text style={[styles.reviewNote, { color: colors.muted }]}>The clinic needs the child’s name, age and sex, and a contact number. Weight and height are optional.</Text>
             <View style={styles.formField}>

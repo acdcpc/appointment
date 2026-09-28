@@ -38,6 +38,19 @@ export default function Root({ children }: PropsWithChildren) {
           }}
         />
         <ScrollViewStyleReset />
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
+              /* iOS Safari resolves height:100% against the LARGE viewport, so the
+                 bottom of the app sat under the toolbar and the last content could
+                 never be scrolled fully into view. dvh tracks the visible area. */
+              #root, body, html { box-sizing: border-box; }
+              @supports (height: 100dvh) { #root, body, html { height: 100dvh; } }
+              /* Installed-PWA / notch devices: keep app chrome out of the safe areas. */
+              #root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+            `,
+          }}
+        />
       </head>
       <body>{children}</body>
     </html>

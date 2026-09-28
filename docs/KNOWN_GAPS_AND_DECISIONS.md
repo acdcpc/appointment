@@ -60,3 +60,11 @@ LMS series; the chart bands use the SD series, both as published.
 | Visits tab showed a stray `jha.` | A truncated string concatenation in the subtitle. | Removed. |
 
 Still true after these fixes: bookings are confirmed by the clinic by phone/WhatsApp, and the clinician dashboard still needs the tRPC server deployed before appointments reach the clinic electronically.
+
+## Fixed 2026-09-28 — reported from a real iPhone session
+
+| Report | Root cause | Fix |
+|---|---|---|
+| Onboarding: "the bottom part is completely obscured and could not be scrolled" | The exported shell injects `body{overflow:hidden}` (`ScrollViewStyleReset`), so a page can only scroll through its own `ScrollView` — and onboarding had none. Its CTA sat under Safari's toolbar, and `height:100%` resolves against the *large* viewport on iOS. | Onboarding (and report-acknowledgement) now render inside a `ScrollView` with a growing centred column and `bottomClearance` (≥ 48 dp). The shell uses `100dvh` where supported and pads `#root` by `env(safe-area-inset-*)`, so Safari's toolbar and the home indicator never cover reachable content. |
+| "Most of the font is not readable in night mode" (growth page, dark) | The palette's CSS variables were emitted **twice**: on `<html>` at runtime for the selected scheme, and as light values baked into the app wrapper's inline style by the static export. The wrapper copy sits closer to every element, so it shadowed the dark values — the canvas stayed parchment while inline-styled text switched to near-white (~1.1:1). | On web the palette is owned solely by `<html>` (the wrapper `vars()` is native-only) with light defaults in `global.css` for the pre-hydration paint. The growth chart's hard-coded slate greys (down to ~2.4:1 in dark) now use the accessible `muted` token. |
+| "Still default name Aarav coming up" | The prototype seeded three sample children, sample history and sample growth rows in state, and an empty/absent server answer kept them ("no linked children" was treated as failure). A localStorage copy (`rainbow-child-profiles`) survived reloads. | Sample patients removed everywhere: children/history/growth rows start empty and fill only from Supabase (an empty answer is respected); the localStorage copy is purged on every load; growth, booking, home and records show honest empty states instead of a name. |
