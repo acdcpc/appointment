@@ -148,7 +148,7 @@ export default function BookingScreen() {
 
   if (success) {
     return (
-      <ScreenContainer className="p-5" maxWidth={980}>
+      <ScreenContainer className="p-5" bottomClearance maxWidth={980}>
         <View style={styles.successScreen}>
           <View style={[styles.successMark, { backgroundColor: colors.success }]}>
             <Text style={styles.successMarkText}>✓</Text>
@@ -187,7 +187,7 @@ export default function BookingScreen() {
   }
 
   return (
-    <ScreenContainer className="p-5" maxWidth={980}>
+    <ScreenContainer className="p-5" bottomClearance maxWidth={980}>
       <ScrollView showsVerticalScrollIndicator={false}>
         <Pressable onPress={() => router.back()} accessibilityRole="button">
           <Text style={[styles.back, { color: colors.primary }]}>‹ Back / फर्कनुहोस्</Text>

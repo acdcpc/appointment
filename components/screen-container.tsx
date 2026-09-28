@@ -1,7 +1,10 @@
 import { View, type ViewProps } from "react-native";
-import { SafeAreaView, type Edge } from "react-native-safe-area-context";
+import { SafeAreaView, type Edge, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { cn } from "@/lib/utils";
+
+/** Hard floor under anything pinned to the bottom, in dp. */
+export const BOTTOM_CLEARANCE_DP = 48;
 
 export interface ScreenContainerProps extends ViewProps {
   /**
@@ -26,6 +29,13 @@ export interface ScreenContainerProps extends ViewProps {
    * Additional className for the SafeAreaView (content layer).
    */
   safeAreaClassName?: string;
+  /**
+   * Keep a hard bottom clearance of at least 48 dp on screens that are NOT behind
+   * the tab bar. `useSafeAreaInsets().bottom` reports 0 on some Android devices,
+   * and without this the last tappable row sits inside the gesture strip, where
+   * taps are swallowed. Ignored when `edges` already includes "bottom".
+   */
+  bottomClearance?: boolean;
 }
 
 /**
@@ -51,8 +61,13 @@ export function ScreenContainer({
   safeAreaClassName,
   style,
   maxWidth = 760,
+  bottomClearance = false,
   ...props
 }: ScreenContainerProps) {
+  const insets = useSafeAreaInsets();
+  const clearance = bottomClearance && !edges.includes("bottom")
+    ? Math.max(BOTTOM_CLEARANCE_DP, insets.bottom + BOTTOM_CLEARANCE_DP)
+    : 0;
   return (
     <View
       className={cn(
@@ -69,7 +84,7 @@ export function ScreenContainer({
       >
         <View
           className={cn("flex-1 w-full self-center", className)}
-          style={{ maxWidth }}
+          style={clearance ? { maxWidth, paddingBottom: clearance } : { maxWidth }}
         >
           {children}
         </View>

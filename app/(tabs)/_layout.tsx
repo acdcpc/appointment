@@ -92,7 +92,8 @@ export default function TabLayout() {
   const desktopNav = Platform.OS === "web" && width >= 1024;
   const authorityRole = useAuthorityRole();
   const authorityTabs = isAuthorityRole(authorityRole);
-  const bottomPadding = Platform.OS === "web" ? 12 : Math.max(insets.bottom, 8);
+  // A device can report bottom inset 0; keep a floor so the tab bar never sits in the gesture strip.
+  const bottomPadding = Platform.OS === "web" ? 12 : Math.max(insets.bottom, 24);
   const tabBarHeight = Math.max(56, minimumActionHeight + 12) + bottomPadding;
   return (
     <>
