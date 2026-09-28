@@ -41,7 +41,7 @@ builder, then removed).
 | Chart (`components/growth-chart.tsx`) | The child's measured points against the ±2 SD, ±3 SD and median curves, bands labelled with the equivalent centiles, the latest point annotated with its own z-score and centile. |
 | Visit-to-visit comparison (`lib/growth-trend.ts`) | Change, rate (g/day under 120 days, else kg/month; cm/month, cm/year for length), Δz and centile movement between the two most recent visits. A fall of more than 0.67 z — one WHO centile band — is flagged as growth faltering with the follow-up question attached. |
 | Screen (`app/(tabs)/growth.tsx`) | Metric tabs, chart, per-metric interpretation, the change-since-previous-visit card, WHO reference values at the child's age, per-measurement history with its own delta line. English throughout; the tab is for the clinic. |
-| Tests | 8 WHO-maths tests + 9 trend tests; the trend suite includes the regression that a weight change is never reported in centimetres. |
+| Tests | 8 WHO-maths tests + 8 trend tests (16 in the two growth suites); the trend suite includes the regression that a weight change is never reported in centimetres. |
 
 Known nuance, deliberately not "fixed": the SD tables and the LMS tables come from
 different WHO series in the source project (e.g. girls' height-for-age at 24 months:
