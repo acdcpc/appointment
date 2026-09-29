@@ -132,3 +132,12 @@ clinician/growth in dark + light desktop; onboarding/booking/find at phone
 width) and flags any two text elements whose clipped-visible rectangles
 intersect: 7/7 clean. The only reported hits are the known floating "ने · English"
 pill gliding over content while scrolling (expected for a fixed pill).
+
+Build-context badge — corrected and verified (2026-09-29): the earlier entry
+was premature. The first re-export after changing app.config.ts still embedded
+the OLD manifest ("staging") because expo kept a cached bundle of the previous
+config; `expo export --clear` (after removing .expo/dist) embeds the resolved
+value. Verified in a real browser: the badge on rainbowclinic.pages.dev now
+reads "Live environment"; the live bundle carries `appEnvironment:"live"`.
+Lesson: after any app.config.ts / .env change, export with --clear or the
+embedded manifest silently stays stale.
