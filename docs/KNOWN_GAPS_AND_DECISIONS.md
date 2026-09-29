@@ -122,3 +122,13 @@ Age sits 39 px below the day row). Screenshots under docs/screenshots/
 
 Minor, known, cosmetic: the floating language pill can momentarily sit over
 bottom-right content at some scroll positions (moves with scroll; not a blocker).
+
+Verification round (2026-09-29, late): the build-context badge showed "Staging"
+on the production site because EXPO_PUBLIC_APP_ENV was never set — the config
+fallback is now "live" (this repo deploys the live clinic site; other contexts
+must set the variable explicitly) and .env sets it too. New
+`scripts/ui-overlap-sweep.mjs` walks seven pages in a real browser (staff home/
+clinician/growth in dark + light desktop; onboarding/booking/find at phone
+width) and flags any two text elements whose clipped-visible rectangles
+intersect: 7/7 clean. The only reported hits are the known floating "ने · English"
+pill gliding over content while scrolling (expected for a fixed pill).

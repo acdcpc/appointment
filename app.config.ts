@@ -36,7 +36,9 @@ const env = {
   scheme: schemeFromBundleId,
   iosBundleId: bundleId,
   androidPackage: bundleId,
-  appEnvironment: process.env.EXPO_PUBLIC_APP_ENV ?? "staging",
+  // This repo deploys one environment: the live clinic site. Set
+  // EXPO_PUBLIC_APP_ENV=local (or staging) explicitly for other contexts.
+  appEnvironment: process.env.EXPO_PUBLIC_APP_ENV ?? "live",
   releaseNotes: process.env.EXPO_PUBLIC_RELEASE_NOTES ?? "Clinic release: authenticated scheduling and secure operational governance updates.",
 };
 
