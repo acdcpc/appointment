@@ -57,6 +57,8 @@ export default function ProfileTab() {
       heightCm: bookingRequest.heightCm ?? "",
       guardianPhone: bookingRequest.guardianPhone,
       guardianEmail: bookingRequest.guardianEmail ?? "",
+      childDateOfBirth: bookingRequest.childDob ?? "",
+      childDateOfBirthBs: bookingRequest.childDobBs ?? "",
     });
     setBookingMessage(null);
   };
@@ -65,7 +67,7 @@ export default function ProfileTab() {
     const result = await updateMyBookingRequest(bookingRequest.id, bookingDraft);
     setBookingMessage({ ok: result.ok, text: result.message });
     if (result.ok) {
-      setBookingRequest({ ...bookingRequest, ...bookingDraft, weightKg: Number(bookingDraft.weightKg) || undefined, heightCm: Number(bookingDraft.heightCm) || undefined } as BookingRequest);
+      setBookingRequest({ ...bookingRequest, ...bookingDraft, childDob: bookingDraft.childDateOfBirth || undefined, childDobBs: bookingDraft.childDateOfBirthBs || undefined, weightKg: Number(bookingDraft.weightKg) || undefined, heightCm: Number(bookingDraft.heightCm) || undefined } as BookingRequest);
       setBookingDraft(null);
     }
   };

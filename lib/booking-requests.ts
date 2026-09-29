@@ -15,6 +15,9 @@ export type BookingDetails = {
   childAgeYears: string;
   childAgeMonths: string;
   childSex: "male" | "female" | "";
+  /** Stored as displayed: "14 May 2022" (English) and "31 Baisakh 2079" (Bikram Sambat). */
+  childDateOfBirth?: string;
+  childDateOfBirthBs?: string;
   weightKg?: string | number;
   heightCm?: string | number;
   guardianPhone: string;
@@ -27,6 +30,8 @@ export type BookingRequest = {
   childName: string;
   childAge: string;
   childSex: "male" | "female";
+  childDob?: string;
+  childDobBs?: string;
   weightKg?: number;
   heightCm?: number;
   guardianPhone: string;
@@ -47,6 +52,8 @@ export const emptyBookingDetails: BookingDetails = {
   childAgeYears: "",
   childAgeMonths: "",
   childSex: "",
+  childDateOfBirth: "",
+  childDateOfBirthBs: "",
   weightKg: "",
   heightCm: "",
   guardianPhone: "",
@@ -112,6 +119,8 @@ const mapRow = (row: Record<string, unknown>): BookingRequest => ({
   childName: String(row.child_name ?? ""),
   childAge: String(row.child_age ?? ""),
   childSex: String(row.child_sex ?? "male") === "female" ? "female" : "male",
+  childDob: row.child_dob ? String(row.child_dob) : undefined,
+  childDobBs: row.child_dob_bs ? String(row.child_dob_bs) : undefined,
   weightKg: row.weight_kg === null || row.weight_kg === undefined ? undefined : Number(row.weight_kg),
   heightCm: row.height_cm === null || row.height_cm === undefined ? undefined : Number(row.height_cm),
   guardianPhone: String(row.guardian_phone ?? ""),
@@ -145,6 +154,8 @@ export async function saveBookingRequest(input: {
       child_name: input.details.childName.trim(),
       child_age: composeAge(Number(input.details.childAgeYears || 0), Number(input.details.childAgeMonths || 0)),
       child_sex: input.details.childSex,
+      child_dob: input.details.childDateOfBirth?.trim() || null,
+      child_dob_bs: input.details.childDateOfBirthBs?.trim() || null,
       weight_kg: numeric(input.details.weightKg) ?? null,
       height_cm: numeric(input.details.heightCm) ?? null,
       guardian_phone: input.details.guardianPhone.trim(),
@@ -185,6 +196,8 @@ export async function updateMyBookingRequest(id: number, details: BookingDetails
       child_name: details.childName.trim(),
       child_age: composeAge(Number(details.childAgeYears || 0), Number(details.childAgeMonths || 0)),
       child_sex: details.childSex,
+      child_dob: details.childDateOfBirth?.trim() || null,
+      child_dob_bs: details.childDateOfBirthBs?.trim() || null,
       weight_kg: numeric(details.weightKg) ?? null,
       height_cm: numeric(details.heightCm) ?? null,
       guardian_phone: details.guardianPhone.trim(),

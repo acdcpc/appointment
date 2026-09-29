@@ -179,6 +179,11 @@ export function BookingRequestsPanel() {
               <Text style={{ color: colors.foreground, fontSize: 13 }}>
                 {request.guardianPhone}{request.guardianEmail ? ` · ${request.guardianEmail}` : ""}
               </Text>
+              {request.childDob ? (
+                <Text style={{ color: colors.muted, fontSize: 12 }}>
+                  {`DOB: ${request.childDob}${request.childDobBs ? ` · ${request.childDobBs}` : ""}`}
+                </Text>
+              ) : null}
               <Text style={{ color: colors.muted, fontSize: 12 }}>
                 {[
                   request.weightKg !== undefined ? `${request.weightKg} kg` : null,

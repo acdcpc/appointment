@@ -72,10 +72,22 @@ export default function BookingScreen() {
   const [details, setDetails] = useState<BookingDetails>(emptyBookingDetails);
   const [savedNotice, setSavedNotice] = useState("");
 
-  /** The A.D./B.S. date picker resolves the birth date into years and months. */
-  const applyResolvedBirthDate = (result: { years: number; months: number } | null) => {
-    if (!result) return;
-    setDetails((current) => ({ ...current, childAgeYears: String(result.years), childAgeMonths: String(result.months) }));
+  /** The A.D./B.S. date picker resolves the birth date into the age and stores the date itself. */
+  const applyResolvedBirthDate = (result: { years: number; months: number; dobAd: string; dobBs: string } | null) => {
+    if (!result) {
+      // Cleared or switched calendar: drop the stored date (unknown age stays manual).
+      setDetails((current) => (current.childDateOfBirth || current.childDateOfBirthBs
+        ? { ...current, childDateOfBirth: "", childDateOfBirthBs: "" }
+        : current));
+      return;
+    }
+    setDetails((current) => ({
+      ...current,
+      childAgeYears: String(result.years),
+      childAgeMonths: String(result.months),
+      childDateOfBirth: result.dobAd,
+      childDateOfBirthBs: result.dobBs,
+    }));
   };
 
   // Prefill the guardian's own email when they are signed in.
@@ -162,6 +174,9 @@ export default function BookingScreen() {
             <Text style={[styles.summaryTitle, { color: colors.foreground }]}>{selectedServiceLabel}</Text>
             <Text style={[styles.summaryText, { color: colors.muted }]}>{date} · {time}</Text>
             <Text style={[styles.summaryText, { color: colors.muted }]}>{details.childName.trim()}{composeAge(Number(details.childAgeYears || 0), Number(details.childAgeMonths || 0)) ? ` · ${composeAge(Number(details.childAgeYears || 0), Number(details.childAgeMonths || 0))}` : ""}</Text>
+            {details.childDateOfBirth ? (
+              <Text style={[styles.summaryText, { color: colors.muted }]}>Date of birth: {details.childDateOfBirth}{details.childDateOfBirthBs ? ` · ${details.childDateOfBirthBs}` : ""}</Text>
+            ) : null}
           </View>
           <Pressable onPress={shareSummary} style={[styles.primaryButton, { backgroundColor: colors.primary, marginBottom: 12 }]} accessibilityRole="button">
             <Text style={[styles.primaryButtonText, { color: colors.textInverse }]}>Share to WhatsApp / सेयर गर्नुहोस्</Text>

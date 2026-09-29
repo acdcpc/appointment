@@ -21,7 +21,7 @@ import { bilingualText, useLanguagePreference } from "@/lib/language-preference"
  */
 const MAX_AGE_SPAN = 20;
 
-type Resolved = { years: number; months: number };
+type Resolved = { years: number; months: number; dobAd: string; dobBs: string };
 
 export function DobPicker({ onResolved }: { onResolved: (result: Resolved | null) => void }) {
   const colors = useColors();
@@ -66,13 +66,19 @@ export function DobPicker({ onResolved }: { onResolved: (result: Resolved | null
     return { years: Math.floor(months / 12), months: months % 12 };
   }, [resolved]);
 
-  // Tell the caller whenever the resolved age changes (without making the
+  /** Everything the caller stores: age plus the date in both calendars. */
+  const payload = useMemo<Resolved | null>(() => {
+    if (!resolved || !age) return null;
+    return { years: age.years, months: age.months, dobAd: formatClinicDate(resolved), dobBs: formatBsDate(adToBs(resolved)) };
+  }, [resolved, age]);
+
+  // Tell the caller whenever the resolved date changes (without making the
   // caller's callback identity part of the effect dependencies).
   const onResolvedRef = useRef(onResolved);
   useEffect(() => { onResolvedRef.current = onResolved; });
   useEffect(() => {
-    onResolvedRef.current(age);
-  }, [age]);
+    onResolvedRef.current(payload);
+  }, [payload]);
 
   const pick = (setter: (value: number) => void, value: number) => { setter(value); };
 
@@ -85,15 +91,13 @@ export function DobPicker({ onResolved }: { onResolved: (result: Resolved | null
   };
 
   const preview = useMemo(() => {
-    if (!resolved || !age) return null;
-    const english = formatClinicDate(resolved);
-    const nepali = formatBsDate(adToBs(resolved));
-    const ageText = `${age.years} ${t("y", "वर्ष")} ${age.months} ${t("m", "महिना")}`;
+    if (!payload) return null;
+    const ageText = `${payload.years} ${t("y", "वर्ष")} ${payload.months} ${t("m", "महिना")}`;
     return t(
-      `${english} (A.D.) · ${nepali} (B.S.) · age ${ageText}`,
-      `${nepali} (वि.सं.) · ${english} (ई.सं.) · उमेर ${ageText}`,
+      `${payload.dobAd} (A.D.) · ${payload.dobBs} (B.S.) · age ${ageText}`,
+      `${payload.dobBs} (वि.सं.) · ${payload.dobAd} (ई.सं.) · उमेर ${ageText}`,
     );
-  }, [resolved, age, t]);
+  }, [payload, t]);
 
   const hint = unknown
     ? t("Age will be used instead — fill it in below.", "उमेर प्रयोग हुनेछ — तल भर्नुहोस्।")
