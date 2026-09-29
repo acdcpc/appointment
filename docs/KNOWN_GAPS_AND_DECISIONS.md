@@ -82,3 +82,11 @@ Still open from this: there is no in-app form yet for the clinic to create a new
 patient record in `clinic_children` — booking requests bring the details in, but
 the record that the growth chart and guardian linking hang off needs either this
 form or a deliberate import step before real use.
+
+## Fixed 2026-09-29 — owner reports from the live site
+
+| Report | Root cause | Fix |
+|---|---|---|
+| Dark mode: "most of the font is not readable" (staff Clinic home; Mac in light mode with the app set to dark) | The web variant of `hooks/use-color-scheme.web.ts` returned react-native's SYSTEM scheme, not the app's chosen scheme. CSS-variable surfaces (canvas) followed the app's choice while every inline colour (headings, eyebrows, buttons) followed the OS — dark-on-dark. | The web hook now reads the theme context — the app's choice, with the system value only as its initial default — keeping the light hydration gate so the first client render still matches the prerendered HTML. |
+| Booking showed only the next four days; "let visitors choose the date from the calendar" | The day picker was a fixed row of four chips. | New `components/booking-calendar.tsx` — a dependency-free month grid (open / closed / today / selected states, month navigation, 240-day horizon aligned with `upcomingClinicDays`). `lib/clinic-days.ts` gains `parseClinicDay` + tests. |
+| Date of birth had to be typed freehand; support Nepali B.S.; allow "age only" when the date is unknown | One free-text field, A.D. only — awkward on phones and impossible for parents who know the B.S. date. | New `components/dob-picker.tsx`: three scrollable picker rows (year / month / day), English (A.D.) ⇄ Nepali (B.S.) switch, "date of birth not known — I will enter the age instead" checkbox, and a live preview showing both calendars and the computed age. New `lib/nepali-date.ts` wraps the conversion table (BS 2000–2090) and is pinned by tests against the seven known Nepali New Year anchors; impossible days are rejected by roundtrip rather than silently rolling over. |

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatClinicDay, upcomingClinicDays } from "../lib/clinic-days";
+import { formatClinicDay, parseClinicDay, upcomingClinicDays } from "../lib/clinic-days";
 
 describe("upcomingClinicDays", () => {
   const wed = new Date(2026, 8, 16); // Wed 16 Sep 2026
@@ -23,5 +23,24 @@ describe("upcomingClinicDays", () => {
 
   it("formats the leading weekday token the clinic-hours lookup depends on", () => {
     expect(formatClinicDay(new Date(2026, 8, 16)).slice(0, 3)).toBe("Wed");
+  });
+});
+
+describe("parseClinicDay", () => {
+  const ref = new Date(2026, 8, 29); // Tue 29 Sep 2026
+
+  it("resolves a displayed day inside the reference month", () => {
+    expect(parseClinicDay("Wed, Sep 30", ref)?.getTime()).toBe(new Date(2026, 8, 30).getTime());
+  });
+
+  it("treats a month that has passed as next year (year wrap)", () => {
+    expect(parseClinicDay("Fri, Jan 2", ref)?.getTime()).toBe(new Date(2027, 0, 2).getTime());
+    expect(parseClinicDay("Mon, Dec 1", ref)?.getTime()).toBe(new Date(2026, 11, 1).getTime());
+  });
+
+  it("rejects anything that is not a clinic day", () => {
+    expect(parseClinicDay("Funday", ref)).toBeNull();
+    expect(parseClinicDay("Tue, Foo 3", ref)).toBeNull();
+    expect(parseClinicDay("", ref)).toBeNull();
   });
 });

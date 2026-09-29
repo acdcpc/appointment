@@ -7,9 +7,10 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 
 import { composeAge, emptyBookingDetails, saveBookingRequest, validateBookingDetails, type BookingDetails } from "@/lib/booking-requests";
 import { getSupabaseSession } from "@/lib/supabase";
-import { ageInMonths, todayClinicDate } from "@/lib/growth-measurements";
 
 import { ScreenContainer } from "@/components/screen-container";
+import { BookingCalendar } from "@/components/booking-calendar";
+import { DobPicker } from "@/components/dob-picker";
 import { LanguageNavigationToggle } from "@/components/language-navigation-toggle";
 import { clearBookingDraft, loadBookingDraft, saveBookingDraft } from "@/lib/booking-draft";
 import { upcomingClinicDays } from "@/lib/clinic-days";
@@ -47,12 +48,13 @@ export default function BookingScreen() {
   const params = useLocalSearchParams<{ service?: string }>();
   const draft = useMemo(() => loadBookingDraft(), []);
 
-  const dates = useMemo(
-    () => upcomingClinicDays(4, {
-      closedWeekdays: clinicHours.filter((hour) => !hour.isOpen).map((hour) => hour.weekday),
-      closedDates: clinicHolidays.map((holiday) => holiday.date),
-    }),
-    [clinicHours, clinicHolidays],
+  const closedWeekdays = useMemo(() => clinicHours.filter((hour) => !hour.isOpen).map((hour) => hour.weekday), [clinicHours]);
+  const closedDates = useMemo(() => clinicHolidays.map((holiday) => holiday.date), [clinicHolidays]);
+  // The calendar lets a parent pick any open day in this horizon; the old
+  // four-chip row could only ever offer the next four days.
+  const openDays = useMemo(
+    () => upcomingClinicDays(240, { closedWeekdays, closedDates }),
+    [closedWeekdays, closedDates],
   );
 
   const [service, setService] = useState(() => {
@@ -61,7 +63,7 @@ export default function BookingScreen() {
     if (draft?.service && services.some((item) => item.name === draft.service)) return draft.service;
     return services[0]?.name ?? "";
   });
-  const [date, setDate] = useState(() => (dates.includes(draft?.date ?? "") ? (draft?.date as string) : dates[0] ?? ""));
+  const [date, setDate] = useState(() => (openDays.includes(draft?.date ?? "") ? (draft?.date as string) : openDays[0] ?? ""));
   const [time, setTime] = useState(() => draft?.time ?? "");
   const [confirming, setConfirming] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -69,14 +71,11 @@ export default function BookingScreen() {
   const [copyToast, setCopyToast] = useState("");
   const [details, setDetails] = useState<BookingDetails>(emptyBookingDetails);
   const [savedNotice, setSavedNotice] = useState("");
-  const [dobDraft, setDobDraft] = useState("");
 
-  /** Typing a date of birth fills years and months, so nobody has to count. */
-  const applyDateOfBirth = (value: string) => {
-    setDobDraft(value);
-    const months = ageInMonths(value, todayClinicDate());
-    if (months === null || months < 0) return;
-    setDetails((current) => ({ ...current, childAgeYears: String(Math.floor(months / 12)), childAgeMonths: String(months % 12) }));
+  /** The A.D./B.S. date picker resolves the birth date into years and months. */
+  const applyResolvedBirthDate = (result: { years: number; months: number } | null) => {
+    if (!result) return;
+    setDetails((current) => ({ ...current, childAgeYears: String(result.years), childAgeMonths: String(result.months) }));
   };
 
   // Prefill the guardian's own email when they are signed in.
@@ -90,8 +89,8 @@ export default function BookingScreen() {
   }, []);
 
   useEffect(() => {
-    if (dates.length && !dates.includes(date)) { setDate(dates[0]); setTime(""); setConfirming(false); }
-  }, [dates, date]);
+    if (openDays.length && !openDays.includes(date)) { setDate(openDays[0]); setTime(""); setConfirming(false); }
+  }, [openDays, date]);
 
   const availableSlots = getAvailableSlots(date, service);
   const slotGroups = useMemo(
@@ -235,24 +234,12 @@ export default function BookingScreen() {
         </ScrollView>
 
         <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Choose an available day</Text>
-        <View style={styles.dateRow}>
-          {dates.map((item) => (
-            <Pressable
-              key={item}
-              onPress={() => selectDay(item)}
-              accessibilityRole="radio"
-              accessibilityState={{ selected: date === item }}
-              style={[styles.date, {
-                borderColor: date === item ? colors.success : colors.border,
-                backgroundColor: date === item ? colors.tealSurface : colors.surface,
-              }]}
-            >
-              <Text style={[styles.dateDay, { color: date === item ? colors.success : colors.muted }]}>{item.split(", ")[0]}</Text>
-              <Text style={[styles.dateNumber, { color: colors.foreground }]}>{item.split(" ").at(-1)}</Text>
-              <Text style={[styles.available, { color: colors.success }]}>Available</Text>
-            </Pressable>
-          ))}
-        </View>
+        <BookingCalendar
+          value={date}
+          onSelect={selectDay}
+          closedWeekdays={closedWeekdays}
+          closedDates={closedDates}
+        />
 
         <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Choose a time</Text>
         {slotGroups.length ? slotGroups.map((group) => (
@@ -296,8 +283,7 @@ export default function BookingScreen() {
             </View>
             <View style={styles.formField}>
               <Text style={[styles.formLabel, { color: colors.muted }]}>Date of birth (optional)</Text>
-              <TextInput value={dobDraft} onChangeText={applyDateOfBirth} placeholder="14 May 2022" placeholderTextColor={colors.muted} style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background }]} accessibilityLabel="Child date of birth optional" />
-              <Text style={[styles.reviewNote, { color: colors.muted }]}>Enter a date of birth and the age below fills in for you.</Text>
+              <DobPicker onResolved={applyResolvedBirthDate} />
             </View>
             <View style={styles.formRow}>
               <View style={styles.formField}>
@@ -380,11 +366,6 @@ const styles = StyleSheet.create({
   sectionHint: { fontSize: 12, lineHeight: 17, marginTop: 8 },
   chipRow: { gap: 8, paddingVertical: 10 },
   chip: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10 },
-  dateRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 10 },
-  date: { minWidth: 84, borderWidth: 1, borderRadius: 14, padding: 10, alignItems: "center", gap: 2 },
-  dateDay: { fontSize: 11, fontWeight: "900", letterSpacing: 0.6 },
-  dateNumber: { fontSize: 18, fontWeight: "900" },
-  available: { fontSize: 10, fontWeight: "800" },
   slotGroup: { marginTop: 14 },
   groupTitle: { fontSize: 11, fontWeight: "900", letterSpacing: 1 },
   slotRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 },
