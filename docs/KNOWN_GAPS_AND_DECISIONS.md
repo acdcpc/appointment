@@ -141,3 +141,12 @@ value. Verified in a real browser: the badge on rainbowclinic.pages.dev now
 reads "Live environment"; the live bundle carries `appEnvironment:"live"`.
 Lesson: after any app.config.ts / .env change, export with --clear or the
 embedded manifest silently stays stale.
+
+Book visit tab removed from navigation (2026-09-29, owner request): once a
+visit is confirmed, a second "Book visit" destination in the nav read as a
+duplicate of the Home tab's booking button. The tab is gone from the mobile tab
+bar and the desktop top nav for parents (Home / Visits / Growth / Profile now);
+booking stays one tap away on Home, and the /find route still resolves for
+links. Staff navigation untouched. Verified in a real browser:
+scripts/check-nav.mjs — 6/6 (no Book visit entry, Home button opens the booking
+flow, staff nav intact, /find resolves).

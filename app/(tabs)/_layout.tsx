@@ -31,7 +31,6 @@ function DesktopTopNav({ colors, language, setLanguage, authority }: { colors: R
       ]
     : [
         { path: "/", label: language === "ne" ? "गृहपृष्ठ" : "Home" },
-        { path: "/(tabs)/find", label: language === "ne" ? "समय लिनुहोस्" : "Book visit" },
         { path: "/(tabs)/appointments", label: language === "ne" ? "भेटहरू" : "Visits" },
         { path: "/(tabs)/profile", label: language === "ne" ? "प्रोफाइल" : "Profile" },
       ];
@@ -100,7 +99,11 @@ export default function TabLayout() {
     {desktopNav ? <DesktopTopNav colors={colors} language={language} setLanguage={setLanguage} authority={authorityTabs} /> : null}
     <Tabs screenOptions={{ headerShown: false, tabBarActiveTintColor: colors.primary, tabBarInactiveTintColor: colors.muted, tabBarButton: HapticTab, tabBarStyle: desktopNav ? { display: "none" } : { paddingTop: 9, paddingBottom: bottomPadding, height: tabBarHeight + 4, backgroundColor: colors.surface, borderTopColor: colors.border, borderTopWidth: 1 } }}>
       <Tabs.Screen name="index" options={{ title: language === "ne" ? "गृहपृष्ठ" : "Home", tabBarIcon: ({ color }) => <IconSymbol size={24} name="house.fill" color={color} /> }} />
-      <Tabs.Screen name="find" options={{ href: authorityTabs ? null : undefined, title: language === "ne" ? "समय लिनुहोस्" : "Book visit", tabBarIcon: ({ color }) => <IconSymbol size={24} name="magnifyingglass" color={color} /> }} />
+      {/* The Book visit screen is no longer a navigation tab: booking lives on
+          the Home tab ("Book a visit"), and a second nav entry for the same
+          action confused families once a visit was already confirmed. The
+          route stays reachable for links. */}
+      <Tabs.Screen name="find" options={{ href: null, title: language === "ne" ? "समय लिनुहोस्" : "Book visit", tabBarIcon: ({ color }) => <IconSymbol size={24} name="magnifyingglass" color={color} /> }} />
       <Tabs.Screen name="appointments" options={{ href: authorityTabs ? null : undefined, title: language === "ne" ? "भेटहरू" : "Visits", tabBarIcon: ({ color }) => <IconSymbol size={24} name="calendar" color={color} /> }} />
       <Tabs.Screen name="admin" options={{ href: authorityTabs ? undefined : null, title: language === "ne" ? "एडमिन" : "Admin", tabBarIcon: ({ color }) => <IconSymbol size={24} name="shield.lefthalf.filled" color={color} /> }} />
       <Tabs.Screen name="settings" options={{ href: authorityTabs ? undefined : null, title: language === "ne" ? "सेटिङ" : "Settings", tabBarIcon: ({ color }) => <IconSymbol size={24} name="gearshape" color={color} /> }} />
