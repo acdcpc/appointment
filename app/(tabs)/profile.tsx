@@ -291,11 +291,10 @@ export default function ProfileTab() {
           </>
         ) : null}
 
-        <Text style={[styles.section, { color: colors.foreground }]}>{t("Danger zone", "जोखिम क्षेत्र")}</Text>
         <View style={[styles.card, { backgroundColor: colors.dangerSurface, borderColor: colors.error }]}>
           <Text style={[styles.cardTitle, { color: colors.foreground }]}>{t("Delete my account", "मेरो खाता मेटाउनुहोस्")}</Text>
           <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 18 }}>
-            {t("Removes your account and child profile from the app. A record is kept for the super-admin.", "खाता र बच्चाको प्रोफाइल एपबाट हट्छ। रेकर्ड सुपर-एडमिनकहाँ सुरक्षित रहन्छ।")}
+            {t("Removes your account and child profile from the app.", "खाता र बच्चाको प्रोफाइल एपबाट हट्छ।")}
           </Text>
           {confirmDelete ? (
             <View style={{ flexDirection: "row", gap: 10 }}>
@@ -332,14 +331,6 @@ export default function ProfileTab() {
             {t("Pediatric and child development care · hours, closures, and contact details", "बाल र बाल विकास हेरचाह · समय, बन्द दिन र सम्पर्क विवरण")}
           </Text>
           <Text style={{ color: colors.primary, fontWeight: "700", marginTop: 4 }}>{t("Open clinic profile  ›", "क्लिनिक प्रोफाइल खोल्नुहोस्  ›")}</Text>
-        </Pressable>
-
-        <Text style={[styles.section, { color: colors.foreground }]}>{t("Practice team", "क्लिनिक टिम")}</Text>
-        <Pressable onPress={() => router.push("/clinician")} style={[styles.card, { backgroundColor: colors.tealSurface, borderColor: colors.primary }]}>
-          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-            <Text style={[styles.cardTitle, { color: colors.foreground }]}>{t("Dr. Ojha clinician dashboard", "डा. ओझा क्लिनिसियन ड्यासबोर्ड")}</Text>
-            <Text style={{ color: colors.primary, fontSize: 22 }}>›</Text>
-          </View>
         </Pressable>
       </ScrollView>
     </ScreenContainer>

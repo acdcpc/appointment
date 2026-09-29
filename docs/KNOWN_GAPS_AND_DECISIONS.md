@@ -150,3 +150,11 @@ booking stays one tap away on Home, and the /find route still resolves for
 links. Staff navigation untouched. Verified in a real browser:
 scripts/check-nav.mjs — 6/6 (no Book visit entry, Home button opens the booking
 flow, staff nav intact, /find resolves).
+
+Profile tab simplified (2026-09-29, owner request): the "Practice team" section
+(heading + clinician-dashboard card) is gone — staff still reach the dashboard
+through their own Admin tab. The "Danger zone" label is gone too; the delete
+card keeps its two-step confirm and exactly one message: "Removes your account
+and child profile from the app." (the Nepali translation kept for the Nepali
+UI). "Practice information" was left untouched (not part of the request).
+Verified in a real browser: scripts/check-profile.mjs — 7/7.
