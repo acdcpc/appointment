@@ -158,3 +158,21 @@ card keeps its two-step confirm and exactly one message: "Removes your account
 and child profile from the app." (the Nepali translation kept for the Nepali
 UI). "Practice information" was left untouched (not part of the request).
 Verified in a real browser: scripts/check-profile.mjs — 7/7.
+
+Staff sign-in map (2026-09-29, verified in a browser — scripts/check-staff-signin.mjs, 5/5):
+
+- **Clinic admin** (`anilrajojha@pahs.edu.np`) and **super-admin**
+  (`thisispratha@gmail.com`): sign in with their email+password anywhere — the
+  parent sign-in form routes these two emails straight to `/clinician`. On any
+  device where their session exists, the app shows the staff shell (Clinic home
+  + Admin + Settings tabs, floating authority badge), so it is one tap to the
+  dashboard afterwards. Fresh devices open `/clinician` — the shared staff
+  entry ("Clinic team sign in").
+- **Clinical team (invited members)**: same sign-in page with their own email;
+  once activated by the clinic, they see only their assigned workspace.
+  **Honest limit today:** the live static build has no clinic API server
+  connected, so entry falls back to the client authority list — only the two
+  authority emails are admitted; any other email gets "Clinic access required".
+  To admit real team members: connect the API server (full staff management),
+  or temporarily add their emails to the allow-list (one line each in
+  server/clinic-authority.ts).
