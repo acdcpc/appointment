@@ -144,15 +144,15 @@ export function DobPicker({ onResolved }: { onResolved: (result: Resolved | null
 
       {!unknown ? (
         <>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow} accessibilityLabel={t("Birth year", "जन्म वर्ष")}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroller} contentContainerStyle={styles.chipRow} accessibilityLabel={t("Birth year", "जन्म वर्ष")}>
             {(calendar === "AD" ? adYears : bsYears).map((option) =>
               chip(String(option), option === year, () => pick(setYear, option), option, `${t("Year", "वर्ष")} ${option}`))}
           </ScrollView>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow} accessibilityLabel={t("Birth month", "जन्म महिना")}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroller} contentContainerStyle={styles.chipRow} accessibilityLabel={t("Birth month", "जन्म महिना")}>
             {(calendar === "AD" ? MONTH_SHORT : BS_MONTH_NAMES).map((label, index) =>
               chip(label, index === month, () => pick(setMonth, index), label, `${t("Month", "महिना")} ${label}`))}
           </ScrollView>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow} accessibilityLabel={t("Birth day", "जन्म दिन")}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroller} contentContainerStyle={styles.chipRow} accessibilityLabel={t("Birth day", "जन्म दिन")}>
             {dayOptions.map((option) =>
               chip(String(option), option === day, () => pick(setDay, option), option, `${t("Day", "दिन")} ${option}`))}
           </ScrollView>
@@ -170,6 +170,7 @@ const styles = StyleSheet.create({
   checkRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   checkBox: { width: 20, height: 20, borderRadius: 6, borderWidth: 1, alignItems: "center", justifyContent: "center" },
   checkText: { flex: 1, fontSize: 12, lineHeight: 17 },
+  chipScroller: { flexGrow: 0, flexShrink: 0 },
   chipRow: { gap: 8, paddingVertical: 2 },
   chip: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, minHeight: 40, justifyContent: "center" },
   hint: { fontSize: 12, lineHeight: 17 },

@@ -296,7 +296,7 @@ export default function BookingScreen() {
               <Text style={[styles.formLabel, { color: colors.muted }]}>Child’s name</Text>
               <TextInput value={details.childName} onChangeText={setField("childName")} placeholder="Child's full name" placeholderTextColor={colors.muted} style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background }]} accessibilityLabel="Child name" />
             </View>
-            <View style={styles.formField}>
+            <View style={styles.dobField}>
               <Text style={[styles.formLabel, { color: colors.muted }]}>Date of birth (optional)</Text>
               <DobPicker onResolved={applyResolvedBirthDate} />
             </View>
@@ -396,6 +396,9 @@ const styles = StyleSheet.create({
   formField: { flex: 1, minWidth: 140, gap: 4, marginTop: 6 },
   formRow: { flexDirection: "row", gap: 10, flexWrap: "wrap" },
   formLabel: { fontSize: 11, fontWeight: "900", letterSpacing: 0.6 },
+  // No flex:1 here on purpose — see dob-picker: a flex-basis:0% parent collapsed
+  // around the picker's scrollable rows and they overlapped the fields below.
+  dobField: { gap: 4, marginTop: 6 },
   input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 11, fontSize: 15, minHeight: 44 },
   sexRow: { flexDirection: "row", gap: 8 },
   ageRow: { flexDirection: "row", gap: 8 },

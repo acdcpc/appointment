@@ -103,3 +103,22 @@ preserves both fields. Applied via `supabase db push` (the tracking table made
 0016 the only pending migration); verified end-to-end by
 `scripts/verify-booking-dob.ts` (5/5: store, read-back both texts, null when
 absent, cleanup).
+
+Browser-based UI verification introduced (2026-09-29, evening): `scripts/ui-verify.mjs`
+and `scripts/ui-layout-audit.mjs` drive headless Chrome against the deployed site
+(signs in as the clinic admin from .env, never confirms a booking, never signs
+out). 19/19 checks pass: staff-home dark contrast measured in-page (heading
+15.4:1 on #171310), onboarding CTA reachable by scrolling, the booking calendar,
+and the A.D./B.S. picker (auto age fill, both-calendar preview).
+
+The layout audit immediately caught a real bug introduced with the picker: the
+date-of-birth field carried `flex: 1` (flex-basis 0%), which mis-computed the
+field's height as if the three scrollable chip rows contributed nothing — the
+rows overflowed and drew over the Age / Weight fields below. Fixed by giving the
+field its natural height (`dobField`, no flex) and pinning the row scrollers to
+`flexGrow: 0 / flexShrink: 0`; geometry re-verified 3/3 (rows stack in order,
+Age sits 39 px below the day row). Screenshots under docs/screenshots/
+(2026-09-29-*).
+
+Minor, known, cosmetic: the floating language pill can momentarily sit over
+bottom-right content at some scroll positions (moves with scroll; not a blocker).
