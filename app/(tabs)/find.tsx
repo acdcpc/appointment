@@ -4,6 +4,7 @@ import { Redirect, useRouter } from "expo-router";
 import { isAuthorityRole, useAuthorityRole } from "@/lib/authority-role";
 
 import { ScreenContainer } from "@/components/screen-container";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
 import { usePediatricCare } from "@/lib/pediatric-care";
 import { upcomingClinicDays } from "@/lib/clinic-days";
@@ -93,7 +94,7 @@ export default function BookVisitTab() {
         <Text style={[styles.subtitle, { color: colors.muted }]}>Choose a visit type, then pick an open clinic day and time.</Text>
 
         <View style={[styles.search, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={{ color: colors.muted, fontSize: 17 }}>⌕</Text>
+          <IconSymbol name="magnifyingglass" size={18} color={colors.muted} />
           <TextInput
             value={query}
             onChangeText={setQuery}

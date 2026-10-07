@@ -172,6 +172,6 @@ const styles = StyleSheet.create({
   checkText: { flex: 1, fontSize: 12, lineHeight: 17 },
   chipScroller: { flexGrow: 0, flexShrink: 0 },
   chipRow: { gap: 8, paddingVertical: 2 },
-  chip: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, minHeight: 40, justifyContent: "center" },
+  chip: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 9, minHeight: 44, justifyContent: "center" },
   hint: { fontSize: 12, lineHeight: 17 },
 });

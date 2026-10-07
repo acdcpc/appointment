@@ -169,12 +169,12 @@ export function BookingCalendar({
 const styles = StyleSheet.create({
   card: { borderWidth: 1, borderRadius: 16, padding: 12, gap: 8, marginTop: 10 },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  navButton: { width: 36, height: 36, borderRadius: 12, borderWidth: 1, alignItems: "center", justifyContent: "center" },
+  navButton: { width: 44, height: 44, borderRadius: 14, borderWidth: 1, alignItems: "center", justifyContent: "center" },
   monthLabel: { fontSize: 14, fontWeight: "900" },
   weekRow: { flexDirection: "row" },
   weekday: { width: CELL, textAlign: "center", fontSize: 11, fontWeight: "800" },
   grid: { flexDirection: "row", flexWrap: "wrap" },
   cellWrap: { width: CELL, alignItems: "center", paddingVertical: 2 },
-  cell: { width: 36, height: 36, borderRadius: 12, borderWidth: 1, alignItems: "center", justifyContent: "center" },
+  cell: { width: 42, height: 42, borderRadius: 14, borderWidth: 1, alignItems: "center", justifyContent: "center" },
   legend: { fontSize: 11, lineHeight: 15 },
 });

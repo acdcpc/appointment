@@ -22,13 +22,21 @@ const overlayFn = () => {
     const l = Math.max(a.left, b.left), r = Math.min(a.right, b.right), t = Math.max(a.top, b.top), bo = Math.min(a.bottom, b.bottom);
     return r - l > 4 && bo - t > 4 ? { l, r, t, bo, area: (r - l) * (bo - t) } : null;
   };
+  // Structural containers use position:absolute;inset:0 (all four insets set) —
+  // not overlays. A true overlay anchors with a partial inset or is fixed/sticky.
+  // Overlays: fixed/sticky anywhere, or absolute anchored with real inset
+  // values. Structural shells fill with inset 0 (all four 0px/auto).
   const floating = (el) => {
-    let n = el;
-    while (n && n !== document.body) {
+    let n = el; let depth = 0;
+    while (n && n !== document.body && depth < 8) {
       const cs = getComputedStyle(n);
       if (cs.position === "fixed" || cs.position === "sticky") return true;
-      if (cs.position === "absolute" && (cs.top !== "auto" || cs.bottom !== "auto" || cs.left !== "auto" || cs.right !== "auto")) return true;
-      n = n.parentElement;
+      if (cs.position === "absolute") {
+        const vals = [cs.top, cs.left, cs.bottom, cs.right];
+        const zeroFill = vals.every((v) => v === "auto" || parseFloat(v) === 0);
+        if (!zeroFill) return true;
+      }
+      n = n.parentElement; depth++;
     }
     return false;
   };

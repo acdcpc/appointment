@@ -45,7 +45,7 @@ function DesktopTopNav({ colors, language, setLanguage, authority }: { colors: R
             <Text style={{ color: colors.foreground, fontWeight: "900", fontSize: 14 }} numberOfLines={1}>
               Rainbow Child Development Clinic
             </Text>
-            <Text style={{ color: colors.muted, fontWeight: "700", fontSize: 10, marginTop: 1 }} numberOfLines={1}>
+            <Text style={{ color: colors.muted, fontWeight: "700", fontSize: 11, marginTop: 1 }} numberOfLines={1}>
               Associate Professor Dr. Anil Ojha, MBBS, MD, FCCH
             </Text>
           </View>
@@ -97,7 +97,7 @@ export default function TabLayout() {
   return (
     <>
     {desktopNav ? <DesktopTopNav colors={colors} language={language} setLanguage={setLanguage} authority={authorityTabs} /> : null}
-    <Tabs screenOptions={{ headerShown: false, tabBarActiveTintColor: colors.primary, tabBarInactiveTintColor: colors.muted, tabBarButton: HapticTab, tabBarStyle: desktopNav ? { display: "none" } : { paddingTop: 9, paddingBottom: bottomPadding, height: tabBarHeight + 4, backgroundColor: colors.surface, borderTopColor: colors.border, borderTopWidth: 1 } }}>
+    <Tabs screenOptions={{ headerShown: false, tabBarActiveTintColor: colors.primary, tabBarInactiveTintColor: colors.muted, tabBarButton: HapticTab, tabBarLabelStyle: { fontSize: 11, fontWeight: "700" }, tabBarStyle: desktopNav ? { display: "none" } : { paddingTop: 9, paddingBottom: bottomPadding, height: tabBarHeight + 4, backgroundColor: colors.surface, borderTopColor: colors.border, borderTopWidth: 1 } }}>
       <Tabs.Screen name="index" options={{ title: language === "ne" ? "गृहपृष्ठ" : "Home", tabBarIcon: ({ color }) => <IconSymbol size={24} name="house.fill" color={color} /> }} />
       {/* The Book visit screen is no longer a navigation tab: booking lives on
           the Home tab ("Book a visit"), and a second nav entry for the same

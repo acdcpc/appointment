@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { GrowthMotif } from "@/components/growth-motif";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
 import { bilingualText, useLanguagePreference } from "@/lib/language-preference";
 
@@ -19,23 +20,23 @@ export default function Onboarding() {
   const { language } = useLanguagePreference();
   const t = (english: string, nepali: string) => bilingualText(language, english, nepali);
 
-  const features: Array<{ icon: string; title: string; titleNe: string; body: string; bodyNe: string }> = [
+  const features: Array<{ icon: "calendar" | "bell.fill" | "lock.fill"; title: string; titleNe: string; body: string; bodyNe: string }> = [
     {
-      icon: "📅",
+      icon: "calendar",
       title: "Book and manage visits",
       titleNe: "भेट्ने समय मिलाउनुहोस्",
       body: "Choose a visit type, see real availability, confirm or reschedule — no phone queue.",
       bodyNe: "भेटको प्रकार छान्नुहोस्, उपलब्ध समय हेर्नुहोस्, पुष्टि वा परिवर्तन गर्नुहोस् — फोन लाइन बिना।",
     },
     {
-      icon: "🔔",
+      icon: "bell.fill",
       title: "Stay updated",
       titleNe: "अपडेटमा रहनुहोस्",
       body: "Modified clinic hours, reschedule confirmations, and earlier-slot offers appear right here.",
       bodyNe: "क्लिनिक समय परिवर्तन, भेट पुष्टि, र अझै सुरुका समयका प्रस्ताव यहीँ देखिन्छन्।",
     },
     {
-      icon: "🔒",
+      icon: "lock.fill",
       title: "Private by design",
       titleNe: "गोपनीयता सुरक्षित",
       body: "Your child's records are visible only to the guardian account linked by the clinic.",
@@ -78,7 +79,9 @@ export default function Onboarding() {
       <View style={styles.features}>
         {features.map((f) => (
           <View key={f.icon} style={[styles.featureRow, { borderColor: colors.border }]}>
-            <Text style={styles.featureIcon}>{f.icon}</Text>
+            <View style={[styles.featureIconTile, { backgroundColor: colors.tealSurface }]}>
+              <IconSymbol name={f.icon} size={18} color={colors.primary} />
+            </View>
             <View style={{ flex: 1, gap: 2 }}>
               <Text style={[styles.featureTitle, { color: colors.foreground }]}>
                 {t(f.title, f.titleNe)}
@@ -188,8 +191,12 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 14,
   },
-  featureIcon: {
-    fontSize: 22,
+  featureIconTile: {
+    width: 34,
+    height: 34,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
   },
   featureTitle: {
     fontSize: 15,

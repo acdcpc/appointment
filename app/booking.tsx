@@ -162,7 +162,7 @@ export default function BookingScreen() {
       <ScreenContainer className="p-5" bottomClearance maxWidth={980}>
         <View style={styles.successScreen}>
           <View style={[styles.successMark, { backgroundColor: colors.success }]}>
-            <Text style={styles.successMarkText}>✓</Text>
+            <Text style={[styles.successMarkText, { color: colors.textInverse }]}>✓</Text>
           </View>
           <Text style={[styles.title, { color: colors.foreground, textAlign: "center" }]}>Visit requested</Text>
           <Text style={[styles.nepali, { color: colors.primary, textAlign: "center" }]}>भेट्ने समय अनुरोध भयो</Text>
@@ -403,12 +403,12 @@ const styles = StyleSheet.create({
   sexRow: { flexDirection: "row", gap: 8 },
   ageRow: { flexDirection: "row", gap: 8 },
   ageField: { flex: 1, gap: 2 },
-  ageUnit: { fontSize: 10, fontWeight: "800", letterSpacing: 0.4 },
+  ageUnit: { fontSize: 11, fontWeight: "800", letterSpacing: 0.4 },
   sexChip: { flex: 1, borderWidth: 1, borderRadius: 12, paddingVertical: 12, minHeight: 44, alignItems: "center", justifyContent: "center" },
   message: { fontSize: 13, lineHeight: 19, fontWeight: "800", marginTop: 8 },
   primaryButton: { borderRadius: 16, paddingVertical: 15, alignItems: "center", marginTop: 14 },
   primaryButtonText: { fontSize: 15, fontWeight: "900" },
-  secondaryButton: { borderWidth: 1, borderRadius: 16, paddingVertical: 14, alignItems: "center" },
+  secondaryButton: { borderWidth: 1, borderRadius: 16, paddingVertical: 14, minHeight: 44, justifyContent: "center", alignItems: "center" },
   secondaryButtonText: { fontSize: 15, fontWeight: "900" },
   copyToast: { borderRadius: 12, padding: 10, alignItems: "center", marginTop: 10 },
   copyToastText: { fontWeight: "900", fontSize: 13 },
@@ -416,6 +416,6 @@ const styles = StyleSheet.create({
   privacy: { fontSize: 12, lineHeight: 18, marginTop: 18, marginBottom: 8 },
   successScreen: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10, paddingVertical: 24 },
   successMark: { width: 62, height: 62, borderRadius: 24, alignItems: "center", justifyContent: "center" },
-  successMarkText: { color: "#FFFFFF", fontSize: 30, fontWeight: "900" },
+  successMarkText: { fontSize: 30, fontWeight: "900" },
   summary: { borderWidth: 1, borderRadius: 18, padding: 16, gap: 5, width: "100%", marginTop: 12 },
 });

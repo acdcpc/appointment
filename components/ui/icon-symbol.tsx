@@ -22,6 +22,12 @@ const MAPPING = {
   "paperplane.fill": "send",
   "chevron.left.forwardslash.chevron.right": "code",
   "chevron.right": "chevron-right",
+  "bell.fill": "notifications",
+  "lock.fill": "lock",
+  "phone.fill": "call",
+  "mappin.and.ellipse": "place",
+  "info.circle.fill": "info",
+  "message.fill": "chat",
 } as IconMapping;
 
 /**
